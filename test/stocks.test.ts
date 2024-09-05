@@ -1,8 +1,8 @@
 import { Logger } from 'winston';
 import { LaplaceConfiguration } from '../utilities/configuration';
-import { StockClient, AssetClass, HistoricalPricePeriod } from './stocks';
-import { Region, Locale } from './collections';
-import '../utilities/client_test_suite';
+import { StockClient, AssetClass, HistoricalPricePeriod } from '../client/stocks';
+import { Region, Locale } from '../client/collections';
+import './client_test_suite';
 
 
 describe('Stocks', () => {

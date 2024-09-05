@@ -1,8 +1,8 @@
 import { Logger } from 'winston';
 import { LaplaceConfiguration } from '../utilities/configuration';
-import { SearchClient, SearchType } from './search';
-import { Region, Locale } from './collections';
-import '../utilities/client_test_suite';
+import { SearchClient, SearchType } from '../client/search';
+import { Region, Locale } from '../client/collections';
+import './client_test_suite';
 
 
 describe('Search', () => {

@@ -1,7 +1,7 @@
 import { Logger } from 'winston';
 import { LaplaceConfiguration } from '../utilities/configuration';
-import { Client, createClient } from './client';
-import '../utilities/client_test_suite';
+import { Client, createClient } from '../client/client';
+import './client_test_suite';
 
 // Assuming these are defined elsewhere in your project
 enum Region { Tr = 'tr' }

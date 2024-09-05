@@ -1,7 +1,7 @@
 import { Logger } from 'winston';
 import { LaplaceConfiguration } from '../utilities/configuration';
-import { CollectionClient, Region, Locale } from './collections';
-import '../utilities/client_test_suite';
+import { CollectionClient, Region, Locale } from '../client/collections';
+import './client_test_suite';
 
 describe('Collections', () => {
   let client: CollectionClient;

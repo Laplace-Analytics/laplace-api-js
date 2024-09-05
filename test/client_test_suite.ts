@@ -1,7 +1,7 @@
 import * as path from 'path';
 import * as dotenv from 'dotenv';
-import { findModuleRoot } from './fs';
-import { loadGlobal, LaplaceConfiguration } from './configuration';
+import { findModuleRoot } from '../utilities/fs';
+import { loadGlobal, LaplaceConfiguration } from '../utilities/configuration';
 
 const testConfig = './utilities/test.env';
 
