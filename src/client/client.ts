@@ -61,8 +61,8 @@ export class Client {
                 }
               };
 
-              eventSource.onerror = (error) => {
-                reject(new Error(`SSE error: ${error}`));
+              eventSource.onerror = (event) => {
+                reject(new Error(`SSE error: ${JSON.stringify(event)}`));
               };
             });
           }
