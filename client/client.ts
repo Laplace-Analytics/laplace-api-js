@@ -1,6 +1,8 @@
 import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
 import { Logger } from 'winston';
 import { LaplaceConfiguration } from '../utilities/configuration';
+import { EventSourcePolyfill } from 'event-source-polyfill';
+
 
 export class Client {
   private cli: AxiosInstance;
@@ -33,6 +35,48 @@ export class Client {
       }
       throw error;
     }
+  }
+
+  sendSSERequest<T>(url: string): { events: AsyncIterable<T>, cancel: () => void } {
+    const eventSource = new EventSourcePolyfill(url, {
+      headers: {
+        Accept: 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        Connection: 'keep-alive',
+        Authorization: `Bearer ${this.apiKey}`,
+      },
+    });
+
+    const events: AsyncIterable<T> = {
+      async *[Symbol.asyncIterator]() {
+        try {
+          while (true) {
+            yield await new Promise<T>((resolve, reject) => {
+              eventSource.onmessage = (event) => {
+                try {
+                  const data = JSON.parse(event.data);
+                  resolve(data);
+                } catch (error) {
+                  reject(new Error(`Error parsing event data: ${error}`));
+                }
+              };
+
+              eventSource.onerror = (error) => {
+                reject(new Error(`SSE error: ${error}`));
+              };
+            });
+          }
+        } finally {
+          eventSource.close();
+        }
+      },
+    };
+
+    const cancel = () => {
+      eventSource.close();
+    };
+
+    return { events, cancel };
   }
 }
 
