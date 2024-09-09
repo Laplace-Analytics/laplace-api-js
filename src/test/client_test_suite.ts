@@ -3,7 +3,7 @@ import * as dotenv from 'dotenv';
 import { findModuleRoot } from '../utilities/fs';
 import { loadGlobal, LaplaceConfiguration } from '../utilities/configuration';
 
-const testConfig = './utilities/test.env';
+const testConfig = './src/utilities/test.env';
 
 class ClientTestSuite {
   config: LaplaceConfiguration | null = null;

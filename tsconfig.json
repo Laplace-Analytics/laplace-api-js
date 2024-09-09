@@ -6,8 +6,12 @@
     "strict": true,
     "esModuleInterop": true,
     "types": ["jest", "node"],
-    "typeRoots": ["./node_modules/@types", "./types"]
+    "moduleResolution": "node",
+    "typeRoots": ["./node_modules/@types", "./src/types"]
   },
-  "include": ["src/**/*", "jest.setup.ts"],
-  "exclude": ["node_modules", "**/*.spec.ts"]
+  "include": ["src/**/*", "src/jest.setup.ts"],
+  "exclude": ["node_modules", "**/*.spec.ts"],
+  "paths": {
+    "@/*": ["src/*"]
+  }
 }
