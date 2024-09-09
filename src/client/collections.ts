@@ -19,6 +19,10 @@ export enum Locale {
   En = 'en',
 }
 
+export enum SortBy {
+  PriceChange = "price_change"
+}
+
 export interface Collection {
   id: string;
   title: string;
