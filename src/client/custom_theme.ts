@@ -43,11 +43,17 @@ export class CustomThemeClient extends Client {
     });
   }
 
-  private async getCollectionDetailPrivate(id: string, collectionType: CollectionType, locale: Locale, sortBy: SortBy): Promise<CollectionDetail> {
+  private async getCollectionDetailPrivate(id: string, collectionType: CollectionType, locale: Locale, sortBy: SortBy | null): Promise<CollectionDetail> {
+    var params = {}
+    if (sortBy) {
+      params = { locale, sortBy };
+    } else {  
+      params = { locale };
+    }
     return this.sendRequest<CollectionDetail>({
       method: 'GET',
       url: `/api/v1/${collectionType}/${id}`,
-      params: { locale },
+      params: params,
     });
   }
 
