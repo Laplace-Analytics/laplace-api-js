@@ -1,11 +1,6 @@
 import { Client } from './client';
+import { Region } from './collections';
 import { v4 as uuidv4 } from 'uuid';
-
-export enum Region {
-  BIST = 'BIST',
-  US = 'US',
-  // Add other regions as needed
-}
 
 async function* getLivePrice<T>(
   client: Client,
@@ -13,7 +8,7 @@ async function* getLivePrice<T>(
   region: Region
 ): AsyncGenerator<T, void, undefined> {
   const streamId = uuidv4();
-  const url = `${client['baseUrl']}/api/v1/stock/price/live?filter=${symbols.join(',')}&region=${region}&stream=${streamId}`;
+  const url = `${client["baseUrl"]}/api/v1/stock/price/live?filter=${symbols.join(',')}&region=${region}&stream=${streamId}`;
 
   const { events, cancel } = client.sendSSERequest<T>(url);
 

@@ -1,7 +1,8 @@
 import { Logger } from 'winston';
 import { LaplaceConfiguration } from '../utilities/configuration';
 import { Client, createClient } from '../client/client';
-import { LivePriceClient, Region, BISTStockLiveData, USStockLiveData } from '../client/live_price';
+import { LivePriceClient, BISTStockLiveData, USStockLiveData } from '../client/live_price';
+import { Region } from '../client/collections';
 import './client_test_suite';
 
 describe('LivePrice', () => {
@@ -29,8 +30,6 @@ describe('LivePrice', () => {
     const livePriceGenerator = getLivePriceFunc.call(livePriceClient, symbols, region);
     let livePriceCount = 0;
 
-    jest.setTimeout(10000); // 10 seconds timeout
-
     try {
       for await (const livePrice of livePriceGenerator) {
         expect(livePrice).not.toBeEmpty();
@@ -48,11 +47,11 @@ describe('LivePrice', () => {
 
   test('BISTLivePrice', async () => {
     const symbols = ['TUPRS', 'SASA', 'THYAO', 'GARAN', 'YKBN'];
-    await testLivePrice(symbols, Region.BIST, livePriceClient.getLivePriceForBIST);
-  });
+    await testLivePrice(symbols, Region.Tr, livePriceClient.getLivePriceForBIST);
+  }, 10000);
 
   test('USLivePrice', async () => {
     const symbols = ['AAPL', 'GOOGL', 'MSFT', 'AMZN', 'META'];
-    await testLivePrice(symbols, Region.US, livePriceClient.getLivePriceForUS);
-  });
+    await testLivePrice(symbols, Region.Us, livePriceClient.getLivePriceForUS);
+  }, 10000);
 });

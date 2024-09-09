@@ -37,47 +37,54 @@ export class Client {
     }
   }
 
-  sendSSERequest<T>(url: string): { events: AsyncIterable<T>, cancel: () => void } {
-    const eventSource = new EventSourcePolyfill(url, {
-      headers: {
-        Accept: 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        Connection: 'keep-alive',
-        Authorization: `Bearer ${this.apiKey}`,
-      },
-    });
+sendSSERequest<T>(url: string): { events: AsyncIterable<T>, cancel: () => void } {
+  const source = axios.CancelToken.source();
+  var apiKey = this.apiKey;
 
-    const events: AsyncIterable<T> = {
-      async *[Symbol.asyncIterator]() {
-        try {
-          while (true) {
-            yield await new Promise<T>((resolve, reject) => {
-              eventSource.onmessage = (event) => {
-                try {
-                  const data = JSON.parse(event.data);
-                  resolve(data);
-                } catch (error) {
-                  reject(new Error(`Error parsing event data: ${error}`));
-                }
-              };
+  const events: AsyncIterable<T> = {
+    async *[Symbol.asyncIterator]() {
+      try {
+        const response = await axios.get(url, {
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+          },
+          responseType: 'stream',
+          cancelToken: source.token,
+        });
 
-              eventSource.onerror = (event) => {
-                reject(new Error(`SSE error: ${JSON.stringify(event)}`));
-              };
-            });
+        const reader = response.data;
+        const decoder = new TextDecoder();
+
+        for await (const chunk of reader) {
+          const text = decoder.decode(chunk);
+          const lines = text.split('\n').filter(line => line.trim() !== '');
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const data = line.slice(6);
+              try {
+                const parsedData = JSON.parse(data) as T;
+                yield parsedData;
+              } catch (error) {
+                console.error(`Error parsing event data: ${error}`);
+              }
+            }
           }
-        } finally {
-          eventSource.close();
         }
-      },
-    };
+      } catch (error) {
+        if (!axios.isCancel(error)) {
+          console.error(`SSE error: ${error}`);
+        }
+      }
+    },
+  };
 
-    const cancel = () => {
-      eventSource.close();
-    };
+  const cancel = () => {
+    source.cancel('Request cancelled by user');
+  };
 
-    return { events, cancel };
-  }
+  return { events, cancel };
+}
 }
 
 export function createClient(cfg: LaplaceConfiguration, logger: Logger): Client {
