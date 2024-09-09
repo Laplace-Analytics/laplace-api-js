@@ -19,8 +19,7 @@ describe('FinancialFundamentals', () => {
       debug: jest.fn(),
     } as unknown as Logger;
 
-    client = createClient(config, logger);
-    stockClient = new FinancialFundamentalsClient(client);
+    stockClient = new FinancialFundamentalsClient(config, logger);
   });
 
   test('GetStockDividends', async () => {

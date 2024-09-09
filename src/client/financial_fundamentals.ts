@@ -42,38 +42,35 @@ export interface TopMover {
   symbol: string;
   percentChange: number;
 }
-
-export class FinancialFundamentalsClient {
-  constructor(private client: Client) {}
-
+export class FinancialFundamentalsClient extends Client {
   async getStockDividends(symbol: string, region: Region): Promise<StockDividend[]> {
-    const url = new URL(`${this.client['baseUrl']}/api/v1/stock/dividends`);
+    const url = new URL(`${this['baseUrl']}/api/v1/stock/dividends`);
     url.searchParams.append('symbol', symbol);
     url.searchParams.append('region', region);
 
-    return this.client.sendRequest<StockDividend[]>({
+    return this.sendRequest<StockDividend[]>({
       method: 'GET',
       url: url.toString(),
     });
   }
 
   async getStockStats(symbols: string[], keys: StockStatsKey[], region: Region): Promise<StockStats[]> {
-    const url = new URL(`${this.client['baseUrl']}/api/v1/stock/stats`);
+    const url = new URL(`${this['baseUrl']}/api/v1/stock/stats`);
     url.searchParams.append('symbols', symbols.join(','));
     url.searchParams.append('region', region);
     url.searchParams.append('keys', keys.join(','));
 
-    return this.client.sendRequest<StockStats[]>({
+    return this.sendRequest<StockStats[]>({
       method: 'GET',
       url: url.toString(),
     });
   }
 
   async getTopMovers(region: Region): Promise<TopMover[]> {
-    const url = new URL(`${this.client['baseUrl']}/api/v1/stock/top-movers`);
+    const url = new URL(`${this['baseUrl']}/api/v1/stock/top-movers`);
     url.searchParams.append('region', region);
 
-    return this.client.sendRequest<TopMover[]>({
+    return this.sendRequest<TopMover[]>({
       method: 'GET',
       url: url.toString(),
     });

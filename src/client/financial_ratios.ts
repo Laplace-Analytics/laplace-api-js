@@ -101,38 +101,36 @@ export interface FinancialSheetDate {
   year: number;
 }
 
-export class FinancialClient {
-  constructor(private client: Client) {}
-
+export class FinancialClient extends Client  {
   async getFinancialRatioComparison(symbol: string, region: Region): Promise<StockSectorFinancialRatioComparison[]> {
-    const url = new URL(`${this.client['baseUrl']}/api/v1/stock/financial-ratio-comparison`);
+    const url = new URL(`${this['baseUrl']}/api/v1/stock/financial-ratio-comparison`);
     url.searchParams.append('symbol', symbol);
     url.searchParams.append('region', region);
 
-    return this.client.sendRequest<StockSectorFinancialRatioComparison[]>({
+    return this.sendRequest<StockSectorFinancialRatioComparison[]>({
       method: 'GET',
       url: url.toString(),
     });
   }
 
   async getHistoricalRatios(symbol: string, keys: HistoricalRatiosKey[], region: Region): Promise<StockHistoricalRatios> {
-    const url = new URL(`${this.client['baseUrl']}/api/v1/stock/historical-ratios`);
+    const url = new URL(`${this['baseUrl']}/api/v1/stock/historical-ratios`);
     url.searchParams.append('symbol', symbol);
     url.searchParams.append('region', region);
     url.searchParams.append('slugs', keys.join(','));
 
-    return this.client.sendRequest<StockHistoricalRatios>({
+    return this.sendRequest<StockHistoricalRatios>({
       method: 'GET',
       url: url.toString(),
     });
   }
 
   async getHistoricalRatiosDescriptions(locale: Locale, region: Region): Promise<StockHistoricalRatiosDescription[]> {
-    const url = new URL(`${this.client['baseUrl']}/api/v1/stock/historical-ratios/descriptions`);
+    const url = new URL(`${this['baseUrl']}/api/v1/stock/historical-ratios/descriptions`);
     url.searchParams.append('locale', locale);
     url.searchParams.append('region', region);
 
-    return this.client.sendRequest<StockHistoricalRatiosDescription[]>({
+    return this.sendRequest<StockHistoricalRatiosDescription[]>({
       method: 'GET',
       url: url.toString(),
     });
@@ -147,7 +145,7 @@ export class FinancialClient {
     currency: Currency,
     region: Region
   ): Promise<HistoricalFinancialSheets> {
-    const url = new URL(`${this.client['baseUrl']}/api/v1/stock/historical-financial-sheets`);
+    const url = new URL(`${this['baseUrl']}/api/v1/stock/historical-financial-sheets`);
     url.searchParams.append('symbol', symbol);
     url.searchParams.append('from', `${from.year.toString().padStart(4, '0')}-${from.month.toString().padStart(2, '0')}-${from.day.toString().padStart(2, '0')}`);
     url.searchParams.append('to', `${to.year.toString().padStart(4, '0')}-${to.month.toString().padStart(2, '0')}-${to.day.toString().padStart(2, '0')}`);
@@ -156,7 +154,7 @@ export class FinancialClient {
     url.searchParams.append('currency', currency);
     url.searchParams.append('region', region);
 
-    return this.client.sendRequest<HistoricalFinancialSheets>({
+    return this.sendRequest<HistoricalFinancialSheets>({
       method: 'GET',
       url: url.toString(),
     });

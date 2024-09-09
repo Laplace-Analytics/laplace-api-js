@@ -18,8 +18,7 @@ describe('FinancialRatios', () => {
       debug: jest.fn(),
     } as unknown as Logger;
 
-    client = createClient(config, logger);
-    financialClient = new FinancialClient(client);
+    financialClient = new FinancialClient(config, logger);
   });
 
   test('GetFinancialRatioComparison', async () => {
