@@ -62,7 +62,7 @@ export class CustomThemeClient extends Client {
     return this.getAllCollectionsPrivate(CollectionType.CustomTheme, locale);
   }
 
-  async getCustomThemeDetail(id: string, locale: Locale, sortBy: SortBy): Promise<CollectionDetail> {
+  async getCustomThemeDetail(id: string, locale: Locale, sortBy: SortBy | null): Promise<CollectionDetail> {
     return this.getCollectionDetailPrivate(id, CollectionType.CustomTheme, locale, sortBy);
   }
 

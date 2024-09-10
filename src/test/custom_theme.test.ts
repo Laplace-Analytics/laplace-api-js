@@ -80,7 +80,7 @@ describe('CustomTheme', () => {
 
     await testDeleteCustomTheme(id, client);
     await expect(client.getCustomThemeDetail(id, Locale.Tr, SortBy.PriceChange)).rejects.toThrow();
-  }, 10000); // Increase the timeout value to 10000 milliseconds);
+  }, 10000);
 });
 
 async function testCreateCustomTheme(client: CustomThemeClient, createParams: CreateCustomThemeParams): Promise<string> {
@@ -90,7 +90,7 @@ async function testCreateCustomTheme(client: CustomThemeClient, createParams: Cr
 }
 
 async function testGetDetails(id: string, locale: Locale, client: CustomThemeClient, createParams: CreateCustomThemeParams) {
-  const resp = await client.getCustomThemeDetail(id, locale, SortBy.PriceChange);
+  const resp = await client.getCustomThemeDetail(id, locale, null);
   expect(resp).not.toBeEmpty();
 
   expect(resp.title).toBe(createParams.title[locale]);
