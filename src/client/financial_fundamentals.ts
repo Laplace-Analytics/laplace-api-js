@@ -19,8 +19,8 @@ export interface StockStats {
   pbRatio: number;
   yearLow: number;
   yearHigh: number;
-  threeYear: number;
-  fiveYear: number;
+  '3Year': number;
+  '5Year': number;
   symbol: string;
 }
 
