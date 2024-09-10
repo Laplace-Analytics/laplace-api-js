@@ -37,7 +37,7 @@ describe('LaplaceClient', () => {
 
     const res = await client.sendRequest({
       method: 'GET',
-      url: '/api/v1/industry',
+      url: '/api/v1/sector',
       params: {
         region: Region.Tr,
         locale: Locale.Tr,

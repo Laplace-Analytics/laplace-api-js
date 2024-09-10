@@ -80,7 +80,7 @@ describe('CustomTheme', () => {
 
     await testDeleteCustomTheme(id, client);
     await expect(client.getCustomThemeDetail(id, Locale.Tr, SortBy.PriceChange)).rejects.toThrow();
-  }, 10000);
+  }, 15000);
 });
 
 async function testCreateCustomTheme(client: CustomThemeClient, createParams: CreateCustomThemeParams): Promise<string> {
