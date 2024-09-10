@@ -1,7 +1,7 @@
 import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
 import { Logger } from 'winston';
 import { LaplaceConfiguration } from '../utilities/configuration';
-import { EventSourcePolyfill } from 'event-source-polyfill';
+import { LaplaceHTTPError, WrapError } from './errors';
 
 
 export class Client {
@@ -31,7 +31,11 @@ export class Client {
       return response.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
-        throw new Error(`Unexpected status code: ${error.response.status}, body: ${JSON.stringify(error.response.data)}`);
+        const httpError = new LaplaceHTTPError(
+          error.response.status,
+          JSON.stringify(error.response.data)
+        );
+        throw WrapError(httpError);
       }
       throw error;
     }
