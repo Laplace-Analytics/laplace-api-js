@@ -12,27 +12,33 @@ export interface StockDividend {
 
 export interface StockStats {
   previousClose: number;
-  ytdReturn: number;
-  yearlyReturn: number;
   marketCap: number;
   peRatio: number;
   pbRatio: number;
   yearLow: number;
   yearHigh: number;
-  '3Year': number;
-  '5Year': number;
+  weeklyReturn: number;
+  monthlyReturn: number;
+  '3MonthReturn': number;
+  ytdReturn: number;
+  yearlyReturn: number;
+  '3YearReturn': number;
+  '5YearReturn': number;
   symbol: string;
 }
 
 export enum StockStatsKey {
   PreviousClose = 'previous_close',
-  YtdReturn = 'ytd_return',
-  YearlyReturn = 'yearly_return',
   MarketCap = 'market_cap',
   FK = 'fk',
   PDDD = 'pddd',
   YearLow = 'year_low',
   YearHigh = 'year_high',
+  WeeklyReturn = 'weekly_return',
+  MonthlyReturn = 'monthly_return',
+  ThreeMonthReturn = '3_month_return',
+  YtdReturn = 'ytd_return',
+  YearlyReturn = 'yearly_return',
   ThreeYearReturn = '3_year_return',
   FiveYearReturn = '5_year_return',
   LatestPrice = 'latest_price'
