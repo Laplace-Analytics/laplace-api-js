@@ -48,6 +48,8 @@ export interface StockDetail {
   symbol: string;
   description: string;
   localized_description: LocaleString;
+  shortDescription: string;
+  localizedShortDescription: LocaleString;
   region: string;
   sectorId: string;
   industryId: string;
