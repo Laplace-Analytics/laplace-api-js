@@ -30,32 +30,40 @@ describe('FinancialFundamentals', () => {
   test('GetStockStats', async () => {
     var statKeys = [
       StockStatsKey.PreviousClose,
-      StockStatsKey.YtdReturn,
-      StockStatsKey.YearlyReturn,
       StockStatsKey.MarketCap,
       StockStatsKey.FK,
       StockStatsKey.PDDD,
       StockStatsKey.YearLow,
       StockStatsKey.YearHigh,
+      StockStatsKey.WeeklyReturn,
+      StockStatsKey.MonthlyReturn,
+      StockStatsKey.ThreeMonthReturn,
+      StockStatsKey.YtdReturn,
+      StockStatsKey.YearlyReturn,
       StockStatsKey.ThreeYearReturn,
       StockStatsKey.FiveYearReturn,
-      StockStatsKey.LatestPrice,
     ]
     const resp = await stockClient.getStockStats(['TUPRS'], statKeys, Region.Tr);
     expect(resp).not.toBeEmpty();
     expect(resp.length).toBe(1);
-    expect(resp[0].symbol).toBe('TUPRS');
-    expect(resp[0].previousClose).toBeGreaterThan(0);
-    expect(resp[0].ytdReturn).not.toEqual(0);
-    expect(resp[0].yearlyReturn).not.toEqual(0);
-    expect(resp[0].marketCap).toBeGreaterThan(0);
-    expect(resp[0].peRatio).not.toEqual(0);
-    expect(resp[0].pbRatio).not.toEqual(0);
-    expect(resp[0].yearLow).toBeGreaterThan(0);
-    expect(resp[0].yearHigh).toBeGreaterThan(0);
-    // TODO fix these once the endpoint is fixed
-    // expect(resp[0]['3Year']).not.toEqual(0);
-    // expect(resp[0]['5Year']).not.toEqual(0);
+  
+
+      var currentStockStats = resp[0];
+      expect(currentStockStats).not.toBeEmpty();
+      expect(currentStockStats.symbol).toBe('TUPRS');
+      expect(currentStockStats.previousClose).toBeGreaterThan(0.0);
+      expect(currentStockStats.marketCap).toBeGreaterThan(0.0);
+      expect(currentStockStats.peRatio).not.toBe(0.0);
+      expect(currentStockStats.pbRatio).not.toBe(0.0);
+      expect(currentStockStats.yearLow).toBeGreaterThan(0.0);
+      expect(currentStockStats.yearHigh).toBeGreaterThan(0.0);
+      expect(currentStockStats.weeklyReturn).not.toBe(0.0);
+      expect(currentStockStats.monthlyReturn).not.toBe(0.0);
+      expect(currentStockStats['3MonthReturn']).not.toBe(0.0);
+      expect(currentStockStats.ytdReturn).not.toBe(0.0);
+      expect(currentStockStats.yearlyReturn).not.toBe(0.0);
+      expect(currentStockStats['3YearReturn']).not.toBe(0.0);
+      expect(currentStockStats['5YearReturn']).not.toBe(0.0);
   });
 
   test('GetTopMovers', async () => {
