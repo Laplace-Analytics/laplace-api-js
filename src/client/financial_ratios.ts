@@ -31,6 +31,7 @@ export interface StockHistoricalRatiosValue {
 }
 
 export interface StockHistoricalRatiosFormatting {
+  name: string;
   slug: string;
   precision: number;
   multiplier: number;
