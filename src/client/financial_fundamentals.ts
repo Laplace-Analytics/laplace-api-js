@@ -25,6 +25,10 @@ export interface StockStats {
   '3YearReturn': number;
   '5YearReturn': number;
   symbol: string;
+  latestPrice: number;
+  dailyChange: number;
+  dayLow: number;
+  dayHigh: number;
 }
 
 export enum StockStatsKey {
@@ -32,8 +36,11 @@ export enum StockStatsKey {
   MarketCap = 'market_cap',
   FK = 'fk',
   PDDD = 'pddd',
+  DayLow = 'day_low',
+  DayHigh = 'day_high',
   YearLow = 'year_low',
   YearHigh = 'year_high',
+  DailyChange = 'daily_change',
   WeeklyReturn = 'weekly_return',
   MonthlyReturn = 'monthly_return',
   ThreeMonthReturn = '3_month_return',

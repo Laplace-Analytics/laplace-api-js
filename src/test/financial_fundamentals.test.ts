@@ -42,6 +42,10 @@ describe('FinancialFundamentals', () => {
       StockStatsKey.YearlyReturn,
       StockStatsKey.ThreeYearReturn,
       StockStatsKey.FiveYearReturn,
+      StockStatsKey.LatestPrice,
+      StockStatsKey.DailyChange,
+      StockStatsKey.DayLow,
+      StockStatsKey.DayHigh,
     ]
     const resp = await stockClient.getStockStats(['TUPRS'], statKeys, Region.Tr);
     expect(resp).not.toBeEmpty();
@@ -64,6 +68,10 @@ describe('FinancialFundamentals', () => {
       expect(currentStockStats.yearlyReturn).not.toBe(0.0);
       expect(currentStockStats['3YearReturn']).not.toBe(0.0);
       expect(currentStockStats['5YearReturn']).not.toBe(0.0);
+      expect(currentStockStats.latestPrice).toBeGreaterThan(0.0);
+      expect(currentStockStats.dailyChange).not.toBe(0.0);
+      expect(currentStockStats.dayLow).toBeGreaterThan(0.0);
+      expect(currentStockStats.dayHigh).toBeGreaterThan(0.0);
   });
 
   test('GetTopMovers', async () => {
