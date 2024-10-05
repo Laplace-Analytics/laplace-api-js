@@ -2,21 +2,18 @@ import { Client } from './client';
 import { Region } from './collections';
 import { v4 as uuidv4 } from 'uuid';
 
-async function* getLivePrice<T>(
+function getLivePrice<T>(
   client: Client,
   symbols: string[],
   region: Region,
   streamId: string = uuidv4(),
-): AsyncGenerator<T, void, undefined> {
+): {
+  events: AsyncIterable<T>,
+  cancel: () => void
+} {
   const url = `${client["baseUrl"]}/api/v1/stock/price/live?filter=${symbols.join(',')}&region=${region}&stream=${streamId}`;
 
-  const { events, cancel } = client.sendSSERequest<T>(url);
-
-  try {
-    yield* events;
-  } finally {
-    cancel();
-  }
+  return client.sendSSERequest<T>(url);
 }
 
 export interface BISTStockLiveData {
@@ -36,7 +33,10 @@ export class LivePriceClient extends Client {
     symbols: string[], 
     region: Region,
     streamId?: string,
-  ): AsyncGenerator<BISTStockLiveData, void, undefined> {
+  ): {
+    events: AsyncIterable<BISTStockLiveData>,
+    cancel: () => void
+  } {
     return getLivePrice<BISTStockLiveData>(this, symbols, region, streamId);
   }
 
@@ -44,7 +44,10 @@ export class LivePriceClient extends Client {
     symbols: string[], 
     region: Region,
     streamId?: string,
-  ): AsyncGenerator<USStockLiveData, void, undefined> {
+  ): {
+    events: AsyncIterable<USStockLiveData>,
+    cancel: () => void
+  } {
     return getLivePrice<USStockLiveData>(this, symbols, region, streamId);
   }
 }
