@@ -31,14 +31,12 @@ export interface USStockLiveData {
   ap: number; // AskPrice
 }
 
-export class LivePriceClient {
-  constructor(private client: Client) {}
-
+export class LivePriceClient extends Client {
   getLivePriceForBIST(symbols: string[], region: Region): AsyncGenerator<BISTStockLiveData, void, undefined> {
-    return getLivePrice<BISTStockLiveData>(this.client, symbols, region);
+    return getLivePrice<BISTStockLiveData>(this, symbols, region);
   }
 
   getLivePriceForUS(symbols: string[], region: Region): AsyncGenerator<USStockLiveData, void, undefined> {
-    return getLivePrice<USStockLiveData>(this.client, symbols, region);
+    return getLivePrice<USStockLiveData>(this, symbols, region);
   }
 }
