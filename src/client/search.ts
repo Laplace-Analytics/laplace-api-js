@@ -11,10 +11,10 @@ export enum SearchType {
 export interface SearchResponseStock {
   id: string;
   name: string;
-  symbol: string;
+  title: string;
   region: string;
-  assetClass: string;
   assetType: string;
+  type: string;
 }
 
 export interface SearchResponseCollection {
