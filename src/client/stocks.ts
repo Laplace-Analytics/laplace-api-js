@@ -34,6 +34,7 @@ export interface Stock {
   industryId: string;
   updatedDate: string;
   dailyChange?: number;
+  active?: boolean;
 }
 
 export interface LocaleString {
