@@ -42,7 +42,7 @@ export interface Stock {
   industryId: string;
   updatedDate: string;
   dailyChange?: number;
-  active?: boolean;
+  active: boolean;
 }
 
 export interface LocaleString {
@@ -63,6 +63,7 @@ export interface StockDetail {
   sectorId: string;
   industryId: string;
   updatedDate: string;
+  active: boolean;
 }
 
 export interface PriceDataPoint {
