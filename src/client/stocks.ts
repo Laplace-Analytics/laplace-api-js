@@ -25,6 +25,14 @@ export enum HistoricalPricePeriod {
   FiveYear = '5Y',
 }
 
+export enum HistoricalPriceInterval {
+  OneMinute = "1m",
+  FiveMinute = "5m",
+  ThirtyMinute = "30m",
+  OneHour = "1h",
+  OneDay = "24h",
+}
+
 export interface Stock {
   id: string;
   assetType: AssetType;
@@ -34,7 +42,7 @@ export interface Stock {
   industryId: string;
   updatedDate: string;
   dailyChange?: number;
-  active?: boolean;
+  active: boolean;
 }
 
 export interface LocaleString {
@@ -55,6 +63,19 @@ export interface StockDetail {
   sectorId: string;
   industryId: string;
   updatedDate: string;
+  active: boolean;
+  markets: Market[];
+}
+
+export enum Market {
+  Yildiz = "YILDIZ",
+  Ana = "ANA",
+  Alt = "ALT",
+  YakinIzleme = "YAKIN_IZLEME",
+  POIP = "POIP",
+  Fon = "FON",
+  Girisim = "GIRISIM",
+  Emtia = "EMTIA",
 }
 
 export interface PriceDataPoint {
@@ -75,6 +96,28 @@ export interface StockPriceGraph {
   '2Y': PriceDataPoint[];
   '3Y': PriceDataPoint[];
   '5Y': PriceDataPoint[];
+}
+
+export interface StockRestriction {
+  id: number;
+  title: string;
+  description: string;
+  startDate: string;
+  endDate: string;
+}
+
+export interface TickRule {
+  basePrice: number;
+  additionalPrice: number;
+  lowerPriceLimit: number;
+  upperPriceLimit: number;
+  rules: TickSizeRule[];
+}
+
+export interface TickSizeRule {
+  priceFrom: number;
+  priceTo: number;
+  tickSize: number;
 }
 
 export class StockClient extends Client {
@@ -111,6 +154,41 @@ export class StockClient extends Client {
         region,
         keys: keys.join(','),
       },
+    });
+  }
+
+  async getCustomHistoricalPrices(stock: string, region: Region, fromDate: string, toDate: string, interval: HistoricalPriceInterval, detail: boolean): Promise<PriceDataPoint[]> {
+    this.validateCustomHistoricalPriceDate(fromDate);
+    this.validateCustomHistoricalPriceDate(toDate);
+
+    return this.sendRequest<PriceDataPoint[]>({
+      method: 'GET',
+      url: '/api/v1/stock/price/interval',
+      params: { stock, region, fromDate, toDate, interval, detail },
+    });
+  }
+
+  async validateCustomHistoricalPriceDate(date: string) {
+    const pattern =  /^\d{4}-\d{2}-\d{2}( \d{2}:\d{2}:\d{2})?$/;
+    const matched = date.match(pattern);
+    if (!matched) {
+      throw new Error("Invalid date format, allowed formats: YYYY-MM-DD, YYYY-MM-DD HH:MM:SS");
+    }
+  }
+
+  async getStockRestrictions(symbol: string, region: Region): Promise<StockRestriction[]> {
+    return this.sendRequest<StockRestriction[]>({
+      method: 'GET',
+      url: '/api/v1/stock/restrictions',
+      params: { symbol, region },
+    });
+  }
+
+  async getTickRules(symbol: string, region: Region): Promise<TickRule> {
+    return this.sendRequest<TickRule>({
+      method: 'GET',
+      url: '/api/v1/stock/rules',
+      params: { symbol, region },
     });
   }
 }
