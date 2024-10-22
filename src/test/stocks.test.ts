@@ -48,4 +48,8 @@ describe('Stocks', () => {
       expect(price).not.toBeEmpty();
     }
   });
+
+  test('GetStockRestrictions', async () => {
+    await client.getStockRestrictions("TUPRS", Region.Tr);
+  });
 });

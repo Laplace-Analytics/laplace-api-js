@@ -77,6 +77,14 @@ export interface StockPriceGraph {
   '5Y': PriceDataPoint[];
 }
 
+export interface StockRestriction {
+  id: number;
+  title: string;
+  description: string;
+  startDate: string;
+  endDate: string;
+}
+
 export class StockClient extends Client {
   async getAllStocks(region: Region): Promise<Stock[]> {
     return this.sendRequest<Stock[]>({
@@ -111,6 +119,14 @@ export class StockClient extends Client {
         region,
         keys: keys.join(','),
       },
+    });
+  }
+
+  async getStockRestrictions(symbol: string, region: Region): Promise<StockRestriction[]> {
+    return this.sendRequest<StockRestriction[]>({
+      method: 'GET',
+      url: '/api/v1/stock/restrictions',
+      params: { symbol, region },
     });
   }
 }
