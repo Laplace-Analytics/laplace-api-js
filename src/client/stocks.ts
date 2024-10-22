@@ -93,6 +93,20 @@ export interface StockRestriction {
   endDate: string;
 }
 
+export interface TickRule {
+  basePrice: number;
+  additionalPrice: number;
+  lowerPriceLimit: number;
+  upperPriceLimit: number;
+  rules: TickSizeRule[];
+}
+
+export interface TickSizeRule {
+  priceFrom: number;
+  priceTo: number;
+  tickSize: number;
+}
+
 export class StockClient extends Client {
   async getAllStocks(region: Region): Promise<Stock[]> {
     return this.sendRequest<Stock[]>({
@@ -153,6 +167,14 @@ export class StockClient extends Client {
     return this.sendRequest<StockRestriction[]>({
       method: 'GET',
       url: '/api/v1/stock/restrictions',
+      params: { symbol, region },
+    });
+  }
+
+  async getTickRules(symbol: string, region: Region): Promise<TickRule> {
+    return this.sendRequest<TickRule>({
+      method: 'GET',
+      url: '/api/v1/stock/rules',
       params: { symbol, region },
     });
   }

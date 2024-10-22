@@ -82,4 +82,9 @@ describe('Stocks', () => {
   test('GetStockRestrictions', async () => {
     await client.getStockRestrictions("TUPRS", Region.Tr);
   });
+
+  test('GetTickRules', async () => {
+    const resp = await client.getTickRules("TUPRS", Region.Tr);
+    expect(resp).not.toBeEmpty();
+  });
 });
