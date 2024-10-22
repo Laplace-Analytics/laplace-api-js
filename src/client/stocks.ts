@@ -64,6 +64,18 @@ export interface StockDetail {
   industryId: string;
   updatedDate: string;
   active: boolean;
+  markets: Market[];
+}
+
+export enum Market {
+  Yildiz = "YILDIZ",
+  Ana = "ANA",
+  Alt = "ALT",
+  YakinIzleme = "YAKIN_IZLEME",
+  POIP = "POIP",
+  Fon = "FON",
+  Girisim = "GIRISIM",
+  Emtia = "EMTIA",
 }
 
 export interface PriceDataPoint {
