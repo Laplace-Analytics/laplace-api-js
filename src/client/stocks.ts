@@ -25,6 +25,14 @@ export enum HistoricalPricePeriod {
   FiveYear = '5Y',
 }
 
+export enum HistoricalPriceInterval {
+  OneMinute = "1m",
+  FiveMinute = "5m",
+  ThirtyMinute = "30m",
+  OneHour = "1h",
+  OneDay = "24h",
+}
+
 export interface Stock {
   id: string;
   assetType: AssetType;
@@ -120,6 +128,25 @@ export class StockClient extends Client {
         keys: keys.join(','),
       },
     });
+  }
+
+  async getCustomHistoricalPrices(stock: string, region: Region, fromDate: string, toDate: string, interval: HistoricalPriceInterval, detail: boolean): Promise<PriceDataPoint[]> {
+    this.validateCustomHistoricalPriceDate(fromDate);
+    this.validateCustomHistoricalPriceDate(toDate);
+
+    return this.sendRequest<PriceDataPoint[]>({
+      method: 'GET',
+      url: '/api/v1/stock/price/interval',
+      params: { stock, region, fromDate, toDate, interval, detail },
+    });
+  }
+
+  async validateCustomHistoricalPriceDate(date: string) {
+    const pattern =  /^\d{4}-\d{2}-\d{2}( \d{2}:\d{2}:\d{2})?$/;
+    const matched = date.match(pattern);
+    if (!matched) {
+      throw new Error("Invalid date format, allowed formats: YYYY-MM-DD, YYYY-MM-DD HH:MM:SS");
+    }
   }
 
   async getStockRestrictions(symbol: string, region: Region): Promise<StockRestriction[]> {
