@@ -27,10 +27,16 @@ export enum HistoricalPricePeriod {
 
 export enum HistoricalPriceInterval {
   OneMinute = "1m",
+  ThreeMinute = "3m",
   FiveMinute = "5m",
+  FifteenMinute = "15m",
   ThirtyMinute = "30m",
   OneHour = "1h",
-  OneDay = "24h",
+  TwoHour = "2h",
+  OneDay = "1d",
+  FiveDay = "5d",
+  SevenDay = "7d",
+  ThirtyDay = "30d",
 }
 
 export interface Stock {
