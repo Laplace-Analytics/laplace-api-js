@@ -67,13 +67,13 @@ export class CustomThemeClient extends Client {
   }
 
   async createCustomTheme(params: CreateCustomThemeParams): Promise<string> {    
-    const response = await this.sendRequest<string>({
+    const response = await this.sendRequest<{ id: string }>({
       method: 'POST',
       url: `/api/v1/custom-theme`,
       data: params,
     });
 
-    return response;
+    return response.id;
   }
 
   async updateCustomTheme(id: string, params: UpdateCustomThemeParams): Promise<void> {
