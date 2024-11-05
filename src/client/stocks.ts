@@ -127,11 +127,15 @@ export interface TickSizeRule {
 }
 
 export class StockClient extends Client {
-  async getAllStocks(region: Region): Promise<Stock[]> {
+  async getAllStocks(region: Region, page: number|null = null, pageSize: number|null = null): Promise<Stock[]> {
     return this.sendRequest<Stock[]>({
       method: 'GET',
-      url: '/api/v1/stock/all',
-      params: { region },
+      url: '/api/v2/stock/all',
+      params: { 
+        region, 
+        ...(page !== null ? { page } : {}),
+        ...(pageSize !== null ? { pageSize } : {}),
+      },
     });
   }
 

@@ -26,6 +26,13 @@ describe('Stocks', () => {
     expect(resp).not.toBeEmpty();
   });
 
+
+  test('GetAllStocksWithPagination', async () => {
+    const resp = await client.getAllStocks(Region.Tr, 10, 10);
+    expect(resp).not.toBeEmpty();
+    expect(resp.length).toBe(10);
+  });
+
   test('GetStockDetailByID', async () => {
     const resp = await client.getStockDetailById("61dd0d6f0ec2114146342fd0", Locale.Tr);
     expect(resp).not.toBeEmpty();
