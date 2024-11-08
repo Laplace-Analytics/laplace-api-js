@@ -55,21 +55,13 @@ export interface LocaleString {
   [key: string]: string;
 }
 
-export interface StockDetail {
-  id: string;
-  assetType: AssetType;
+export interface StockDetail extends Stock {
   assetClass: AssetClass;
-  name: string;
-  symbol: string;
   description: string;
   localized_description: LocaleString;
   shortDescription: string;
   localizedShortDescription: LocaleString;
   region: string;
-  sectorId: string;
-  industryId: string;
-  updatedDate: string;
-  active: boolean;
   markets: Market[];
 }
 
