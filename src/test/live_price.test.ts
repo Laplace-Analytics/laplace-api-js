@@ -4,7 +4,7 @@ import {
   LivePriceClient,
   BISTStockLiveData,
   LivePriceWebSocketService,
-} from "../client/live_price";
+} from "../client/live-price";
 import { Region } from "../client/collections";
 import "./client_test_suite";
 
