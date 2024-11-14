@@ -2,6 +2,13 @@ import { Client } from "./client";
 import { Region } from "./collections";
 import WebSocket from "ws";
 
+interface WebSocketOptions {
+  enableLogging?: boolean;
+  reconnectAttempts?: number;
+  reconnectDelay?: number;
+  maxReconnectDelay?: number;
+}
+
 type WebSocketMessage<T> = {
   type: string;
   message: T;
@@ -28,25 +35,97 @@ export class WebSocketError extends Error {
 }
 
 export class LivePriceWebSocketService {
-  private static ws: WebSocket | null = null;
-  private static activeSymbols: Set<string> = new Set();
-  private static reconnectAttempts = 0;
-  private static reconnectTimeout: NodeJS.Timeout | null = null;
-  private static isIntentionalClose = false;
-  private static wsUrl: string | null = null;
+  private ws: WebSocket | null = null;
+  private activeSymbols: Set<string> = new Set();
+  private reconnectAttempts = 0;
+  private reconnectTimeout: NodeJS.Timeout | null = null;
+  private isIntentionalClose = false;
+  private wsUrl: string | null = null;
 
-  private static readonly MAX_RECONNECT_ATTEMPTS = 5;
-  private static readonly INITIAL_RECONNECT_DELAY = 1000;
-  private static readonly MAX_RECONNECT_DELAY = 30000;
+  private readonly options: Required<WebSocketOptions>;
 
-  private static async attemptReconnect() {
+  constructor(options: WebSocketOptions = {}) {
+    this.options = {
+      enableLogging: true,
+      reconnectAttempts: 5,
+      reconnectDelay: 1000,
+      maxReconnectDelay: 30000,
+      ...options,
+    };
+  }
+
+  private log(message: string, level: "info" | "error" = "info") {
+    if (!this.options.enableLogging) return;
+
+    const prefix = `[LivePriceWebSocket][${level.toUpperCase()}]`;
+    if (level === "error") {
+      console.error(`${prefix} ${message}`);
+    } else {
+      console.info(`${prefix} ${message}`);
+    }
+  }
+
+  async connect(url: string): Promise<WebSocket> {
+    this.log("Connecting to WebSocket...");
+    this.wsUrl = url;
+
+    if (!this.ws || this.ws.readyState === WebSocket.CLOSED) {
+      this.ws = new WebSocket(url);
+      await this.setupWebSocket();
+    }
+
+    return this.ws;
+  }
+
+  private async setupWebSocket(): Promise<void> {
+    if (!this.ws) {
+      throw new WebSocketError(
+        "WebSocket not initialized",
+        WebSocketErrorType.WEBSOCKET_NOT_INITIALIZED
+      );
+    }
+
+    return new Promise((resolve, reject) => {
+      if (!this.ws)
+        return reject(
+          new WebSocketError(
+            "WebSocket not initialized",
+            WebSocketErrorType.WEBSOCKET_NOT_INITIALIZED
+          )
+        );
+
+      this.ws.onopen = () => {
+        this.reconnectAttempts = 0;
+        this.log("WebSocket connected");
+        resolve();
+      };
+
+      this.ws.onerror = (error) => {
+        reject(
+          new WebSocketError(
+            `WebSocket connection error: ${error}`,
+            WebSocketErrorType.CONNECTION_ERROR
+          )
+        );
+      };
+
+      this.ws.onclose = () => {
+        this.log("WebSocket closed");
+        if (!this.isIntentionalClose) {
+          this.attemptReconnect();
+        }
+      };
+    });
+  }
+
+  private async attemptReconnect() {
     if (
       this.isIntentionalClose ||
-      this.reconnectAttempts >= this.MAX_RECONNECT_ATTEMPTS
+      this.reconnectAttempts >= this.options.reconnectAttempts
     ) {
-      if (this.reconnectAttempts >= this.MAX_RECONNECT_ATTEMPTS) {
+      if (this.reconnectAttempts >= this.options.reconnectAttempts) {
         throw new WebSocketError(
-          `Maximum reconnection attempts (${this.MAX_RECONNECT_ATTEMPTS}) reached`,
+          `Maximum reconnection attempts (${this.options.reconnectAttempts}) reached`,
           WebSocketErrorType.MAX_RECONNECT_EXCEEDED
         );
       }
@@ -55,12 +134,12 @@ export class LivePriceWebSocketService {
 
     this.reconnectAttempts++;
     const delay = Math.min(
-      this.INITIAL_RECONNECT_DELAY * Math.pow(2, this.reconnectAttempts - 1),
-      this.MAX_RECONNECT_DELAY
+      this.options.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1),
+      this.options.maxReconnectDelay
     );
 
-    console.log(
-      `Attempting to reconnect (${this.reconnectAttempts}/${this.MAX_RECONNECT_ATTEMPTS}) in ${delay}ms...`
+    this.log(
+      `Attempting to reconnect (${this.reconnectAttempts}/${this.options.reconnectAttempts}) in ${delay}ms...`
     );
 
     if (this.reconnectTimeout) {
@@ -77,47 +156,35 @@ export class LivePriceWebSocketService {
       } catch (error) {
         this.attemptReconnect();
       }
-    }, delay);
+    }, delay).unref();
   }
 
-  static async connect(url: string) {
-    this.wsUrl = url;
-    if (!this.ws || this.ws.readyState === WebSocket.CLOSED) {
-      this.ws = new WebSocket(url);
-      await new Promise<void>((resolve, reject) => {
-        if (!this.ws)
-          throw new WebSocketError(
-            "WebSocket not initialized",
-            WebSocketErrorType.WEBSOCKET_NOT_INITIALIZED
-          );
-
-        this.ws.onopen = () => {
-          this.reconnectAttempts = 0;
-          console.log("WebSocket connected");
-          resolve();
-        };
-        this.ws.onerror = (error) => {
-          reject(new WebSocketError(`WebSocket connection error: ${error}`, WebSocketErrorType.CONNECTION_ERROR));
-        };
-        this.ws.onclose = () => {
-          if (!this.isIntentionalClose) {
-            this.attemptReconnect();
-          }
-        };
-      });
-    }
-    return this.ws;
-  }
-
-  static getLivePrice(
+  getLivePrice(
     symbols: string[],
     onMessage: (data: BISTStockLiveData) => void,
     onError: (error: Error) => void
   ) {
     if (!this.ws) {
-      throw new WebSocketError('WebSocket not initialized', WebSocketErrorType.WEBSOCKET_NOT_INITIALIZED);
+      throw new WebSocketError(
+        "WebSocket not initialized",
+        WebSocketErrorType.WEBSOCKET_NOT_INITIALIZED
+      );
     }
+
     this.updateSymbols(symbols);
+    this.setupMessageHandlers(onMessage, onError);
+
+    return {
+      cleanup: () => this.cleanup(),
+      update: (newSymbols: string[]) => this.updateSymbols(newSymbols),
+    };
+  }
+
+  private setupMessageHandlers(
+    onMessage: (data: BISTStockLiveData) => void,
+    onError: (error: Error) => void
+  ) {
+    if (!this.ws) return;
 
     this.ws.onmessage = (event) => {
       try {
@@ -126,56 +193,80 @@ export class LivePriceWebSocketService {
         ) as WebSocketMessage<BISTStockLiveData>;
         onMessage(data.message);
       } catch (error) {
-        onError(new WebSocketError('Failed to parse WebSocket message', WebSocketErrorType.MESSAGE_PARSE_ERROR));
+        onError(
+          new WebSocketError(
+            "Failed to parse WebSocket message",
+            WebSocketErrorType.MESSAGE_PARSE_ERROR
+          )
+        );
       }
     };
 
     this.ws.onerror = (event) => {
-      onError(new WebSocketError(`WebSocket error: ${event.error}`, WebSocketErrorType.WEBSOCKET_ERROR));
-    };
-
-    const updateSymbols = (newSymbols: string[]) => {
-      this.updateSymbols(newSymbols);
-    };
-
-    return {
-      cleanup: () => {
-        if (this.ws) {
-          this.ws.onmessage = null;
-          this.ws.onerror = null;
-        }
-        this.updateSymbols([]);
-        this.close();
-      },
-      update: updateSymbols,
+      onError(
+        new WebSocketError(
+          `WebSocket error: ${event.error}`,
+          WebSocketErrorType.WEBSOCKET_ERROR
+        )
+      );
     };
   }
 
-  static close() {
+  private async cleanup() {
     if (this.ws) {
+      this.ws.onmessage = null;
+      this.ws.onerror = null;
+      
       if (this.ws.readyState === WebSocket.OPEN) {
-        this.isIntentionalClose = true;
-        if (this.activeSymbols.size > 0) {
-          this.ws.send(
-            JSON.stringify({
-              type: "unsubscribe",
-              symbols: Array.from(this.activeSymbols),
-            })
-          );
-        }
-        this.ws.close();
+        await this.updateSymbols([]);
       }
-      this.ws = null;
-      this.activeSymbols.clear();
+    }
+    
+    await this.close();
+  }
+
+  async close(): Promise<void> {
+    if (this.ws?.readyState === WebSocket.OPEN) {
+      this.isIntentionalClose = true;
+
+      if (this.activeSymbols.size > 0) {
+        this.ws.send(
+          JSON.stringify({
+            type: "unsubscribe",
+            symbols: Array.from(this.activeSymbols),
+          })
+        );
+      }
+
+      await new Promise<void>((resolve) => {
+        if (!this.ws) {
+          resolve();
+          return;
+        }
+
+        this.ws.onclose = () => {
+          resolve();
+        };
+
+        this.ws.close();
+      });
+    }
+
+    this.ws = null;
+    this.activeSymbols.clear();
+
+    if (this.reconnectTimeout) {
+      clearTimeout(this.reconnectTimeout);
+      this.reconnectTimeout = null;
     }
   }
 
-  private static updateSymbols(newSymbols: string[]) {
+  private async updateSymbols(newSymbols: string[]) {
     if (!this.ws) {
-      throw new WebSocketError('WebSocket not initialized', WebSocketErrorType.WEBSOCKET_NOT_INITIALIZED);
+      return;
     }
     if (this.ws.readyState !== WebSocket.OPEN) {
-      throw new WebSocketError('WebSocket not connected', WebSocketErrorType.WEBSOCKET_NOT_CONNECTED);
+      return;
     }
 
     const symbolsToAdd = newSymbols.filter((s) => !this.activeSymbols.has(s));
