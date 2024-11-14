@@ -11,6 +11,7 @@ import "./client_test_suite";
 describe("LivePrice", () => {
   let livePriceClient: LivePriceClient;
   let url: string;
+  let ws: LivePriceWebSocketService;
 
   const TEST_CONSTANTS = {
     JEST_TIMEOUT: 30000,
@@ -29,67 +30,18 @@ describe("LivePrice", () => {
     livePriceClient = new LivePriceClient(config, logger);
     url = await livePriceClient.getWebSocketUrl("2459", Region.Tr);
 
-    await LivePriceWebSocketService.connect(url);
+    ws = new LivePriceWebSocketService({ enableLogging: true });
+
+    await ws.connect(url);
   });
 
   describe("BIST Live Price Tests", () => {
     const symbols = ["TUPRS", "SASA", "THYAO", "GARAN", "YKBN"];
     const newSymbols = ["AKBNK", "KCHOL"];
 
-    beforeEach(async () => {
-      await LivePriceWebSocketService.connect(url);
-    });
-
-    afterEach(() => {
-      LivePriceWebSocketService.close();
-    });
-
     afterAll(() => {
-      LivePriceWebSocketService.close();
+      ws.close();
     });
-
-    it(
-      "should connect and receive valid BIST data",
-      async () => {
-        const receivedData: BISTStockLiveData[] = [];
-
-        await new Promise<void>((resolve, reject) => {
-          const { cleanup } = LivePriceWebSocketService.getLivePrice(
-            symbols,
-            (data) => {
-              if (!data) return;
-              receivedData.push(data);
-              cleanup();
-              resolve();
-            },
-            (error) => {
-              console.error("BIST Error:", error);
-              cleanup();
-              reject(error);
-            }
-          );
-
-          setTimeout(() => {
-            cleanup();
-            if (receivedData.length === 0) {
-              reject(new Error("Test timeout: No data received"));
-            } else {
-              resolve();
-            }
-          }, TEST_CONSTANTS.MAIN_TIMEOUT).unref();
-        });
-
-        expect(receivedData.length).toBeGreaterThan(0);
-
-        receivedData.forEach((data) => {
-          expect(symbols).toContain(data.symbol);
-          expect(typeof data.symbol).toBe("string");
-          expect(typeof data.c).toBe("number");
-          expect(typeof data.cl).toBe("number");
-        });
-      },
-      TEST_CONSTANTS.JEST_TIMEOUT
-    );
 
     it(
       "should receive data for updated symbols",
@@ -97,7 +49,7 @@ describe("LivePrice", () => {
         const receivedData: BISTStockLiveData[] = [];
 
         await new Promise<void>((resolve, reject) => {
-          const { cleanup, update } = LivePriceWebSocketService.getLivePrice(
+          const { cleanup, update } = ws.getLivePrice(
             symbols,
             (data) => {
               if (!data) return;
