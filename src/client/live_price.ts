@@ -7,6 +7,26 @@ type WebSocketMessage<T> = {
   message: T;
 };
 
+export enum WebSocketErrorType {
+  MAX_RECONNECT_EXCEEDED = "MAX_RECONNECT_EXCEEDED",
+  CONNECTION_ERROR = "CONNECTION_ERROR",
+  WEBSOCKET_NOT_INITIALIZED = "WEBSOCKET_NOT_INITIALIZED",
+  MESSAGE_PARSE_ERROR = "MESSAGE_PARSE_ERROR",
+  WEBSOCKET_NOT_CONNECTED = "WEBSOCKET_NOT_CONNECTED",
+  WEBSOCKET_ERROR = "WEBSOCKET_ERROR",
+  UNKNOWN_ERROR = "UNKNOWN_ERROR",
+}
+
+export class WebSocketError extends Error {
+  constructor(
+    message: string,
+    public readonly code: WebSocketErrorType = WebSocketErrorType.UNKNOWN_ERROR
+  ) {
+    super(message);
+    this.name = "WebSocketError";
+  }
+}
+
 export class LivePriceWebSocketService {
   private static ws: WebSocket | null = null;
   private static activeSymbols: Set<string> = new Set();
@@ -25,8 +45,9 @@ export class LivePriceWebSocketService {
       this.reconnectAttempts >= this.MAX_RECONNECT_ATTEMPTS
     ) {
       if (this.reconnectAttempts >= this.MAX_RECONNECT_ATTEMPTS) {
-        console.error(
-          `Maximum reconnection attempts (${this.MAX_RECONNECT_ATTEMPTS}) reached`
+        throw new WebSocketError(
+          `Maximum reconnection attempts (${this.MAX_RECONNECT_ATTEMPTS}) reached`,
+          WebSocketErrorType.MAX_RECONNECT_EXCEEDED
         );
       }
       return;
@@ -54,7 +75,6 @@ export class LivePriceWebSocketService {
         }
         this.reconnectAttempts = 0;
       } catch (error) {
-        console.error("Reconnection failed:", error);
         this.attemptReconnect();
       }
     }, delay);
@@ -65,7 +85,11 @@ export class LivePriceWebSocketService {
     if (!this.ws || this.ws.readyState === WebSocket.CLOSED) {
       this.ws = new WebSocket(url);
       await new Promise<void>((resolve, reject) => {
-        if (!this.ws) return reject("No WebSocket instance");
+        if (!this.ws)
+          throw new WebSocketError(
+            "WebSocket not initialized",
+            WebSocketErrorType.WEBSOCKET_NOT_INITIALIZED
+          );
 
         this.ws.onopen = () => {
           this.reconnectAttempts = 0;
@@ -73,7 +97,7 @@ export class LivePriceWebSocketService {
           resolve();
         };
         this.ws.onerror = (error) => {
-          reject(error);
+          reject(new WebSocketError(`WebSocket connection error: ${error}`, WebSocketErrorType.CONNECTION_ERROR));
         };
         this.ws.onclose = () => {
           if (!this.isIntentionalClose) {
@@ -88,10 +112,11 @@ export class LivePriceWebSocketService {
   static getLivePrice(
     symbols: string[],
     onMessage: (data: BISTStockLiveData) => void,
-    onError: (error: Error) => void = console.error
+    onError: (error: Error) => void
   ) {
-    if (!this.ws) throw new Error("WebSocket not initialized");
-
+    if (!this.ws) {
+      throw new WebSocketError('WebSocket not initialized', WebSocketErrorType.WEBSOCKET_NOT_INITIALIZED);
+    }
     this.updateSymbols(symbols);
 
     this.ws.onmessage = (event) => {
@@ -101,12 +126,12 @@ export class LivePriceWebSocketService {
         ) as WebSocketMessage<BISTStockLiveData>;
         onMessage(data.message);
       } catch (error) {
-        onError(error as Error);
+        onError(new WebSocketError('Failed to parse WebSocket message', WebSocketErrorType.MESSAGE_PARSE_ERROR));
       }
     };
 
     this.ws.onerror = (event) => {
-      onError(new Error(`WebSocket error: ${event.error}`));
+      onError(new WebSocketError(`WebSocket error: ${event.error}`, WebSocketErrorType.WEBSOCKET_ERROR));
     };
 
     const updateSymbols = (newSymbols: string[]) => {
@@ -146,7 +171,12 @@ export class LivePriceWebSocketService {
   }
 
   private static updateSymbols(newSymbols: string[]) {
-    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
+    if (!this.ws) {
+      throw new WebSocketError('WebSocket not initialized', WebSocketErrorType.WEBSOCKET_NOT_INITIALIZED);
+    }
+    if (this.ws.readyState !== WebSocket.OPEN) {
+      throw new WebSocketError('WebSocket not connected', WebSocketErrorType.WEBSOCKET_NOT_CONNECTED);
+    }
 
     const symbolsToAdd = newSymbols.filter((s) => !this.activeSymbols.has(s));
     const symbolsToRemove = Array.from(this.activeSymbols).filter(
