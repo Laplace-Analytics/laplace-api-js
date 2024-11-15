@@ -30,59 +30,51 @@ describe("LivePrice", () => {
     livePriceClient = new LivePriceClient(config, logger);
     url = await livePriceClient.getWebSocketUrl("2459", Region.Tr);
 
-    ws = new LivePriceWebSocketService({ enableLogging: true });
+    ws = new LivePriceWebSocketService({
+      enableLogging: true,
+    });
 
     await ws.connect(url);
   });
 
+  afterAll(async () => {
+    await ws.cleanup();
+  });
+
   describe("BIST Live Price Tests", () => {
-    const symbols = ["TUPRS", "SASA", "THYAO", "GARAN", "YKBN"];
+    const symbols = ["TUPRS", "SASA", "THYAO", "GARAN", "YKBNK"];
     const newSymbols = ["AKBNK", "KCHOL"];
 
-    afterAll(() => {
-      ws.close();
-    });
-
     it(
-      "should receive data for updated symbols",
+      "should receive data for initial and updated symbols",
       async () => {
         const receivedData: BISTStockLiveData[] = [];
 
         await new Promise<void>((resolve, reject) => {
-          const { cleanup, update } = ws.getLivePrice(
-            symbols,
-            (data) => {
-              if (!data) return;
-              receivedData.push(data);
+          const timeoutId = setTimeout(() => {
+            reject(new Error("Test timeout: No data received"));
+          }, TEST_CONSTANTS.MAIN_TIMEOUT).unref();
 
-              if (symbols.includes(data.symbol)) {
-                update(newSymbols);
-              }
+          const initialHandler = (data: BISTStockLiveData) => {
+            receivedData.push(data);
 
-              if (newSymbols.includes(data.symbol)) {
-                cleanup();
-                resolve();
-              }
-            },
-            (error) => {
-              console.error("BIST Error:", error);
-              cleanup();
-              reject(error);
+            if (symbols.includes(data.symbol)) {
+              ws.unsubscribe(symbols, initialHandler);
+              ws.subscribe(newSymbols, newSymbolHandler);
             }
-          );
+          };
 
-          setTimeout(() => {
-            cleanup();
-            if (
-              !receivedData.some((data) => newSymbols.includes(data.symbol))
-            ) {
-              reject(
-                new Error("Test timeout: No data received for new symbols")
-              );
-            } else {
+          const newSymbolHandler = (data: BISTStockLiveData) => {
+            receivedData.push(data);
+
+            if (newSymbols.includes(data.symbol)) {
+              clearTimeout(timeoutId);
+              ws.unsubscribe(newSymbols, newSymbolHandler);
               resolve();
             }
-          }, TEST_CONSTANTS.MAIN_TIMEOUT).unref();
+          };
+
+          ws.subscribe(symbols, initialHandler);
         });
 
         const newSymbolData = receivedData.filter((data) =>
@@ -104,9 +96,43 @@ describe("LivePrice", () => {
         const oldSymbolDataAfterUpdate = dataAfterUpdate.filter((data) =>
           symbols.includes(data.symbol)
         );
+
         expect(oldSymbolDataAfterUpdate.length).toBe(0);
       },
       TEST_CONSTANTS.JEST_TIMEOUT
     );
+
+    it("should handle multiple subscriptions for the same symbol", async () => {
+      const symbol = "GARAN";
+      const receivedData1: BISTStockLiveData[] = [];
+      const receivedData2: BISTStockLiveData[] = [];
+
+      await new Promise<void>((resolve, reject) => {
+        const timeoutId = setTimeout(() => {
+          reject(new Error("Test timeout: No data received"));
+        }, TEST_CONSTANTS.MAIN_TIMEOUT).unref();
+
+        const handler1 = (data: BISTStockLiveData) => {
+          receivedData1.push(data);
+        };
+
+        const handler2 = (data: BISTStockLiveData) => {
+          receivedData2.push(data);
+          if (receivedData2.length >= 2) {
+            clearTimeout(timeoutId);
+            ws.unsubscribe([symbol], handler1);
+            ws.unsubscribe([symbol], handler2);
+            resolve();
+          }
+        };
+
+        ws.subscribe([symbol], handler1);
+        ws.subscribe([symbol], handler2);
+      });
+
+      expect(receivedData1.length).toBeGreaterThan(0);
+      expect(receivedData2.length).toBeGreaterThan(0);
+      expect(receivedData1).toEqual(receivedData2);
+    });
   });
 });
