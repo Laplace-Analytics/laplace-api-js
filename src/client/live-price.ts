@@ -305,7 +305,7 @@ export class LivePriceClient extends Client {
     region: Region
   ): Promise<string> {
     const url = new URL(
-      "http://pricesocket-alb-1393137587.eu-central-1.elb.amazonaws.com/api/v1/ws/url"
+      `${this['baseUrl']}/api/v1/ws/url`
     );
     url.searchParams.append("region", region);
     url.searchParams.append("accessLevel", "KRMD1");
