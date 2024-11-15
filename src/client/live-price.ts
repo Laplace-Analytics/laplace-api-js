@@ -37,11 +37,11 @@ export class WebSocketError extends Error {
 export class LivePriceWebSocketService {
   private ws: WebSocket | null = null;
   private activeSymbols: Set<string> = new Set();
+  private handlers: Record<string, ((data: BISTStockLiveData) => void)[]> = {};
   private reconnectAttempts = 0;
   private reconnectTimeout: NodeJS.Timeout | null = null;
   private isIntentionalClose = false;
   private wsUrl: string | null = null;
-
   private readonly options: Required<WebSocketOptions>;
 
   constructor(options: WebSocketOptions = {}) {
@@ -86,13 +86,14 @@ export class LivePriceWebSocketService {
     }
 
     return new Promise((resolve, reject) => {
-      if (!this.ws)
+      if (!this.ws) {
         return reject(
           new WebSocketError(
             "WebSocket not initialized",
             WebSocketErrorType.WEBSOCKET_NOT_INITIALIZED
           )
         );
+      }
 
       this.ws.onopen = () => {
         this.reconnectAttempts = 0;
@@ -113,6 +114,21 @@ export class LivePriceWebSocketService {
         this.log("WebSocket closed");
         if (!this.isIntentionalClose) {
           this.attemptReconnect();
+        }
+      };
+
+      this.ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(
+            event.data.toString()
+          ) as WebSocketMessage<BISTStockLiveData>;
+
+          const handlers = this.handlers[data.message.symbol];
+          if (handlers) {
+            handlers.forEach((handler) => handler(data.message));
+          }
+        } catch (error) {
+          this.log(`Failed to parse WebSocket message: ${error}`, "error");
         }
       };
     });
@@ -159,70 +175,81 @@ export class LivePriceWebSocketService {
     }, delay).unref();
   }
 
-  getLivePrice(
+  subscribe(
     symbols: string[],
-    onMessage: (data: BISTStockLiveData) => void,
-    onError: (error: Error) => void
-  ) {
-    if (!this.ws) {
-      throw new WebSocketError(
-        "WebSocket not initialized",
-        WebSocketErrorType.WEBSOCKET_NOT_INITIALIZED
-      );
+    handler: (data: BISTStockLiveData) => void
+  ): void {
+    for (const symbol of symbols) {
+      if (!this.handlers[symbol]) {
+        this.handlers[symbol] = [];
+      }
+      this.handlers[symbol].push(handler);
+
+      if (this.handlers[symbol].length === 1) {
+        this.activeSymbols.add(symbol);
+        this.updateSymbols([symbol]);
+      }
     }
-
-    this.updateSymbols(symbols);
-    this.setupMessageHandlers(onMessage, onError);
-
-    return {
-      cleanup: () => this.cleanup(),
-      update: (newSymbols: string[]) => this.updateSymbols(newSymbols),
-    };
   }
 
-  private setupMessageHandlers(
-    onMessage: (data: BISTStockLiveData) => void,
-    onError: (error: Error) => void
-  ) {
-    if (!this.ws) return;
+  unsubscribe(
+    symbols: string[],
+    handler?: (data: BISTStockLiveData) => void
+  ): void {
+    for (const symbol of symbols) {
+      if (!this.handlers[symbol]) continue;
 
-    this.ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(
-          event.data.toString()
-        ) as WebSocketMessage<BISTStockLiveData>;
-        onMessage(data.message);
-      } catch (error) {
-        onError(
-          new WebSocketError(
-            "Failed to parse WebSocket message",
-            WebSocketErrorType.MESSAGE_PARSE_ERROR
-          )
+      if (handler) {
+        this.handlers[symbol] = this.handlers[symbol].filter(
+          (h) => h !== handler
         );
+      } else {
+        this.handlers[symbol] = [];
       }
-    };
 
-    this.ws.onerror = (event) => {
-      onError(
-        new WebSocketError(
-          `WebSocket error: ${event.error}`,
-          WebSocketErrorType.WEBSOCKET_ERROR
-        )
-      );
-    };
-  }
-
-  private async cleanup() {
-    if (this.ws) {
-      this.ws.onmessage = null;
-      this.ws.onerror = null;
-      
-      if (this.ws.readyState === WebSocket.OPEN) {
-        await this.updateSymbols([]);
+      if (this.handlers[symbol].length === 0) {
+        this.activeSymbols.delete(symbol);
+        this.updateSymbols([]);
+        delete this.handlers[symbol];
       }
     }
-    
-    await this.close();
+  }
+
+  private async updateSymbols(symbols: string[]) {
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
+
+    const symbolsToAdd = symbols.filter((s) => !this.activeSymbols.has(s));
+    const symbolsToRemove = Array.from(this.activeSymbols).filter(
+      (s) => !symbols.includes(s) && !this.handlers[s]?.length
+    );
+
+    if (symbolsToRemove.length > 0) {
+      this.ws.send(
+        JSON.stringify({
+          type: "unsubscribe",
+          symbols: symbolsToRemove,
+        })
+      );
+    }
+
+    if (symbolsToAdd.length > 0) {
+      this.ws.send(
+        JSON.stringify({
+          type: "subscribe",
+          symbols: symbolsToAdd,
+        })
+      );
+    }
+  }
+
+  async cleanup(): Promise<void> {
+    this.handlers = {};
+    this.activeSymbols.clear();
+
+    if (this.ws?.readyState === WebSocket.OPEN) {
+      this.isIntentionalClose = true;
+      await this.close();
+    }
   }
 
   async close(): Promise<void> {
@@ -258,40 +285,6 @@ export class LivePriceWebSocketService {
     if (this.reconnectTimeout) {
       clearTimeout(this.reconnectTimeout);
       this.reconnectTimeout = null;
-    }
-  }
-
-  private async updateSymbols(newSymbols: string[]) {
-    if (!this.ws) {
-      return;
-    }
-    if (this.ws.readyState !== WebSocket.OPEN) {
-      return;
-    }
-
-    const symbolsToAdd = newSymbols.filter((s) => !this.activeSymbols.has(s));
-    const symbolsToRemove = Array.from(this.activeSymbols).filter(
-      (s) => !newSymbols.includes(s)
-    );
-
-    if (symbolsToRemove.length > 0) {
-      this.ws.send(
-        JSON.stringify({
-          type: "unsubscribe",
-          symbols: symbolsToRemove,
-        })
-      );
-      symbolsToRemove.forEach((s) => this.activeSymbols.delete(s));
-    }
-
-    if (symbolsToAdd.length > 0) {
-      this.ws.send(
-        JSON.stringify({
-          type: "subscribe",
-          symbols: symbolsToAdd,
-        })
-      );
-      symbolsToAdd.forEach((s) => this.activeSymbols.add(s));
     }
   }
 }
