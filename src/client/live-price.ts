@@ -17,11 +17,19 @@ type WebSocketMessage<T> = {
 export enum WebSocketErrorType {
   MAX_RECONNECT_EXCEEDED = "MAX_RECONNECT_EXCEEDED",
   CONNECTION_ERROR = "CONNECTION_ERROR",
+  CLOSE_ERROR = "CLOSE_ERROR",
   WEBSOCKET_NOT_INITIALIZED = "WEBSOCKET_NOT_INITIALIZED",
   MESSAGE_PARSE_ERROR = "MESSAGE_PARSE_ERROR",
   WEBSOCKET_NOT_CONNECTED = "WEBSOCKET_NOT_CONNECTED",
   WEBSOCKET_ERROR = "WEBSOCKET_ERROR",
   UNKNOWN_ERROR = "UNKNOWN_ERROR",
+}
+
+export enum WebSocketCloseReason {
+  NORMAL_CLOSURE = "NORMAL_CLOSURE",
+  CONNECTION_ERROR = "CONNECTION_ERROR",
+  MAX_RECONNECT_EXCEEDED = "MAX_RECONNECT_EXCEEDED",
+  UNKNOWN = "UNKNOWN",
 }
 
 export class WebSocketError extends Error {
@@ -40,7 +48,8 @@ export class LivePriceWebSocketService {
   private handlers: Record<string, ((data: BISTStockLiveData) => void)[]> = {};
   private reconnectAttempts = 0;
   private reconnectTimeout: NodeJS.Timeout | null = null;
-  private isIntentionalClose = false;
+  private isClosed: boolean = false;
+  private closedReason: WebSocketCloseReason | null = null;
   private wsUrl: string | null = null;
   private readonly options: Required<WebSocketOptions>;
 
@@ -111,9 +120,31 @@ export class LivePriceWebSocketService {
       };
 
       this.ws.onclose = () => {
+        this.isClosed = true;
         this.log("WebSocket closed");
-        if (!this.isIntentionalClose) {
-          this.attemptReconnect();
+        if (this.closedReason !== WebSocketCloseReason.NORMAL_CLOSURE) {
+          try {
+            this.attemptReconnect();
+          } catch (error) {
+            if (error instanceof WebSocketError) {
+              switch (error.code) {
+                case WebSocketErrorType.MAX_RECONNECT_EXCEEDED:
+                  this.closedReason =
+                    WebSocketCloseReason.MAX_RECONNECT_EXCEEDED;
+                  break;
+                case WebSocketErrorType.CONNECTION_ERROR:
+                case WebSocketErrorType.WEBSOCKET_NOT_INITIALIZED:
+                  this.closedReason = WebSocketCloseReason.CONNECTION_ERROR;
+                  break;
+                default:
+                  this.closedReason = WebSocketCloseReason.UNKNOWN;
+                  break;
+              }
+            } else {
+              this.closedReason = WebSocketCloseReason.UNKNOWN;
+            }
+            this.log(`Failed to reconnect: ${error}`, "error");
+          }
         }
       };
 
@@ -135,17 +166,17 @@ export class LivePriceWebSocketService {
   }
 
   private async attemptReconnect() {
-    if (
-      this.isIntentionalClose ||
-      this.reconnectAttempts >= this.options.reconnectAttempts
-    ) {
-      if (this.reconnectAttempts >= this.options.reconnectAttempts) {
-        throw new WebSocketError(
-          `Maximum reconnection attempts (${this.options.reconnectAttempts}) reached`,
-          WebSocketErrorType.MAX_RECONNECT_EXCEEDED
-        );
-      }
-      return;
+    if (!this.wsUrl) {
+      throw new WebSocketError(
+        "WebSocket URL is not set",
+        WebSocketErrorType.WEBSOCKET_NOT_INITIALIZED
+      );
+    }
+    if (this.reconnectAttempts >= this.options.reconnectAttempts) {
+      throw new WebSocketError(
+        `Maximum reconnection attempts (${this.options.reconnectAttempts}) reached`,
+        WebSocketErrorType.MAX_RECONNECT_EXCEEDED
+      );
     }
 
     this.reconnectAttempts++;
@@ -160,6 +191,7 @@ export class LivePriceWebSocketService {
 
     if (this.reconnectTimeout) {
       clearTimeout(this.reconnectTimeout);
+      this.reconnectTimeout = null;
     }
 
     this.reconnectTimeout = setTimeout(async () => {
@@ -167,6 +199,10 @@ export class LivePriceWebSocketService {
         await this.connect(this.wsUrl!);
         if (this.activeSymbols.size > 0) {
           this.updateSymbols(Array.from(this.activeSymbols));
+        }
+        if (this.reconnectTimeout) {
+          clearTimeout(this.reconnectTimeout);
+          this.reconnectTimeout = null;
         }
         this.reconnectAttempts = 0;
       } catch (error) {
@@ -242,50 +278,77 @@ export class LivePriceWebSocketService {
     }
   }
 
-  async cleanup(): Promise<void> {
-    this.handlers = {};
-    this.activeSymbols.clear();
+  async close(): Promise<void> {
+    try {
+      this.handlers = {};
+      this.closedReason = WebSocketCloseReason.NORMAL_CLOSURE;
+      if (this.ws?.readyState === WebSocket.OPEN) {
+        if (this.activeSymbols.size > 0) {
+          try {
+            const unsubscribeMessage = {
+              type: "unsubscribe",
+              symbols: Array.from(this.activeSymbols),
+            };
 
-    if (this.ws?.readyState === WebSocket.OPEN) {
-      this.isIntentionalClose = true;
-      await this.close();
+            this.ws.send(JSON.stringify(unsubscribeMessage));
+            await new Promise((resolve) => setTimeout(resolve, 100));
+          } catch (unsubscribeError) {
+            this.log(
+              `Failed to unsubscribe: ${unsubscribeError}. Continuing with close.`,
+              "error"
+            );
+          }
+        }
+
+        await new Promise<void>((resolve, reject) => {
+          if (!this.ws) {
+            resolve();
+            return;
+          }
+
+          this.ws.onclose = () => {
+            this.isClosed = true;
+            resolve();
+          };
+
+          try {
+            this.ws.close();
+          } catch (closeError) {
+            reject(
+              new WebSocketError(
+                `Failed to initiate close: ${closeError}`,
+                WebSocketErrorType.CLOSE_ERROR
+              )
+            );
+          }
+        });
+      }
+    } catch (error) {
+      const errorMessage =
+        error instanceof WebSocketError
+          ? error.message
+          : `Unexpected error during close: ${error}`;
+
+      this.log(errorMessage, "error");
+      throw error instanceof WebSocketError
+        ? error
+        : new WebSocketError(errorMessage, WebSocketErrorType.CLOSE_ERROR);
+    } finally {
+      if (this.reconnectTimeout) {
+        clearTimeout(this.reconnectTimeout);
+        this.reconnectTimeout = null;
+      }
+      this.ws = null;
+      this.activeSymbols.clear();
     }
   }
 
-  async close(): Promise<void> {
-    if (this.ws?.readyState === WebSocket.OPEN) {
-      this.isIntentionalClose = true;
+  isConnectionClosed(): boolean {
+    return this.isClosed;
+  }
 
-      if (this.activeSymbols.size > 0) {
-        this.ws.send(
-          JSON.stringify({
-            type: "unsubscribe",
-            symbols: Array.from(this.activeSymbols),
-          })
-        );
-      }
-
-      await new Promise<void>((resolve) => {
-        if (!this.ws) {
-          resolve();
-          return;
-        }
-
-        this.ws.onclose = () => {
-          resolve();
-        };
-
-        this.ws.close();
-      });
-    }
-
-    this.ws = null;
-    this.activeSymbols.clear();
-
-    if (this.reconnectTimeout) {
-      clearTimeout(this.reconnectTimeout);
-      this.reconnectTimeout = null;
-    }
+  getCloseReason(): WebSocketCloseReason | null {
+    return this.closedReason;
   }
 }
 
@@ -304,9 +367,7 @@ export class LivePriceClient extends Client {
     externalUserId: string,
     region: Region
   ): Promise<string> {
-    const url = new URL(
-      `${this['baseUrl']}/api/v1/ws/url`
-    );
+    const url = new URL(`${this["baseUrl"]}/api/v1/ws/url`);
     url.searchParams.append("region", region);
     url.searchParams.append("accessLevel", "KRMD1");
 
