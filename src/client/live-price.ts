@@ -269,8 +269,19 @@ export class LivePriceWebSocketService {
   }
 
   private async updateSymbols(symbols: string[]) {
-    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
+    if (!this.ws) {
+      throw new WebSocketError(
+        "WebSocket is not initialized",
+        WebSocketErrorType.WEBSOCKET_NOT_INITIALIZED
+      );
+    }
 
+    if (this.ws.readyState !== WebSocket.OPEN) {
+      throw new WebSocketError(
+        "WebSocket is not connected",
+        WebSocketErrorType.WEBSOCKET_NOT_CONNECTED
+      );
+    }
     const symbolsToAdd = symbols.filter((s) => !this.activeSymbols.has(s));
     const symbolsToRemove = symbols.filter(
       (s) => this.activeSymbols.has(s) && !this.handlers[s]?.length
