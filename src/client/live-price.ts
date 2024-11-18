@@ -215,15 +215,20 @@ export class LivePriceWebSocketService {
     symbols: string[],
     handler: (data: BISTStockLiveData) => void
   ): void {
+    const symbolsToUpdate: string[] = [];
+
     for (const symbol of symbols) {
       if (!this.handlers[symbol]) {
         this.handlers[symbol] = [];
       }
       this.handlers[symbol].push(handler);
-
       if (this.handlers[symbol].length === 1) {
-        this.updateSymbols([symbol]);
+        symbolsToUpdate.push(symbol);
       }
+    }
+
+    if (symbolsToUpdate.length > 0) {
+      this.updateSymbols(symbolsToUpdate);
     }
   }
 
@@ -231,6 +236,8 @@ export class LivePriceWebSocketService {
     symbols: string[],
     handler?: (data: BISTStockLiveData) => void
   ): void {
+    const symbolsToUnsubscribe: string[] = [];
+
     for (const symbol of symbols) {
       if (!this.handlers[symbol]) continue;
 
@@ -243,9 +250,13 @@ export class LivePriceWebSocketService {
       }
 
       if (this.handlers[symbol].length === 0) {
-        this.updateSymbols([]);
+        symbolsToUnsubscribe.push(symbol);
         delete this.handlers[symbol];
       }
+    }
+
+    if (symbolsToUnsubscribe.length > 0) {
+      this.updateSymbols(symbolsToUnsubscribe);
     }
   }
 
