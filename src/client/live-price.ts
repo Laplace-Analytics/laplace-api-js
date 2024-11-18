@@ -300,23 +300,6 @@ export class LivePriceWebSocketService {
       this.handlers = {};
       this.closedReason = WebSocketCloseReason.NORMAL_CLOSURE;
       if (this.ws?.readyState === WebSocket.OPEN) {
-        if (this.activeSymbols.size > 0) {
-          try {
-            const unsubscribeMessage = {
-              type: "unsubscribe",
-              symbols: Array.from(this.activeSymbols),
-            };
-
-            this.ws.send(JSON.stringify(unsubscribeMessage));
-            await new Promise((resolve) => setTimeout(resolve, 100));
-          } catch (unsubscribeError) {
-            this.log(
-              `Failed to unsubscribe: ${unsubscribeError}. Continuing with close.`,
-              "error"
-            );
-          }
-        }
-
         await new Promise<void>((resolve, reject) => {
           if (!this.ws) {
             resolve();
