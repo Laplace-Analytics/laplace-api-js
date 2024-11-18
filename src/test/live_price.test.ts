@@ -38,7 +38,11 @@ describe("LivePrice", () => {
   });
 
   afterAll(async () => {
-    await ws.cleanup();
+    try {
+      await ws.close();
+    } catch (error) {
+      console.error("Error closing websocket connection", error);
+    }
   });
 
   describe("BIST Live Price Tests", () => {
