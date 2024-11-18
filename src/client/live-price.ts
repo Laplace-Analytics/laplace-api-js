@@ -174,7 +174,8 @@ export class LivePriceWebSocketService {
   }
 
   private async attemptReconnect() {
-    if (!this.wsUrl) {
+    const url = this.wsUrl;
+    if (!url) {
       throw new WebSocketError(
         "WebSocket URL is not set",
         WebSocketErrorType.WEBSOCKET_NOT_INITIALIZED
@@ -204,7 +205,7 @@ export class LivePriceWebSocketService {
 
     this.reconnectTimeout = setTimeout(async () => {
       try {
-        await this.connect(this.wsUrl!);
+        await this.connect(url);
         if (this.activeSymbols.size > 0) {
           this.updateSymbols(Array.from(this.activeSymbols));
         }
