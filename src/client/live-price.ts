@@ -222,7 +222,6 @@ export class LivePriceWebSocketService {
       this.handlers[symbol].push(handler);
 
       if (this.handlers[symbol].length === 1) {
-        this.activeSymbols.add(symbol);
         this.updateSymbols([symbol]);
       }
     }
@@ -244,7 +243,6 @@ export class LivePriceWebSocketService {
       }
 
       if (this.handlers[symbol].length === 0) {
-        this.activeSymbols.delete(symbol);
         this.updateSymbols([]);
         delete this.handlers[symbol];
       }
@@ -255,8 +253,8 @@ export class LivePriceWebSocketService {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
 
     const symbolsToAdd = symbols.filter((s) => !this.activeSymbols.has(s));
-    const symbolsToRemove = Array.from(this.activeSymbols).filter(
-      (s) => !symbols.includes(s) && !this.handlers[s]?.length
+    const symbolsToRemove = symbols.filter(
+      (s) => this.activeSymbols.has(s) && !this.handlers[s]?.length
     );
 
     if (symbolsToRemove.length > 0) {
@@ -266,6 +264,7 @@ export class LivePriceWebSocketService {
           symbols: symbolsToRemove,
         })
       );
+      symbolsToRemove.forEach((s) => this.activeSymbols.delete(s));
     }
 
     if (symbolsToAdd.length > 0) {
@@ -275,6 +274,7 @@ export class LivePriceWebSocketService {
           symbols: symbolsToAdd,
         })
       );
+      symbolsToAdd.forEach((s) => this.activeSymbols.add(s));
     }
   }
 

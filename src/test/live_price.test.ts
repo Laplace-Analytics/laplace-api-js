@@ -106,37 +106,41 @@ describe("LivePrice", () => {
       TEST_CONSTANTS.JEST_TIMEOUT
     );
 
-    it("should handle multiple subscriptions for the same symbol", async () => {
-      const symbol = "GARAN";
-      const receivedData1: BISTStockLiveData[] = [];
-      const receivedData2: BISTStockLiveData[] = [];
+    it(
+      "should handle multiple subscriptions for the same symbol",
+      async () => {
+        const symbol = "GARAN";
+        const receivedData1: BISTStockLiveData[] = [];
+        const receivedData2: BISTStockLiveData[] = [];
 
-      await new Promise<void>((resolve, reject) => {
-        const timeoutId = setTimeout(() => {
-          reject(new Error("Test timeout: No data received"));
-        }, TEST_CONSTANTS.MAIN_TIMEOUT).unref();
+        await new Promise<void>((resolve, reject) => {
+          const timeoutId = setTimeout(() => {
+            reject(new Error("Test timeout: No data received"));
+          }, TEST_CONSTANTS.MAIN_TIMEOUT).unref();
 
-        const handler1 = (data: BISTStockLiveData) => {
-          receivedData1.push(data);
-        };
+          const handler1 = (data: BISTStockLiveData) => {
+            receivedData1.push(data);
+          };
 
-        const handler2 = (data: BISTStockLiveData) => {
-          receivedData2.push(data);
-          if (receivedData2.length >= 2) {
-            clearTimeout(timeoutId);
-            ws.unsubscribe([symbol], handler1);
-            ws.unsubscribe([symbol], handler2);
-            resolve();
-          }
-        };
+          const handler2 = (data: BISTStockLiveData) => {
+            receivedData2.push(data);
+            if (receivedData2.length >= 2) {
+              clearTimeout(timeoutId);
+              ws.unsubscribe([symbol], handler1);
+              ws.unsubscribe([symbol], handler2);
+              resolve();
+            }
+          };
 
-        ws.subscribe([symbol], handler1);
-        ws.subscribe([symbol], handler2);
-      });
+          ws.subscribe([symbol], handler1);
+          ws.subscribe([symbol], handler2);
+        });
 
-      expect(receivedData1.length).toBeGreaterThan(0);
-      expect(receivedData2.length).toBeGreaterThan(0);
-      expect(receivedData1).toEqual(receivedData2);
-    });
+        expect(receivedData1.length).toBeGreaterThan(0);
+        expect(receivedData2.length).toBeGreaterThan(0);
+        expect(receivedData1).toEqual(receivedData2);
+      },
+      TEST_CONSTANTS.JEST_TIMEOUT
+    );
   });
 });
