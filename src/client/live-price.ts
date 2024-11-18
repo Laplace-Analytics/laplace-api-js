@@ -326,6 +326,7 @@ export class LivePriceWebSocketService {
           try {
             this.ws.close();
           } catch (closeError) {
+            this.closedReason = null;
             reject(
               new WebSocketError(
                 `Failed to initiate close: ${closeError}`,
