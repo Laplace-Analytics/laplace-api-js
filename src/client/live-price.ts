@@ -154,6 +154,14 @@ export class LivePriceWebSocketService {
             event.data.toString()
           ) as WebSocketMessage<BISTStockLiveData>;
 
+          switch (data.type) {
+            case "subscribe":
+              this.activeSymbols.add(data.message.symbol);
+              break;
+            case "unsubscribe":
+              this.activeSymbols.delete(data.message.symbol);
+              break;
+          }
           const handlers = this.handlers[data.message.symbol];
           if (handlers) {
             handlers.forEach((handler) => handler(data.message));
@@ -275,7 +283,6 @@ export class LivePriceWebSocketService {
           symbols: symbolsToRemove,
         })
       );
-      symbolsToRemove.forEach((s) => this.activeSymbols.delete(s));
     }
 
     if (symbolsToAdd.length > 0) {
@@ -285,7 +292,6 @@ export class LivePriceWebSocketService {
           symbols: symbolsToAdd,
         })
       );
-      symbolsToAdd.forEach((s) => this.activeSymbols.add(s));
     }
   }
 
