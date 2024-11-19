@@ -59,22 +59,24 @@ describe("LivePrice", () => {
             reject(new Error("Test timeout: No data received"));
           }, TEST_CONSTANTS.MAIN_TIMEOUT).unref();
 
+          let unsubscribeNewSymbols: (() => void) | null = null;
+
           const initialHandler = (data: BISTStockLiveData) => {
             receivedData.push(data);
 
             if (symbols.includes(data.symbol)) {
-              ws.unsubscribe(symbols, initialHandler);
-              ws.subscribe(newSymbols, newSymbolHandler);
-            }
-          };
+              const unsubscribeInitial = ws.subscribe(symbols, initialHandler);
+              unsubscribeInitial();
 
-          const newSymbolHandler = (data: BISTStockLiveData) => {
-            receivedData.push(data);
+              unsubscribeNewSymbols = ws.subscribe(newSymbols, (data) => {
+                receivedData.push(data);
 
-            if (newSymbols.includes(data.symbol)) {
-              clearTimeout(timeoutId);
-              ws.unsubscribe(newSymbols, newSymbolHandler);
-              resolve();
+                if (newSymbols.includes(data.symbol)) {
+                  clearTimeout(timeoutId);
+                  if (unsubscribeNewSymbols) unsubscribeNewSymbols();
+                  resolve();
+                }
+              });
             }
           };
 
@@ -84,6 +86,11 @@ describe("LivePrice", () => {
         const newSymbolData = receivedData.filter((data) =>
           newSymbols.includes(data.symbol)
         );
+        const oldSymbolData = receivedData.filter((data) =>
+          symbols.includes(data.symbol)
+        );
+
+        expect(oldSymbolData.length).toBeGreaterThan(0);
         expect(newSymbolData.length).toBeGreaterThan(0);
 
         newSymbolData.forEach((data) => {
@@ -118,22 +125,19 @@ describe("LivePrice", () => {
             reject(new Error("Test timeout: No data received"));
           }, TEST_CONSTANTS.MAIN_TIMEOUT).unref();
 
-          const handler1 = (data: BISTStockLiveData) => {
+          const unsubscribe1 = ws.subscribe([symbol], (data) => {
             receivedData1.push(data);
-          };
+          });
 
-          const handler2 = (data: BISTStockLiveData) => {
+          const unsubscribe2 = ws.subscribe([symbol], (data) => {
             receivedData2.push(data);
             if (receivedData2.length >= 2) {
               clearTimeout(timeoutId);
-              ws.unsubscribe([symbol], handler1);
-              ws.unsubscribe([symbol], handler2);
+              unsubscribe1();
+              unsubscribe2();
               resolve();
             }
-          };
-
-          ws.subscribe([symbol], handler1);
-          ws.subscribe([symbol], handler2);
+          });
         });
 
         expect(receivedData1.length).toBeGreaterThan(0);
