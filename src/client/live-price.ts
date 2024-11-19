@@ -9,10 +9,12 @@ interface WebSocketOptions {
   maxReconnectDelay?: number;
 }
 
-type WebSocketMessage<T> = {
-  type: string;
-  message: T;
-};
+type WebSocketMessageType = "heartbeat" | "error" | "warning" | "price_update";
+
+interface WebSocketMessage<T> {
+  type: WebSocketMessageType;
+  message?: T;
+}
 
 export enum WebSocketErrorType {
   MAX_RECONNECT_EXCEEDED = "MAX_RECONNECT_EXCEEDED",
@@ -45,7 +47,14 @@ export class WebSocketError extends Error {
 export class LivePriceWebSocketService {
   private ws: WebSocket | null = null;
   private activeSymbols: Set<string> = new Set();
-  private handlers: Record<string, ((data: BISTStockLiveData) => void)[]> = {};
+  private subscriptionCounter = 0;
+  private subscriptions = new Map<
+    number,
+    {
+      symbol: string;
+      handler: (data: BISTStockLiveData) => void;
+    }
+  >();
   private reconnectAttempts = 0;
   private reconnectTimeout: NodeJS.Timeout | null = null;
   private isClosed: boolean = false;
@@ -63,14 +72,21 @@ export class LivePriceWebSocketService {
     };
   }
 
-  private log(message: string, level: "info" | "error" = "info") {
+  private log(message: string, level: "info" | "error" | "warn" = "info") {
     if (!this.options.enableLogging) return;
 
     const prefix = `[LivePriceWebSocket][${level.toUpperCase()}]`;
-    if (level === "error") {
-      console.error(`${prefix} ${message}`);
-    } else {
-      console.info(`${prefix} ${message}`);
+
+    switch (level) {
+      case "error":
+        console.error(`${prefix} ${message}`);
+        break;
+      case "warn":
+        console.warn(`${prefix} ${message}`);
+        break;
+      default:
+        console.info(`${prefix} ${message}`);
+        break;
     }
   }
 
@@ -150,21 +166,37 @@ export class LivePriceWebSocketService {
 
       this.ws.onmessage = (event) => {
         try {
-          const data = JSON.parse(
-            event.data.toString()
-          ) as WebSocketMessage<BISTStockLiveData>;
-
-          switch (data.type) {
-            case "subscribe":
-              this.activeSymbols.add(data.message.symbol);
+          const rawData = JSON.parse(event.data.toString());
+          switch (rawData.type) {
+            case "price_update":
+              const priceData = rawData as WebSocketMessage<BISTStockLiveData>;
+              const data = priceData.message;
+              if (!data) {
+                throw new WebSocketError(
+                  "Price update message is empty",
+                  WebSocketErrorType.MESSAGE_PARSE_ERROR
+                );
+              }
+              if (data.symbol) {
+                if (!this.activeSymbols.has(data.symbol)) {
+                  this.activeSymbols.add(data.symbol);
+                }
+                const handlers = this.getHandlersForSymbol(data.symbol);
+                handlers.forEach((handler) => handler(data));
+              }
               break;
-            case "unsubscribe":
-              this.activeSymbols.delete(data.message.symbol);
-              break;
-          }
-          const handlers = this.handlers[data.message.symbol];
-          if (handlers) {
-            handlers.forEach((handler) => handler(data.message));
+            case "heartbeat":
+              this.log("Received heartbeat");
+              return;
+            case "error":
+              this.log(`Received error: ${rawData.message}`, "error");
+              return;
+            case "warning":
+              this.log(`Received warning: ${rawData.message}`, "warn");
+              return;
+            default:
+              this.log(`Unknown message type: ${rawData.type}`, "error");
+              return;
           }
         } catch (error) {
           this.log(`Failed to parse WebSocket message: ${error}`, "error");
@@ -223,50 +255,39 @@ export class LivePriceWebSocketService {
   subscribe(
     symbols: string[],
     handler: (data: BISTStockLiveData) => void
-  ): void {
-    const symbolsToUpdate: string[] = [];
+  ): () => void {
+    const subscriptionId = this.subscriptionCounter++;
+    let symbolsToAdd: string[] = [];
 
     for (const symbol of symbols) {
-      if (!this.handlers[symbol]) {
-        this.handlers[symbol] = [];
+      this.subscriptions.set(subscriptionId, { symbol, handler });
+
+      if (this.getHandlersForSymbol(symbol).length === 1) {
+        symbolsToAdd.push(symbol);
       }
-      this.handlers[symbol].push(handler);
-      if (this.handlers[symbol].length === 1) {
-        symbolsToUpdate.push(symbol);
-      }
+    }
+    if (symbolsToAdd.length > 0) {
+      this.updateSymbols(symbolsToAdd);
     }
 
-    if (symbolsToUpdate.length > 0) {
-      this.updateSymbols(symbolsToUpdate);
-    }
+    return () => {
+      const subscription = this.subscriptions.get(subscriptionId);
+      if (!subscription) return;
+
+      this.subscriptions.delete(subscriptionId);
+
+      if (this.getHandlersForSymbol(subscription.symbol).length === 0) {
+        this.updateSymbols([subscription.symbol]);
+      }
+    };
   }
 
-  unsubscribe(
-    symbols: string[],
-    handler?: (data: BISTStockLiveData) => void
-  ): void {
-    const symbolsToUnsubscribe: string[] = [];
-
-    for (const symbol of symbols) {
-      if (!this.handlers[symbol]) continue;
-
-      if (handler) {
-        this.handlers[symbol] = this.handlers[symbol].filter(
-          (h) => h !== handler
-        );
-      } else {
-        this.handlers[symbol] = [];
-      }
-
-      if (this.handlers[symbol].length === 0) {
-        symbolsToUnsubscribe.push(symbol);
-        delete this.handlers[symbol];
-      }
-    }
-
-    if (symbolsToUnsubscribe.length > 0) {
-      this.updateSymbols(symbolsToUnsubscribe);
-    }
+  private getHandlersForSymbol(
+    symbol: string
+  ): ((data: BISTStockLiveData) => void)[] {
+    return Array.from(this.subscriptions.values())
+      .filter((s) => s.symbol === symbol)
+      .map((s) => s.handler);
   }
 
   private async updateSymbols(symbols: string[]) {
@@ -285,7 +306,7 @@ export class LivePriceWebSocketService {
     }
     const symbolsToAdd = symbols.filter((s) => !this.activeSymbols.has(s));
     const symbolsToRemove = symbols.filter(
-      (s) => this.activeSymbols.has(s) && !this.handlers[s]?.length
+      (s) => this.activeSymbols.has(s) && !this.getHandlersForSymbol(s).length
     );
 
     if (symbolsToRemove.length > 0) {
@@ -294,6 +315,11 @@ export class LivePriceWebSocketService {
           type: "unsubscribe",
           symbols: symbolsToRemove,
         })
+      );
+      this.activeSymbols = new Set(
+        Array.from(this.activeSymbols).filter(
+          (s) => !symbolsToRemove.includes(s)
+        )
       );
     }
 
@@ -309,7 +335,7 @@ export class LivePriceWebSocketService {
 
   async close(): Promise<void> {
     try {
-      this.handlers = {};
+      this.subscriptions.clear();
       this.closedReason = WebSocketCloseReason.NORMAL_CLOSURE;
       if (this.ws?.readyState === WebSocket.OPEN) {
         await new Promise<void>((resolve, reject) => {
