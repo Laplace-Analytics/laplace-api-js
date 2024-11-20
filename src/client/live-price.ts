@@ -46,12 +46,11 @@ export class WebSocketError extends Error {
 
 export class LivePriceWebSocketService {
   private ws: WebSocket | null = null;
-  private activeSymbols: Set<string> = new Set();
   private subscriptionCounter = 0;
   private subscriptions = new Map<
     number,
     {
-      symbol: string;
+      symbols: string[];
       handler: (data: BISTStockLiveData) => void;
     }
   >();
@@ -178,9 +177,6 @@ export class LivePriceWebSocketService {
                 );
               }
               if (data.symbol) {
-                if (!this.activeSymbols.has(data.symbol)) {
-                  this.activeSymbols.add(data.symbol);
-                }
                 const handlers = this.getHandlersForSymbol(data.symbol);
                 handlers.forEach((handler) => handler(data));
               }
@@ -203,6 +199,14 @@ export class LivePriceWebSocketService {
         }
       };
     });
+  }
+
+  private getActiveSymbols(): string[] {
+    const allSymbols = Array.from(this.subscriptions.values()).flatMap(
+      (sub) => sub.symbols
+    );
+
+    return [...new Set(allSymbols)];
   }
 
   private async attemptReconnect() {
@@ -238,8 +242,9 @@ export class LivePriceWebSocketService {
     this.reconnectTimeout = setTimeout(async () => {
       try {
         await this.connect(url);
-        if (this.activeSymbols.size > 0) {
-          this.updateSymbols(Array.from(this.activeSymbols));
+        const activeSymbols = this.getActiveSymbols();
+        if (activeSymbols.length > 0) {
+          this.addSymbols(activeSymbols);
         }
         if (this.reconnectTimeout) {
           clearTimeout(this.reconnectTimeout);
@@ -259,26 +264,23 @@ export class LivePriceWebSocketService {
     const subscriptionId = this.subscriptionCounter++;
     let symbolsToAdd: string[] = [];
 
-    for (const symbol of symbols) {
-      this.subscriptions.set(subscriptionId, { symbol, handler });
+    this.subscriptions.set(subscriptionId, { symbols, handler });
 
+    for (const symbol of symbols) {
       if (this.getHandlersForSymbol(symbol).length === 1) {
         symbolsToAdd.push(symbol);
       }
     }
     if (symbolsToAdd.length > 0) {
-      this.updateSymbols(symbolsToAdd);
+      this.addSymbols(symbolsToAdd);
     }
 
     return () => {
-      const subscription = this.subscriptions.get(subscriptionId);
-      if (!subscription) return;
-
       this.subscriptions.delete(subscriptionId);
-
-      if (this.getHandlersForSymbol(subscription.symbol).length === 0) {
-        this.updateSymbols([subscription.symbol]);
-      }
+      const symbolsForRemove = symbols.filter(
+        (s) => this.getHandlersForSymbol(s).length === 0
+      );
+      this.removeSymbols(symbolsForRemove);
     };
   }
 
@@ -286,11 +288,11 @@ export class LivePriceWebSocketService {
     symbol: string
   ): ((data: BISTStockLiveData) => void)[] {
     return Array.from(this.subscriptions.values())
-      .filter((s) => s.symbol === symbol)
+      .filter((s) => s.symbols.includes(symbol))
       .map((s) => s.handler);
   }
 
-  private async updateSymbols(symbols: string[]) {
+  private async removeSymbols(symbols: string[]) {
     if (!this.ws) {
       throw new WebSocketError(
         "WebSocket is not initialized",
@@ -304,33 +306,35 @@ export class LivePriceWebSocketService {
         WebSocketErrorType.WEBSOCKET_NOT_CONNECTED
       );
     }
-    const symbolsToAdd = symbols.filter((s) => !this.activeSymbols.has(s));
-    const symbolsToRemove = symbols.filter(
-      (s) => this.activeSymbols.has(s) && !this.getHandlersForSymbol(s).length
+    this.ws.send(
+      JSON.stringify({
+        type: "unsubscribe",
+        symbols: symbols,
+      })
     );
+  }
 
-    if (symbolsToRemove.length > 0) {
-      this.ws.send(
-        JSON.stringify({
-          type: "unsubscribe",
-          symbols: symbolsToRemove,
-        })
-      );
-      this.activeSymbols = new Set(
-        Array.from(this.activeSymbols).filter(
-          (s) => !symbolsToRemove.includes(s)
-        )
+  private async addSymbols(symbols: string[]) {
+    if (!this.ws) {
+      throw new WebSocketError(
+        "WebSocket is not initialized",
+        WebSocketErrorType.WEBSOCKET_NOT_INITIALIZED
       );
     }
 
-    if (symbolsToAdd.length > 0) {
-      this.ws.send(
-        JSON.stringify({
-          type: "subscribe",
-          symbols: symbolsToAdd,
-        })
+    if (this.ws.readyState !== WebSocket.OPEN) {
+      throw new WebSocketError(
+        "WebSocket is not connected",
+        WebSocketErrorType.WEBSOCKET_NOT_CONNECTED
       );
     }
+
+    this.ws.send(
+      JSON.stringify({
+        type: "subscribe",
+        symbols: symbols,
+      })
+    );
   }
 
   async close(): Promise<void> {
@@ -378,7 +382,7 @@ export class LivePriceWebSocketService {
         this.reconnectTimeout = null;
       }
       this.ws = null;
-      this.activeSymbols.clear();
+      this.subscriptions.clear();
     }
   }
 
