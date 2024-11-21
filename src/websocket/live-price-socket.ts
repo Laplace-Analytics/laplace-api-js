@@ -1,6 +1,8 @@
-import { Client } from "./client";
-import { Region } from "./collections";
-import WebSocket from "ws";
+export interface BISTStockLiveData {
+  symbol: string;
+  cl: number; // Close
+  c: number; // PercentChange
+}
 
 interface WebSocketOptions {
   enableLogging?: boolean;
@@ -44,7 +46,7 @@ export class WebSocketError extends Error {
   }
 }
 
-export class LivePriceWebSocketService {
+export class LivePriceWebSocketClient {
   private ws: WebSocket | null = null;
   private subscriptionCounter = 0;
   private subscriptions = new Map<
@@ -392,36 +394,5 @@ export class LivePriceWebSocketService {
 
   getCloseReason(): WebSocketCloseReason | null {
     return this.closedReason;
-  }
-}
-
-export interface BISTStockLiveData {
-  symbol: string;
-  cl: number; // Close
-  c: number; // PercentChange
-}
-
-interface WebSocketUrlResponse {
-  url: string;
-}
-
-export class LivePriceClient extends Client {
-  async getWebSocketUrl(
-    externalUserId: string,
-    region: Region
-  ): Promise<string> {
-    const url = new URL(`${this["baseUrl"]}/api/v1/ws/url`);
-    url.searchParams.append("region", region);
-    url.searchParams.append("accessLevel", "KRMD1");
-
-    const response = await this.sendRequest<WebSocketUrlResponse>({
-      method: "POST",
-      url: url.toString(),
-      data: {
-        externalUserId: externalUserId,
-      },
-    });
-
-    return response.url;
   }
 }
