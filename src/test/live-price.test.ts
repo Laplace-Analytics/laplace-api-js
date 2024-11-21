@@ -1,17 +1,17 @@
 import { Logger } from "winston";
 import { LaplaceConfiguration } from "../utilities/configuration";
-import {
-  LivePriceClient,
-  BISTStockLiveData,
-  LivePriceWebSocketService,
-} from "../client/live-price";
 import { Region } from "../client/collections";
 import "./client_test_suite";
+import { LivePriceWebSocketUrlClient } from "../client/live-price-socket-url";
+import {
+  BISTStockLiveData,
+  LivePriceWebSocketClient,
+} from "../websocket/live-price-socket";
 
 describe("LivePrice", () => {
-  let livePriceClient: LivePriceClient;
+  let livePriceUrlClient: LivePriceWebSocketUrlClient;
   let url: string;
-  let ws: LivePriceWebSocketService;
+  let ws: LivePriceWebSocketClient;
 
   const TEST_CONSTANTS = {
     JEST_TIMEOUT: 30000,
@@ -27,10 +27,10 @@ describe("LivePrice", () => {
       debug: jest.fn(),
     } as unknown as Logger;
 
-    livePriceClient = new LivePriceClient(config, logger);
-    url = await livePriceClient.getWebSocketUrl("2459", Region.Tr);
+    livePriceUrlClient = new LivePriceWebSocketUrlClient(config, logger);
+    url = await livePriceUrlClient.getWebSocketUrl("2459", Region.Tr);
 
-    ws = new LivePriceWebSocketService({
+    ws = new LivePriceWebSocketClient({
       enableLogging: true,
     });
 
