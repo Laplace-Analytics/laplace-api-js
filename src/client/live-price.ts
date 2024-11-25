@@ -2,6 +2,14 @@ import { Client } from "./client";
 import { Region } from "./collections";
 import { v4 as uuidv4 } from 'uuid';
 
+interface WebSocketUrlResponse {
+  url: string;
+}
+
+interface WebSocketUrlParams {
+  externalUserId: string;
+}
+
 export interface BISTStockLiveData {
   s: string;  // Symbol
   ch: number; // DailyPercentChange
@@ -28,7 +36,7 @@ function getSSELivePrice<T>(
   return client.sendSSERequest<T>(url);
 }
 
-export class LivePriceWebSocketUrlClient extends Client {
+export class LivePriceClient extends Client {
   async getWebSocketUrl(
     externalUserId: string,
     region: Region
@@ -37,15 +45,17 @@ export class LivePriceWebSocketUrlClient extends Client {
     url.searchParams.append("region", region);
     url.searchParams.append("accessLevel", "KRMD1");
 
-    const response = await this.sendRequest<string>({
+    const params: WebSocketUrlParams = {
+      externalUserId,
+    };
+
+    const response = await this.sendRequest<WebSocketUrlResponse>({
       method: "POST",
       url: url.toString(),
-      data: {
-        externalUserId: externalUserId,
-      },
+      data: params,
     });
 
-    return response;
+    return response.url;
   }
 
   getLivePriceForBIST(

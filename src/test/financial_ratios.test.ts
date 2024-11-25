@@ -6,7 +6,6 @@ import { Region, Locale } from '../client/collections';
 import './client_test_suite';
 
 describe('FinancialRatios', () => {
-  let client: Client;
   let financialClient: FinancialClient;
 
   beforeAll(() => {
