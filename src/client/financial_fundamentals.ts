@@ -53,7 +53,7 @@ export enum StockStatsKey {
 
 export interface TopMover {
   symbol: string;
-  percentChange: number;
+  percent_change: number;
 }
 export class FinancialFundamentalsClient extends Client {
   async getStockDividends(symbol: string, region: Region): Promise<StockDividend[]> {
