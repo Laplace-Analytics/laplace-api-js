@@ -282,7 +282,9 @@ export class LivePriceWebSocketClient {
       const symbolsForRemove = symbols.filter(
         (s) => this.getHandlersForSymbol(s).length === 0
       );
-      this.removeSymbols(symbolsForRemove);
+      if (symbolsForRemove.length > 0) {
+        this.removeSymbols(symbolsForRemove);
+      }
     };
   }
 
