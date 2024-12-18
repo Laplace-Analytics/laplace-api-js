@@ -244,6 +244,9 @@ export class LivePriceWebSocketClient {
     this.reconnectTimeout = setTimeout(async () => {
       try {
         await this.connect(url);
+        
+        this.isClosed = false
+
         const activeSymbols = this.getActiveSymbols();
         this.addSymbols(activeSymbols);
 
