@@ -244,10 +244,12 @@ export class LivePriceWebSocketClient {
     this.reconnectTimeout = setTimeout(async () => {
       try {
         await this.connect(url);
+        
+        this.isClosed = false
+
         const activeSymbols = this.getActiveSymbols();
-        if (activeSymbols.length > 0) {
-          this.addSymbols(activeSymbols);
-        }
+        this.addSymbols(activeSymbols);
+
         if (this.reconnectTimeout) {
           clearTimeout(this.reconnectTimeout);
           this.reconnectTimeout = null;
@@ -273,18 +275,14 @@ export class LivePriceWebSocketClient {
         symbolsToAdd.push(symbol);
       }
     }
-    if (symbolsToAdd.length > 0) {
-      this.addSymbols(symbolsToAdd);
-    }
+    this.addSymbols(symbolsToAdd);
 
     return () => {
       this.subscriptions.delete(subscriptionId);
       const symbolsForRemove = symbols.filter(
         (s) => this.getHandlersForSymbol(s).length === 0
       );
-      if (symbolsForRemove.length > 0) {
-        this.removeSymbols(symbolsForRemove);
-      }
+      this.removeSymbols(symbolsForRemove);
     };
   }
 
@@ -297,6 +295,8 @@ export class LivePriceWebSocketClient {
   }
 
   private async removeSymbols(symbols: string[]) {
+    if (symbols.length === 0) return;
+
     if (!this.ws) {
       throw new WebSocketError(
         "WebSocket is not initialized",
@@ -319,6 +319,8 @@ export class LivePriceWebSocketClient {
   }
 
   private async addSymbols(symbols: string[]) {
+    if (symbols.length === 0) return;
+
     if (!this.ws) {
       throw new WebSocketError(
         "WebSocket is not initialized",
