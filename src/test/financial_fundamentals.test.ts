@@ -74,6 +74,36 @@ describe('FinancialFundamentals', () => {
       expect(currentStockStats.dayHigh).toBeGreaterThan(0.0);
   });
 
+  test('GetStockStatsV2', async () => {
+    const resp = await stockClient.getStockStatsV2(['AKBNK'], Region.Tr);
+    expect(resp).not.toBeEmpty();
+    expect(resp.length).toBe(1);
+  
+
+      var currentStockStats = resp[0];
+      expect(currentStockStats).not.toBeEmpty();
+      expect(currentStockStats.symbol).toBe('AKBNK');
+      expect(currentStockStats.previousClose).toBeGreaterThan(0.0);
+      expect(currentStockStats.marketCap).toBeGreaterThan(0.0);
+      expect(currentStockStats.peRatio).not.toBe(0.0);
+      expect(currentStockStats.pbRatio).not.toBe(0.0);
+      expect(currentStockStats.yearLow).toBeGreaterThan(0.0);
+      expect(currentStockStats.yearHigh).toBeGreaterThan(0.0);
+      expect(typeof currentStockStats.weeklyReturn).toBe('number');;
+      expect(typeof currentStockStats.monthlyReturn).toBe('number');
+      expect(typeof currentStockStats['3MonthReturn']).toBe('number');
+      expect(typeof currentStockStats.ytdReturn).toBe('number');
+      expect(typeof currentStockStats.yearlyReturn).toBe('number');
+      expect(typeof currentStockStats['3YearReturn']).toBe('number');
+      expect(typeof currentStockStats['5YearReturn']).toBe('number');
+      expect(currentStockStats.latestPrice).toBeGreaterThan(0.0);
+      expect(typeof currentStockStats.dailyChange).toBe('number');
+      expect(currentStockStats.dayLow).toBeGreaterThan(0.0);
+      expect(currentStockStats.dayHigh).toBeGreaterThan(0.0);
+      expect(currentStockStats.upperPriceLimit).toBeGreaterThan(0.0)
+      expect(currentStockStats.lowerPriceLimit).toBeGreaterThan(0.0)
+  });
+
   test('GetTopMovers', async () => {
     const resp = await stockClient.getTopMovers(Region.Tr);
     expect(resp).not.toBeEmpty();
