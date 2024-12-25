@@ -29,6 +29,8 @@ export interface StockStats {
   dailyChange: number;
   dayLow: number;
   dayHigh: number;
+  lowerPriceLimit: number;
+  upperPriceLimit: number;
 }
 
 export enum StockStatsKey {
@@ -72,6 +74,17 @@ export class FinancialFundamentalsClient extends Client {
     url.searchParams.append('symbols', symbols.join(','));
     url.searchParams.append('region', region);
     url.searchParams.append('keys', keys.join(','));
+
+    return this.sendRequest<StockStats[]>({
+      method: 'GET',
+      url: url.toString(),
+    });
+  }
+
+  async getStockStatsV2(symbols: string[], region: Region): Promise<StockStats[]> {
+    const url = new URL(`${this['baseUrl']}/api/v2/stock/stats`);
+    url.searchParams.append('symbols', symbols.join(','));
+    url.searchParams.append('region', region);
 
     return this.sendRequest<StockStats[]>({
       method: 'GET',
