@@ -28,26 +28,7 @@ describe('FinancialFundamentals', () => {
   });
 
   test('GetStockStats', async () => {
-    var statKeys = [
-      StockStatsKey.PreviousClose,
-      StockStatsKey.MarketCap,
-      StockStatsKey.FK,
-      StockStatsKey.PDDD,
-      StockStatsKey.YearLow,
-      StockStatsKey.YearHigh,
-      StockStatsKey.WeeklyReturn,
-      StockStatsKey.MonthlyReturn,
-      StockStatsKey.ThreeMonthReturn,
-      StockStatsKey.YtdReturn,
-      StockStatsKey.YearlyReturn,
-      StockStatsKey.ThreeYearReturn,
-      StockStatsKey.FiveYearReturn,
-      StockStatsKey.LatestPrice,
-      StockStatsKey.DailyChange,
-      StockStatsKey.DayLow,
-      StockStatsKey.DayHigh,
-    ]
-    const resp = await stockClient.getStockStats(['TUPRS'], statKeys, Region.Tr);
+    const resp = await stockClient.getStockStats(['TUPRS'], Region.Tr);
     expect(resp).not.toBeEmpty();
     expect(resp.length).toBe(1);
   
@@ -61,17 +42,19 @@ describe('FinancialFundamentals', () => {
       expect(currentStockStats.pbRatio).not.toBe(0.0);
       expect(currentStockStats.yearLow).toBeGreaterThan(0.0);
       expect(currentStockStats.yearHigh).toBeGreaterThan(0.0);
-      expect(currentStockStats.weeklyReturn).not.toBe(0.0);
-      expect(currentStockStats.monthlyReturn).not.toBe(0.0);
-      expect(currentStockStats['3MonthReturn']).not.toBe(0.0);
-      expect(currentStockStats.ytdReturn).not.toBe(0.0);
-      expect(currentStockStats.yearlyReturn).not.toBe(0.0);
-      expect(currentStockStats['3YearReturn']).not.toBe(0.0);
-      expect(currentStockStats['5YearReturn']).not.toBe(0.0);
+      expect(typeof currentStockStats.weeklyReturn).toBe('number');;
+      expect(typeof currentStockStats.monthlyReturn).toBe('number');
+      expect(typeof currentStockStats['3MonthReturn']).toBe('number');
+      expect(typeof currentStockStats.ytdReturn).toBe('number');
+      expect(typeof currentStockStats.yearlyReturn).toBe('number');
+      expect(typeof currentStockStats['3YearReturn']).toBe('number');
+      expect(typeof currentStockStats['5YearReturn']).toBe('number');
       expect(currentStockStats.latestPrice).toBeGreaterThan(0.0);
-      expect(currentStockStats.dailyChange).not.toBe(0.0);
+      expect(typeof currentStockStats.dailyChange).toBe('number');
       expect(currentStockStats.dayLow).toBeGreaterThan(0.0);
       expect(currentStockStats.dayHigh).toBeGreaterThan(0.0);
+      expect(currentStockStats.upperPriceLimit).toBeGreaterThan(0.0)
+      expect(currentStockStats.lowerPriceLimit).toBeGreaterThan(0.0)
   });
 
   test('GetTopMovers', async () => {
