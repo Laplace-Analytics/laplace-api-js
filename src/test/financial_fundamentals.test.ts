@@ -28,26 +28,7 @@ describe('FinancialFundamentals', () => {
   });
 
   test('GetStockStats', async () => {
-    var statKeys = [
-      StockStatsKey.PreviousClose,
-      StockStatsKey.MarketCap,
-      StockStatsKey.FK,
-      StockStatsKey.PDDD,
-      StockStatsKey.YearLow,
-      StockStatsKey.YearHigh,
-      StockStatsKey.WeeklyReturn,
-      StockStatsKey.MonthlyReturn,
-      StockStatsKey.ThreeMonthReturn,
-      StockStatsKey.YtdReturn,
-      StockStatsKey.YearlyReturn,
-      StockStatsKey.ThreeYearReturn,
-      StockStatsKey.FiveYearReturn,
-      StockStatsKey.LatestPrice,
-      StockStatsKey.DailyChange,
-      StockStatsKey.DayLow,
-      StockStatsKey.DayHigh,
-    ]
-    const resp = await stockClient.getStockStats(['TUPRS'], statKeys, Region.Tr);
+    const resp = await stockClient.getStockStats(['TUPRS'], Region.Tr);
     expect(resp).not.toBeEmpty();
     expect(resp.length).toBe(1);
   
@@ -55,34 +36,6 @@ describe('FinancialFundamentals', () => {
       var currentStockStats = resp[0];
       expect(currentStockStats).not.toBeEmpty();
       expect(currentStockStats.symbol).toBe('TUPRS');
-      expect(currentStockStats.previousClose).toBeGreaterThan(0.0);
-      expect(currentStockStats.marketCap).toBeGreaterThan(0.0);
-      expect(currentStockStats.peRatio).not.toBe(0.0);
-      expect(currentStockStats.pbRatio).not.toBe(0.0);
-      expect(currentStockStats.yearLow).toBeGreaterThan(0.0);
-      expect(currentStockStats.yearHigh).toBeGreaterThan(0.0);
-      expect(currentStockStats.weeklyReturn).not.toBe(0.0);
-      expect(currentStockStats.monthlyReturn).not.toBe(0.0);
-      expect(currentStockStats['3MonthReturn']).not.toBe(0.0);
-      expect(currentStockStats.ytdReturn).not.toBe(0.0);
-      expect(currentStockStats.yearlyReturn).not.toBe(0.0);
-      expect(currentStockStats['3YearReturn']).not.toBe(0.0);
-      expect(currentStockStats['5YearReturn']).not.toBe(0.0);
-      expect(currentStockStats.latestPrice).toBeGreaterThan(0.0);
-      expect(currentStockStats.dailyChange).not.toBe(0.0);
-      expect(currentStockStats.dayLow).toBeGreaterThan(0.0);
-      expect(currentStockStats.dayHigh).toBeGreaterThan(0.0);
-  });
-
-  test('GetStockStatsV2', async () => {
-    const resp = await stockClient.getStockStatsV2(['AKBNK'], Region.Tr);
-    expect(resp).not.toBeEmpty();
-    expect(resp.length).toBe(1);
-  
-
-      var currentStockStats = resp[0];
-      expect(currentStockStats).not.toBeEmpty();
-      expect(currentStockStats.symbol).toBe('AKBNK');
       expect(currentStockStats.previousClose).toBeGreaterThan(0.0);
       expect(currentStockStats.marketCap).toBeGreaterThan(0.0);
       expect(currentStockStats.peRatio).not.toBe(0.0);

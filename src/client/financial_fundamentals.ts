@@ -69,19 +69,7 @@ export class FinancialFundamentalsClient extends Client {
     });
   }
 
-  async getStockStats(symbols: string[], keys: StockStatsKey[], region: Region): Promise<StockStats[]> {
-    const url = new URL(`${this['baseUrl']}/api/v1/stock/stats`);
-    url.searchParams.append('symbols', symbols.join(','));
-    url.searchParams.append('region', region);
-    url.searchParams.append('keys', keys.join(','));
-
-    return this.sendRequest<StockStats[]>({
-      method: 'GET',
-      url: url.toString(),
-    });
-  }
-
-  async getStockStatsV2(symbols: string[], region: Region): Promise<StockStats[]> {
+  async getStockStats(symbols: string[], region: Region): Promise<StockStats[]> {
     const url = new URL(`${this['baseUrl']}/api/v2/stock/stats`);
     url.searchParams.append('symbols', symbols.join(','));
     url.searchParams.append('region', region);
