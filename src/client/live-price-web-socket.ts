@@ -62,6 +62,7 @@ export class LivePriceWebSocketClient {
   private closedReason: WebSocketCloseReason | null = null;
   private wsUrl: string | null = null;
   private readonly options: Required<WebSocketOptions>;
+  private connectPromise: Promise<void> | null = null;
 
   constructor(options: WebSocketOptions = {}) {
     this.options = {
@@ -97,7 +98,12 @@ export class LivePriceWebSocketClient {
 
     if (!this.ws || this.ws.readyState === WebSocket.CLOSED) {
       this.ws = new WebSocket(url);
-      await this.setupWebSocket();
+      this.connectPromise = this.setupWebSocket();
+
+      await this.connectPromise
+
+      this.connectPromise = null;
+    
     }
 
     return this.ws;
@@ -304,6 +310,10 @@ export class LivePriceWebSocketClient {
       );
     }
 
+    if (this.connectPromise) {
+      await this.connectPromise
+    }
+
     if (this.ws.readyState !== WebSocket.OPEN) {
       throw new WebSocketError(
         "WebSocket is not connected",
@@ -326,6 +336,10 @@ export class LivePriceWebSocketClient {
         "WebSocket is not initialized",
         WebSocketErrorType.WEBSOCKET_NOT_INITIALIZED
       );
+    }
+
+    if (this.connectPromise) {
+      await this.connectPromise
     }
 
     if (this.ws.readyState !== WebSocket.OPEN) {
