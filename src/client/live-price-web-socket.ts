@@ -1,4 +1,3 @@
-import { WebSocket } from "ws";
 
 export interface BISTStockLiveData {
   symbol: string;
@@ -138,7 +137,7 @@ export class LivePriceWebSocketClient {
       this.ws.onerror = (error) => {
         reject(
           new WebSocketError(
-            `WebSocket connection error: ${error.error}`,
+            `WebSocket connection error: ${error}`,
             WebSocketErrorType.CONNECTION_ERROR
           )
         );
