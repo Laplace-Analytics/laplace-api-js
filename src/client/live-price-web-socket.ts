@@ -70,7 +70,7 @@ export class LivePriceWebSocketClient {
     this.options = {
       enableLogging: true,
       reconnectAttempts: 5,
-      reconnectDelay: 1000,
+      reconnectDelay: 5000,
       maxReconnectDelay: 30000,
       ...options,
     };
