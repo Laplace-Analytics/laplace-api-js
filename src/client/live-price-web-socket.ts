@@ -1,3 +1,5 @@
+import { WebSocket } from "ws";
+
 export interface BISTStockLiveData {
   symbol: string;
   cl: number; // Close
@@ -68,7 +70,7 @@ export class LivePriceWebSocketClient {
     this.options = {
       enableLogging: true,
       reconnectAttempts: 5,
-      reconnectDelay: 1000,
+      reconnectDelay: 5000,
       maxReconnectDelay: 30000,
       ...options,
     };
@@ -136,7 +138,7 @@ export class LivePriceWebSocketClient {
       this.ws.onerror = (error) => {
         reject(
           new WebSocketError(
-            `WebSocket connection error: ${error}`,
+            `WebSocket connection error: ${error.error}`,
             WebSocketErrorType.CONNECTION_ERROR
           )
         );
@@ -264,7 +266,11 @@ export class LivePriceWebSocketClient {
       } catch (error) {
         this.attemptReconnect();
       }
-    }, delay).unref();
+    }, delay);
+
+    if (typeof process !== "undefined") {
+      this.reconnectTimeout.unref();
+    }
   }
 
   subscribe(
