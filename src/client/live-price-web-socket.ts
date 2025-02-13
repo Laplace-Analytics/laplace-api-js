@@ -1,12 +1,18 @@
-
 export interface BISTStockLiveData {
   symbol: string;
   cl: number; // Close
   c: number; // PercentChange
 }
 
+export enum LogLevel {
+  Dev = "dev",
+  Test = "test",
+  Prod = "prod",
+}
+
 interface WebSocketOptions {
   enableLogging?: boolean;
+  logLevel?: LogLevel;
   reconnectAttempts?: number;
   reconnectDelay?: number;
   maxReconnectDelay?: number;
@@ -68,6 +74,7 @@ export class LivePriceWebSocketClient {
   constructor(options: WebSocketOptions = {}) {
     this.options = {
       enableLogging: true,
+      logLevel: LogLevel.Prod,
       reconnectAttempts: 5,
       reconnectDelay: 5000,
       maxReconnectDelay: 30000,
@@ -79,6 +86,15 @@ export class LivePriceWebSocketClient {
     if (!this.options.enableLogging) return;
 
     const prefix = `[LivePriceWebSocket][${level.toUpperCase()}]`;
+    const logLevel = this.options.logLevel;
+
+    if (logLevel === LogLevel.Prod && level !== "error") {
+      return;
+    }
+
+    if (logLevel === LogLevel.Test && level === "info") {
+      return;
+    }
 
     switch (level) {
       case "error":
