@@ -7,6 +7,7 @@ import {
   BISTStockLiveData,
   LivePriceFeed,
   LivePriceWebSocketClient,
+  USStockLiveData,
 } from "../client/live-price-web-socket";
 
 describe("LivePrice", () => {
@@ -80,4 +81,38 @@ describe("LivePrice", () => {
       TEST_CONSTANTS.JEST_TIMEOUT
     );
   });
+
+  //TODO: Use this test after region issue fixed
+  // describe("US Live Price Tests", () => {
+  //   const symbols = ["AAPL"];
+
+  //   it(
+  //     "should receive data for initial and updated symbols for us",
+  //     async () => {
+  //       const receivedData: USStockLiveData[] = [];
+
+  //       let unsubscribe: (() => void) | null =
+  //         ws.subscribe<LivePriceFeed.LiveUs>(
+  //           symbols,
+  //           LivePriceFeed.LiveUs,
+  //           (data) => {
+  //             console.log("RECEIVED DATA FOR US", data);
+  //             receivedData.push(data);
+  //           }
+  //         );
+
+  //       await new Promise((resolve) => setTimeout(resolve, 20000));
+
+  //       for (const symbol of symbols) {
+  //         const symbolData = receivedData.filter(
+  //           (data) => data.symbol === symbol
+  //         );
+  //         expect(symbolData.length).toBeGreaterThan(0);
+  //       }
+
+  //       unsubscribe();
+  //     },
+  //     TEST_CONSTANTS.JEST_TIMEOUT
+  //   );
+  // });
 });
