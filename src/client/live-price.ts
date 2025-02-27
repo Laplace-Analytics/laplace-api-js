@@ -1,6 +1,7 @@
 import { Client } from "./client";
 import { Region } from "./collections";
 import { v4 as uuidv4 } from 'uuid';
+import { LivePriceFeed } from "./live-price-web-socket";
 
 interface WebSocketUrlResponse {
   url: string;
@@ -8,6 +9,7 @@ interface WebSocketUrlResponse {
 
 interface WebSocketUrlParams {
   externalUserId: string;
+  feeds: LivePriceFeed[];
 }
 
 export interface BISTStockLiveData {
@@ -39,14 +41,15 @@ function getSSELivePrice<T>(
 export class LivePriceClient extends Client {
   async getWebSocketUrl(
     externalUserId: string,
-    region: Region
+    region: Region,
+    feeds: LivePriceFeed[]
   ): Promise<string> {
-    const url = new URL(`${this["baseUrl"]}/api/v1/ws/url`);
+    const url = new URL(`${this["baseUrl"]}/api/v2/ws/url`);
     url.searchParams.append("region", region);
-    url.searchParams.append("accessLevel", "KRMD1");
 
     const params: WebSocketUrlParams = {
       externalUserId,
+      feeds
     };
 
     const response = await this.sendRequest<WebSocketUrlResponse>({

@@ -5,6 +5,7 @@ import "./client_test_suite";
 import { LivePriceClient } from "../client/live-price";
 import {
   BISTStockLiveData,
+  LivePriceFeed,
   LivePriceWebSocketClient,
 } from "../client/live-price-web-socket";
 
@@ -28,7 +29,7 @@ describe("LivePrice", () => {
     } as unknown as Logger;
 
     livePriceUrlClient = new LivePriceClient(config, logger);
-    url = await livePriceUrlClient.getWebSocketUrl("2459", Region.Tr);
+    url = await livePriceUrlClient.getWebSocketUrl("2459", Region.Tr, [LivePriceFeed.LiveBist]);
 
     ws = new LivePriceWebSocketClient({
       enableLogging: true,
@@ -54,7 +55,7 @@ describe("LivePrice", () => {
       async () => {
         const receivedData: BISTStockLiveData[] = [];
 
-        let unsubscribe: (() => void) | null = ws.subscribe(symbols, (data) => {
+        let unsubscribe: (() => void) | null = ws.subscribe(symbols, LivePriceFeed.LiveBist, (data) => {
           console.log("RECEIVED DATA", data);
           receivedData.push(data);
         });
