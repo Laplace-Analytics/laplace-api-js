@@ -25,8 +25,8 @@ export interface BISTStockLiveData {
 }
 
 export interface USStockLiveData {
-  symbol: number;
-  closePrice: string;
+  symbol: string;
+  closePrice: number;
   timestamp: number;
 }
 
@@ -37,6 +37,13 @@ export enum LivePriceFeed {
   DelayedUs = "delayed_price_us",
   DepthBist = "depth_tr",
 }
+
+type StockLiveDataType<T extends LivePriceFeed> = T extends
+  | LivePriceFeed.LiveBist
+  | LivePriceFeed.DelayedBist
+  | LivePriceFeed.DepthBist
+  ? BISTStockLiveData
+  : USStockLiveData;
 
 export enum LogLevel {
   Info = "info",
@@ -54,11 +61,6 @@ interface WebSocketOptions {
 
 type WebSocketMessageType = "heartbeat" | "error" | "warning" | "data";
 
-interface WebSocketMessage<T> {
-  type: WebSocketMessageType;
-  feed: LivePriceFeed;
-  message?: T;
-}
 
 export enum WebSocketErrorType {
   MAX_RECONNECT_EXCEEDED = "MAX_RECONNECT_EXCEEDED",
@@ -95,7 +97,7 @@ export class LivePriceWebSocketClient {
     number,
     {
       symbols: string[];
-      handler: (data: BISTStockLiveData) => void;
+      handler: (data: BISTStockLiveData | USStockLiveData) => void;
       feed: LivePriceFeed;
     }
   >();
@@ -225,9 +227,9 @@ export class LivePriceWebSocketClient {
 
       this.ws.onmessage = (event) => {
         try {
-          const rawData = JSON.parse(
-            event.data.toString()
-          ) as WebSocketMessage<RawBISTStockLiveData>;
+          const rawData = JSON.parse(event.data.toString());
+
+          const feed = rawData.feed as LivePriceFeed;
           switch (rawData.type) {
             case "data":
               const messageData = rawData.message;
@@ -237,16 +239,35 @@ export class LivePriceWebSocketClient {
                   WebSocketErrorType.MESSAGE_PARSE_ERROR
                 );
               }
-              const priceData: BISTStockLiveData = {
-                symbol: messageData?.symbol,
-                id: messageData?._id,
-                tipId: messageData?._i,
-                closePrice: messageData?.cl,
-                timestamp: messageData?.d,
-                percentChange: messageData?.c,
-              };
+              let priceData: BISTStockLiveData | USStockLiveData;
+
+              if (
+                feed === LivePriceFeed.DelayedBist ||
+                feed === LivePriceFeed.LiveBist ||
+                LivePriceFeed.DepthBist
+              ) {
+                const message = messageData as RawBISTStockLiveData;
+                priceData = {
+                  symbol: message?.symbol,
+                  id: message?._id,
+                  tipId: message?._i,
+                  closePrice: message?.cl,
+                  timestamp: message?.d,
+                  percentChange: message?.c,
+                } as BISTStockLiveData;
+              } else {
+                const message = messageData as RawUSStockLiveData;
+                priceData = {
+                  symbol: message.s,
+                  closePrice: message.p,
+                  timestamp: message.t,
+                } as USStockLiveData;
+              }
               if (priceData.symbol) {
-                const handlers = this.getHandlersForSymbol(priceData.symbol);
+                const handlers = this.getHandlersForSymbol(
+                  priceData.symbol,
+                  feed
+                );
                 handlers.forEach((handler) => handler(priceData));
               }
               break;
@@ -341,18 +362,26 @@ export class LivePriceWebSocketClient {
     }
   }
 
-  subscribe(
+  subscribe<F extends LivePriceFeed>(
     symbols: string[],
-    feed: LivePriceFeed,
-    handler: (data: BISTStockLiveData) => void,
+    feed: F,
+    handler: (data: StockLiveDataType<F>) => void
   ): () => void {
     const subscriptionId = this.subscriptionCounter++;
     let symbolsToAdd: string[] = [];
 
-    this.subscriptions.set(subscriptionId, { symbols, handler, feed });
+    const typedHandler = (data: BISTStockLiveData | USStockLiveData) => {
+      handler(data as StockLiveDataType<F>);
+    };
+
+    this.subscriptions.set(subscriptionId, {
+      symbols,
+      feed,
+      handler: typedHandler,
+    });
 
     for (const symbol of symbols) {
-      if (this.getHandlersForSymbol(symbol).length === 1) {
+      if (this.getHandlersForSymbol(symbol, feed).length === 1) {
         symbolsToAdd.push(symbol);
       }
     }
@@ -361,17 +390,18 @@ export class LivePriceWebSocketClient {
     return () => {
       this.subscriptions.delete(subscriptionId);
       const symbolsForRemove = symbols.filter(
-        (s) => this.getHandlersForSymbol(s).length === 0
+        (s) => this.getHandlersForSymbol(s, feed).length === 0
       );
       this.removeSymbols(symbolsForRemove, feed);
     };
   }
 
   private getHandlersForSymbol(
-    symbol: string
-  ): ((data: BISTStockLiveData) => void)[] {
+    symbol: string,
+    feed: LivePriceFeed
+  ): ((data: BISTStockLiveData | USStockLiveData) => void)[] {
     return Array.from(this.subscriptions.values())
-      .filter((s) => s.symbols.includes(symbol))
+      .filter((s) => s.symbols.includes(symbol) && s.feed === feed)
       .map((s) => s.handler);
   }
 
