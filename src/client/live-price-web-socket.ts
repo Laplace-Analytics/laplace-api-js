@@ -35,14 +35,14 @@ export enum LivePriceFeed {
   LiveUs = "live_price_us",
   DelayedBist = "delayed_price_tr",
   DelayedUs = "delayed_price_us",
-  DepthBist = "depth_tr",
+  // DepthBist = "depth_tr",
 }
 
 type StockLiveDataType<T extends LivePriceFeed> = T extends
   | LivePriceFeed.LiveBist
   | LivePriceFeed.DelayedBist
-  | LivePriceFeed.DepthBist
-  ? BISTStockLiveData
+  ? // | LivePriceFeed.DepthBist
+    BISTStockLiveData
   : USStockLiveData;
 
 export enum LogLevel {
@@ -60,7 +60,6 @@ interface WebSocketOptions {
 }
 
 type WebSocketMessageType = "heartbeat" | "error" | "warning" | "data";
-
 
 export enum WebSocketErrorType {
   MAX_RECONNECT_EXCEEDED = "MAX_RECONNECT_EXCEEDED",
@@ -243,8 +242,9 @@ export class LivePriceWebSocketClient {
 
               if (
                 feed === LivePriceFeed.DelayedBist ||
-                feed === LivePriceFeed.LiveBist ||
-                LivePriceFeed.DepthBist
+                feed === LivePriceFeed.LiveBist
+                //  ||
+                // feed === LivePriceFeed.DepthBist
               ) {
                 const message = messageData as RawBISTStockLiveData;
                 priceData = {
