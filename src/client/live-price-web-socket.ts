@@ -1,8 +1,49 @@
-export interface BISTStockLiveData {
+import { WebSocket } from "ws";
+
+interface RawBISTStockLiveData {
+  _id: number;
   symbol: string;
-  cl: number; // Close
-  c: number; // PercentChange
+  cl: number;
+  _i: string;
+  c: number;
+  d: number;
 }
+
+interface RawUSStockLiveData {
+  s: string;
+  p: number;
+  t: number;
+}
+
+export interface BISTStockLiveData {
+  id: number;
+  symbol: string;
+  closePrice: number;
+  tipId: string;
+  percentChange: number;
+  timestamp: number;
+}
+
+export interface USStockLiveData {
+  symbol: string;
+  closePrice: number;
+  timestamp: number;
+}
+
+export enum LivePriceFeed {
+  LiveBist = "live_price_tr",
+  LiveUs = "live_price_us",
+  DelayedBist = "delayed_price_tr",
+  DelayedUs = "delayed_price_us",
+  // DepthBist = "depth_tr",
+}
+
+type StockLiveDataType<T extends LivePriceFeed> = T extends
+  | LivePriceFeed.LiveBist
+  | LivePriceFeed.DelayedBist
+  ? // | LivePriceFeed.DepthBist
+    BISTStockLiveData
+  : USStockLiveData;
 
 export enum LogLevel {
   Info = "info",
@@ -18,12 +59,7 @@ interface WebSocketOptions {
   maxReconnectDelay?: number;
 }
 
-type WebSocketMessageType = "heartbeat" | "error" | "warning" | "price_update";
-
-interface WebSocketMessage<T> {
-  type: WebSocketMessageType;
-  message?: T;
-}
+type WebSocketMessageType = "heartbeat" | "error" | "warning" | "data";
 
 export enum WebSocketErrorType {
   MAX_RECONNECT_EXCEEDED = "MAX_RECONNECT_EXCEEDED",
@@ -60,7 +96,8 @@ export class LivePriceWebSocketClient {
     number,
     {
       symbols: string[];
-      handler: (data: BISTStockLiveData) => void;
+      handler: (data: BISTStockLiveData | USStockLiveData) => void;
+      feed: LivePriceFeed;
     }
   >();
   private reconnectAttempts = 0;
@@ -117,10 +154,9 @@ export class LivePriceWebSocketClient {
       this.ws = new WebSocket(url);
       this.connectPromise = this.setupWebSocket();
 
-      await this.connectPromise
+      await this.connectPromise;
 
       this.connectPromise = null;
-    
     }
 
     return this.ws;
@@ -191,19 +227,48 @@ export class LivePriceWebSocketClient {
       this.ws.onmessage = (event) => {
         try {
           const rawData = JSON.parse(event.data.toString());
+
+          const feed = rawData.feed as LivePriceFeed;
           switch (rawData.type) {
-            case "price_update":
-              const priceData = rawData as WebSocketMessage<BISTStockLiveData>;
-              const data = priceData.message;
-              if (!data) {
+            case "data":
+              const messageData = rawData.message;
+              if (!messageData) {
                 throw new WebSocketError(
                   "Price update message is empty",
                   WebSocketErrorType.MESSAGE_PARSE_ERROR
                 );
               }
-              if (data.symbol) {
-                const handlers = this.getHandlersForSymbol(data.symbol);
-                handlers.forEach((handler) => handler(data));
+              let priceData: BISTStockLiveData | USStockLiveData;
+
+              if (
+                feed === LivePriceFeed.DelayedBist ||
+                feed === LivePriceFeed.LiveBist
+                //  ||
+                // feed === LivePriceFeed.DepthBist
+              ) {
+                const message = messageData as RawBISTStockLiveData;
+                priceData = {
+                  symbol: message?.symbol,
+                  id: message?._id,
+                  tipId: message?._i,
+                  closePrice: message?.cl,
+                  timestamp: message?.d,
+                  percentChange: message?.c,
+                } as BISTStockLiveData;
+              } else {
+                const message = messageData as RawUSStockLiveData;
+                priceData = {
+                  symbol: message.s,
+                  closePrice: message.p,
+                  timestamp: message.t,
+                } as USStockLiveData;
+              }
+              if (priceData.symbol) {
+                const handlers = this.getHandlersForSymbol(
+                  priceData.symbol,
+                  feed
+                );
+                handlers.forEach((handler) => handler(priceData));
               }
               break;
             case "heartbeat":
@@ -224,14 +289,6 @@ export class LivePriceWebSocketClient {
         }
       };
     });
-  }
-
-  private getActiveSymbols(): string[] {
-    const allSymbols = Array.from(this.subscriptions.values()).flatMap(
-      (sub) => sub.symbols
-    );
-
-    return [...new Set(allSymbols)];
   }
 
   private async attemptReconnect() {
@@ -267,11 +324,28 @@ export class LivePriceWebSocketClient {
     this.reconnectTimeout = setTimeout(async () => {
       try {
         await this.connect(url);
-        
-        this.isClosed = false
 
-        const activeSymbols = this.getActiveSymbols();
-        this.addSymbols(activeSymbols);
+        this.isClosed = false;
+
+        const symbolsByFeed = new Map<LivePriceFeed, string[]>();
+
+        this.subscriptions.forEach((subscription) => {
+          const { symbols, feed } = subscription;
+          if (!symbolsByFeed.has(feed)) {
+            symbolsByFeed.set(feed, []);
+          }
+          symbols.forEach((symbol) => {
+            const currentSymbols = symbolsByFeed.get(feed) || [];
+            if (!currentSymbols.includes(symbol)) {
+              currentSymbols.push(symbol);
+              symbolsByFeed.set(feed, currentSymbols);
+            }
+          });
+        });
+
+        symbolsByFeed.forEach((symbols, feed) => {
+          this.addSymbols(symbols, feed);
+        });
 
         if (this.reconnectTimeout) {
           clearTimeout(this.reconnectTimeout);
@@ -288,40 +362,50 @@ export class LivePriceWebSocketClient {
     }
   }
 
-  subscribe(
+  subscribe<F extends LivePriceFeed>(
     symbols: string[],
-    handler: (data: BISTStockLiveData) => void
+    feed: F,
+    handler: (data: StockLiveDataType<F>) => void
   ): () => void {
     const subscriptionId = this.subscriptionCounter++;
     let symbolsToAdd: string[] = [];
 
-    this.subscriptions.set(subscriptionId, { symbols, handler });
+    const typedHandler = (data: BISTStockLiveData | USStockLiveData) => {
+      handler(data as StockLiveDataType<F>);
+    };
+
+    this.subscriptions.set(subscriptionId, {
+      symbols,
+      feed,
+      handler: typedHandler,
+    });
 
     for (const symbol of symbols) {
-      if (this.getHandlersForSymbol(symbol).length === 1) {
+      if (this.getHandlersForSymbol(symbol, feed).length === 1) {
         symbolsToAdd.push(symbol);
       }
     }
-    this.addSymbols(symbolsToAdd);
+    this.addSymbols(symbolsToAdd, feed);
 
     return () => {
       this.subscriptions.delete(subscriptionId);
       const symbolsForRemove = symbols.filter(
-        (s) => this.getHandlersForSymbol(s).length === 0
+        (s) => this.getHandlersForSymbol(s, feed).length === 0
       );
-      this.removeSymbols(symbolsForRemove);
+      this.removeSymbols(symbolsForRemove, feed);
     };
   }
 
   private getHandlersForSymbol(
-    symbol: string
-  ): ((data: BISTStockLiveData) => void)[] {
+    symbol: string,
+    feed: LivePriceFeed
+  ): ((data: BISTStockLiveData | USStockLiveData) => void)[] {
     return Array.from(this.subscriptions.values())
-      .filter((s) => s.symbols.includes(symbol))
+      .filter((s) => s.symbols.includes(symbol) && s.feed === feed)
       .map((s) => s.handler);
   }
 
-  private async removeSymbols(symbols: string[]) {
+  private async removeSymbols(symbols: string[], feed: LivePriceFeed) {
     if (symbols.length === 0) return;
 
     if (!this.ws) {
@@ -332,7 +416,7 @@ export class LivePriceWebSocketClient {
     }
 
     if (this.connectPromise) {
-      await this.connectPromise
+      await this.connectPromise;
     }
 
     if (this.ws.readyState !== WebSocket.OPEN) {
@@ -341,15 +425,17 @@ export class LivePriceWebSocketClient {
         WebSocketErrorType.WEBSOCKET_NOT_CONNECTED
       );
     }
+
     this.ws.send(
       JSON.stringify({
         type: "unsubscribe",
         symbols: symbols,
+        feed: feed,
       })
     );
   }
 
-  private async addSymbols(symbols: string[]) {
+  private async addSymbols(symbols: string[], feed: LivePriceFeed) {
     if (symbols.length === 0) return;
 
     if (!this.ws) {
@@ -360,7 +446,7 @@ export class LivePriceWebSocketClient {
     }
 
     if (this.connectPromise) {
-      await this.connectPromise
+      await this.connectPromise;
     }
 
     if (this.ws.readyState !== WebSocket.OPEN) {
@@ -374,6 +460,7 @@ export class LivePriceWebSocketClient {
       JSON.stringify({
         type: "subscribe",
         symbols: symbols,
+        feed: feed,
       })
     );
   }
