@@ -1,4 +1,3 @@
-import { WebSocket } from "ws";
 
 interface RawBISTStockLiveData {
   _id: number;
