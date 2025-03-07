@@ -57,6 +57,12 @@ export interface TopMover {
   symbol: string;
   percent_change: number;
 }
+
+export enum TopMoverDirection {
+  Gainers = "gainers",
+  Losers = "losers"
+}
+
 export class FinancialFundamentalsClient extends Client {
   async getStockDividends(symbol: string, region: Region): Promise<StockDividend[]> {
     const url = new URL(`${this['baseUrl']}/api/v1/stock/dividends`);
@@ -80,9 +86,12 @@ export class FinancialFundamentalsClient extends Client {
     });
   }
 
-  async getTopMovers(region: Region): Promise<TopMover[]> {
-    const url = new URL(`${this['baseUrl']}/api/v1/stock/top-movers`);
+  async getTopMovers(region: Region, page: number, pageSize: number, direction: TopMoverDirection): Promise<TopMover[]> {
+    const url = new URL(`${this['baseUrl']}/api/v2/stock/top-movers`);
     url.searchParams.append('region', region);
+    url.searchParams.append('page', page.toString());
+    url.searchParams.append('pageSize', pageSize.toString());
+    url.searchParams.append('direction', direction);
 
     return this.sendRequest<TopMover[]>({
       method: 'GET',
