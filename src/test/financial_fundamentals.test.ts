@@ -1,9 +1,8 @@
 import { Logger } from 'winston';
 import { LaplaceConfiguration } from '../utilities/configuration';
-import { Client, createClient } from '../client/client';
-import { FinancialFundamentalsClient } from '../client/financial_fundamentals';
+import { Client } from '../client/client';
+import { FinancialFundamentalsClient, TopMoverDirection } from '../client/financial_fundamentals';
 import { Region } from '../client/collections';
-import { StockStatsKey } from '../client/financial_fundamentals';
 import './client_test_suite';
 
 describe('FinancialFundamentals', () => {
@@ -58,7 +57,7 @@ describe('FinancialFundamentals', () => {
   });
 
   test('GetTopMovers', async () => {
-    const resp = await stockClient.getTopMovers(Region.Tr);
+    const resp = await stockClient.getTopMovers(Region.Tr, 0, 20, TopMoverDirection.Gainers);
     expect(resp).not.toBeEmpty();
   });
 });
