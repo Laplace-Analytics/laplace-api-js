@@ -30,7 +30,7 @@ describe("LivePrice", () => {
     } as unknown as Logger;
 
     livePriceUrlClient = new LivePriceClient(config, logger);
-    url = await livePriceUrlClient.getWebSocketUrl("2459", Region.Tr, [
+    url = await livePriceUrlClient.getWebSocketUrl("2459", [
       LivePriceFeed.LiveBist,
     ]);
 
