@@ -1,5 +1,6 @@
 import { Client } from './client';
 import { Region } from './collections';
+import { AssetClass, AssetType } from './stocks';
 
 export interface StockDividend {
   date: Date;
@@ -55,7 +56,9 @@ export enum StockStatsKey {
 
 export interface TopMover {
   symbol: string;
-  percent_change: number;
+  change: number;
+  assetClass: AssetClass;
+  assetType: AssetType
 }
 
 export enum TopMoverDirection {
