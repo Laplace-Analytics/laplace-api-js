@@ -1,9 +1,8 @@
 import { Logger } from 'winston';
 import { LaplaceConfiguration } from '../utilities/configuration';
-import { Client, createClient } from '../client/client';
-import { FinancialFundamentalsClient } from '../client/financial_fundamentals';
+import { Client } from '../client/client';
+import { FinancialFundamentalsClient, TopMoverDirection } from '../client/financial_fundamentals';
 import { Region } from '../client/collections';
-import { StockStatsKey } from '../client/financial_fundamentals';
 import './client_test_suite';
 
 describe('FinancialFundamentals', () => {
@@ -57,8 +56,38 @@ describe('FinancialFundamentals', () => {
       expect(currentStockStats.lowerPriceLimit).toBeGreaterThan(0.0)
   });
 
-  test('GetTopMovers', async () => {
-    const resp = await stockClient.getTopMovers(Region.Tr);
-    expect(resp).not.toBeEmpty();
+  describe('GetTopMovers', () => {
+    const region = Region.Tr;
+    const page = 0;
+    const pageSize = 20;
+    
+    async function testTopMovers(direction: TopMoverDirection, shouldBePositive: boolean) {
+      const result = await stockClient.getTopMovers(region, page, pageSize, direction);
+      
+      expect(Array.isArray(result)).toBe(true);
+      expect(result.length).toBeGreaterThan(0);
+      
+      result.forEach(mover => {
+        expect(mover).toHaveProperty('symbol');
+        expect(mover).toHaveProperty('change');
+        expect(typeof mover.symbol).toBe('string');
+        expect(typeof mover.change).toBe('number');
+      });
+      
+      const directionCheck = result.every(mover => 
+        shouldBePositive ? mover.change > 0 : mover.change < 0
+      );
+      expect(directionCheck).toBe(true);
+      
+      expect(result.length).toBeLessThanOrEqual(pageSize);
+    }
+    
+    test('should return gainers data', async () => {
+      await testTopMovers(TopMoverDirection.Gainers, true);
+    });
+    
+    test('should return losers data', async () => {
+      await testTopMovers(TopMoverDirection.Losers, false);
+    });
   });
 });
