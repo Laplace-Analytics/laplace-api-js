@@ -44,7 +44,6 @@ export class LivePriceClient extends Client {
     feeds: LivePriceFeed[]
   ): Promise<string> {
     const url = new URL(`${this["baseUrl"]}/api/v2/ws/url`);
-    url.searchParams.append("region", Region.Tr);
 
     const params: WebSocketUrlParams = {
       externalUserId,
