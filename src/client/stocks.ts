@@ -1,5 +1,6 @@
 import { Client } from './client';
 import { Region, Locale } from './collections';
+import { LaplaceHTTPError } from './errors';
 
 export enum AssetType {
   Stock = 'stock',
@@ -174,7 +175,7 @@ export class StockClient extends Client {
     const pattern =  /^\d{4}-\d{2}-\d{2}( \d{2}:\d{2}:\d{2})?$/;
     const matched = date.match(pattern);
     if (!matched) {
-      throw new Error("Invalid date format, allowed formats: YYYY-MM-DD, YYYY-MM-DD HH:MM:SS");
+      throw new LaplaceHTTPError(400, "Invalid date format, allowed formats: YYYY-MM-DD, YYYY-MM-DD HH:MM:SS");
     }
   }
 
