@@ -171,7 +171,7 @@ export class StockClient extends Client {
     });
   }
 
-  async validateCustomHistoricalPriceDate(date: string) {
+  validateCustomHistoricalPriceDate(date: string) {
     const pattern =  /^\d{4}-\d{2}-\d{2}( \d{2}:\d{2}:\d{2})?$/;
     const matched = date.match(pattern);
     if (!matched) {
