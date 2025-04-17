@@ -99,6 +99,7 @@ export class LivePriceWebSocketClient {
       feed: LivePriceFeed;
     }
   >();
+  private symbolLastData = new Map<string, BISTStockLiveData | USStockLiveData>();
   private reconnectAttempts = 0;
   private reconnectTimeout: NodeJS.Timeout | null = null;
   private isClosed: boolean = false;
@@ -263,6 +264,7 @@ export class LivePriceWebSocketClient {
                 } as USStockLiveData;
               }
               if (priceData.symbol) {
+                this.symbolLastData.set(priceData.symbol, priceData);
                 const handlers = this.getHandlersForSymbol(
                   priceData.symbol,
                   feed
@@ -380,8 +382,14 @@ export class LivePriceWebSocketClient {
     });
 
     for (const symbol of symbols) {
-      if (this.getHandlersForSymbol(symbol, feed).length === 1) {
+      const symbolHandlers = this.getHandlersForSymbol(symbol, feed);
+      if (symbolHandlers.length === 1) {
         symbolsToAdd.push(symbol);
+      } else if (symbolHandlers.length > 1) {
+        const lastData: BISTStockLiveData | USStockLiveData | undefined = this.symbolLastData.get(symbol);
+        if (lastData) {
+          typedHandler(lastData);
+        }
       }
     }
     this.addSymbols(symbolsToAdd, feed);
