@@ -19,10 +19,28 @@ export interface StockHistoricalRatios {
   formatting: Record<string, StockHistoricalRatiosFormatting>;
 }
 
+export interface StockHistoricalRatiosV2 {
+  slug: string;
+  finalValue: number;
+  threeYearGrowth: number;
+  yearGrowth: number;
+  finalSectorValue: number;
+  currency: Currency;
+  format: HistoricalRatiosFormat;
+  name: string;
+  items: StockHistoricalRatiosDataV2[]
+}
+
 export interface StockHistoricalRatiosData {
   fiscalYear: number;
   fiscalQuarter: number;
   values: Record<string, StockHistoricalRatiosValue>;
+}
+
+export interface StockHistoricalRatiosDataV2 {
+  period: string;
+  value: number;
+  sectorMean: number;
 }
 
 export interface StockHistoricalRatiosValue {
@@ -39,6 +57,12 @@ export interface StockHistoricalRatiosFormatting {
   prefix: string;
   interval: string;
   description: string;
+}
+
+export enum HistoricalRatiosFormat {
+  CURRENCY = "currency",
+  PERCENTAGE = "percentage",
+  DECIMAL = "decimal"
 }
 
 export enum HistoricalRatiosKey {
@@ -121,6 +145,18 @@ export class FinancialClient extends Client  {
     url.searchParams.append('slugs', keys.join(','));
 
     return this.sendRequest<StockHistoricalRatios>({
+      method: 'GET',
+      url: url.toString(),
+    });
+  }
+
+  async getHistoricalRatiosV2(symbol: string, keys: HistoricalRatiosKey[], region: Region): Promise<StockHistoricalRatiosV2[]> {
+    const url = new URL(`${this['baseUrl']}/api/v2/stock/historical-ratios`);
+    url.searchParams.append('symbol', symbol);
+    url.searchParams.append('region', region);
+    url.searchParams.append('slugs', keys.join(','));
+
+    return this.sendRequest<StockHistoricalRatiosV2[]>({
       method: 'GET',
       url: url.toString(),
     });
