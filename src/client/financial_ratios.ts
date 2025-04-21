@@ -66,10 +66,42 @@ export enum HistoricalRatiosFormat {
 }
 
 export enum HistoricalRatiosKey {
-  PriceToEarningsRatio = 'pe-ratio',
-  ReturnOnEquity = 'roe',
+  Revenue = 'satislar',
+  EBITDA = 'ebitda',
+  NetProfit = 'net_kar',
+  
+  GrossMargin = 'gross-margin',
+  Margin = 'margin',
+  OperatingMargin = 'operating-margin',
+  NetMargin = 'net-margin',
+  FCFMargin = 'fcf-margin',
+  
   ReturnOnAssets = 'roa',
-  ReturnOnCapital = 'roic',
+  ReturnOnEquity = 'roe',
+  ReturnOnCapitalEmployed = 'roce',
+  ReturnOnInvestedCapital = 'roic',
+  
+  PriceToEarningsRatio = 'pe_ratio',
+  PriceToEarnings = 'poe',
+  PriceToBookRatio = 'pb_ratio',
+  EnterpriseValueToEBITDA = 'ev-to-ebitda',
+  EnterpriseValueToRevenue = 'ev-to-revenue',
+  EnterpriseValueToInvestedCapital = 'ev_ic',
+  
+  InterestCoverage = 'interestCoverage',
+  QuickRatio = 'quick-ratio',
+  LeverageRatio = 'leverage-ratio',
+  DebtToEquity = 'debt-to-equity',
+  
+  RevenueGrowth = 'satis_buyumesi',
+  EBITDAGrowth = 'favok_buyumesi',
+  NetProfitGrowth = 'net_kar_buyumesi',
+  FreeCashFlowGrowth = 'serbest_nakit_akisi_buyumesi',
+  
+  CashConversionCycle = 'cash-conversion-cycle',
+  DaysSalesOutstanding = 'days-sales-outstanding',
+  DaysPayable = 'days-payable',
+  DaysInventory = 'days-inventory'
 }
 
 export interface StockHistoricalRatiosDescription {
