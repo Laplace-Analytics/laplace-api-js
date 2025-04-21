@@ -43,12 +43,11 @@ describe('FinancialRatios', () => {
   test("GetHistoricalRatiosV2", async () => {
     const resp = await financialClient.getHistoricalRatiosV2(
       "TUPRS",
-      [HistoricalRatiosKey.PriceToEarningsRatio],
+      Object.values(HistoricalRatiosKey).flat(),
       Region.Tr
     );
     expect(resp).not.toBeEmpty();
     for (const ratio of resp) {
-      expect(equal(ratio.slug, HistoricalRatiosKey.PriceToEarningsRatio));
       expect(typeof ratio.finalValue).toBe("number");
       expect(typeof ratio.threeYearGrowth).toBe("number");
       expect(typeof ratio.yearGrowth).toBe("number");
