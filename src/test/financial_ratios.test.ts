@@ -32,16 +32,8 @@ describe('FinancialRatios', () => {
     expect(resp).not.toBeEmpty();
   });
 
-  test('GetHistoricalRatios', async () => {
-    const resp = await financialClient.getHistoricalRatios('TUPRS', [HistoricalRatiosKey.PriceToEarningsRatio], Region.Tr);
-    expect(resp).not.toBeEmpty();
-    for (const [_, format] of Object.entries(resp.formatting)) {
-      expect(format.name).not.toBeEmpty();
-    }
-  });
-
-  test("GetHistoricalRatiosV2", async () => {
-    const resp = await financialClient.getHistoricalRatiosV2(
+  test("GetHistoricalRatios", async () => {
+    const resp = await financialClient.getHistoricalRatios(
       "TUPRS",
       Object.values(HistoricalRatiosKey).flat(),
       Region.Tr

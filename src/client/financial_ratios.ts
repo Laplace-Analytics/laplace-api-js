@@ -14,12 +14,6 @@ export interface StockSectorFinancialRatioComparisonDetail {
 }
 
 export interface StockHistoricalRatios {
-  symbol: string;
-  data: StockHistoricalRatiosData[];
-  formatting: Record<string, StockHistoricalRatiosFormatting>;
-}
-
-export interface StockHistoricalRatiosV2 {
   slug: string;
   finalValue: number;
   threeYearGrowth: number;
@@ -28,35 +22,13 @@ export interface StockHistoricalRatiosV2 {
   currency: Currency;
   format: HistoricalRatiosFormat;
   name: string;
-  items: StockHistoricalRatiosDataV2[]
+  items: StockHistoricalRatiosData[]
 }
 
 export interface StockHistoricalRatiosData {
-  fiscalYear: number;
-  fiscalQuarter: number;
-  values: Record<string, StockHistoricalRatiosValue>;
-}
-
-export interface StockHistoricalRatiosDataV2 {
   period: string;
   value: number;
   sectorMean: number;
-}
-
-export interface StockHistoricalRatiosValue {
-  value: number;
-  sectorAverage: number;
-}
-
-export interface StockHistoricalRatiosFormatting {
-  name: string;
-  slug: string;
-  precision: number;
-  multiplier: number;
-  suffix: string;
-  prefix: string;
-  interval: string;
-  description: string;
 }
 
 export enum HistoricalRatiosFormat {
@@ -170,25 +142,13 @@ export class FinancialClient extends Client  {
     });
   }
 
-  async getHistoricalRatios(symbol: string, keys: HistoricalRatiosKey[], region: Region): Promise<StockHistoricalRatios> {
-    const url = new URL(`${this['baseUrl']}/api/v1/stock/historical-ratios`);
-    url.searchParams.append('symbol', symbol);
-    url.searchParams.append('region', region);
-    url.searchParams.append('slugs', keys.join(','));
-
-    return this.sendRequest<StockHistoricalRatios>({
-      method: 'GET',
-      url: url.toString(),
-    });
-  }
-
-  async getHistoricalRatiosV2(symbol: string, keys: HistoricalRatiosKey[], region: Region): Promise<StockHistoricalRatiosV2[]> {
+  async getHistoricalRatios(symbol: string, keys: HistoricalRatiosKey[], region: Region): Promise<StockHistoricalRatios[]> {
     const url = new URL(`${this['baseUrl']}/api/v2/stock/historical-ratios`);
     url.searchParams.append('symbol', symbol);
     url.searchParams.append('region', region);
     url.searchParams.append('slugs', keys.join(','));
 
-    return this.sendRequest<StockHistoricalRatiosV2[]>({
+    return this.sendRequest<StockHistoricalRatios[]>({
       method: 'GET',
       url: url.toString(),
     });
