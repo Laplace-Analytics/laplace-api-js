@@ -43,22 +43,18 @@ export enum HistoricalRatiosKey {
   NetProfit = 'net_kar',
   
   GrossMargin = 'gross-margin',
-  Margin = 'margin',
-  OperatingMargin = 'operating-margin',
   NetMargin = 'net-margin',
-  FCFMargin = 'fcf-margin',
   
   ReturnOnAssets = 'roa',
   ReturnOnEquity = 'roe',
   ReturnOnCapitalEmployed = 'roce',
   ReturnOnInvestedCapital = 'roic',
   
-  PriceToEarningsRatio = 'pe_ratio',
+  PriceToEarningsRatio = 'pe-ratio',
   PriceToEarnings = 'poe',
-  PriceToBookRatio = 'pb_ratio',
+  PriceToBookRatio = 'pb-ratio',
   EnterpriseValueToEBITDA = 'ev-to-ebitda',
-  EnterpriseValueToRevenue = 'ev-to-revenue',
-  EnterpriseValueToInvestedCapital = 'ev_ic',
+  EnterpriseValueToInvestedCapital = 'evic',
   
   InterestCoverage = 'interestCoverage',
   QuickRatio = 'quick-ratio',
