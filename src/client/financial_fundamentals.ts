@@ -32,6 +32,8 @@ export interface StockStats {
   dayHigh: number;
   lowerPriceLimit: number;
   upperPriceLimit: number;
+  dayOpen: number;
+  eps: number;
 }
 
 export enum StockStatsKey {
