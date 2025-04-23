@@ -52,8 +52,10 @@ describe('FinancialFundamentals', () => {
       expect(typeof currentStockStats.dailyChange).toBe('number');
       expect(currentStockStats.dayLow).toBeGreaterThan(0.0);
       expect(currentStockStats.dayHigh).toBeGreaterThan(0.0);
-      expect(currentStockStats.upperPriceLimit).toBeGreaterThan(0.0)
-      expect(currentStockStats.lowerPriceLimit).toBeGreaterThan(0.0)
+      expect(currentStockStats.upperPriceLimit).toBeGreaterThan(0.0);
+      expect(currentStockStats.lowerPriceLimit).toBeGreaterThan(0.0);
+      expect(currentStockStats.dayOpen).toBeGreaterThan(0.0);
+      expect(typeof currentStockStats.eps).toBe('number');
   });
 
   describe('GetTopMovers', () => {
