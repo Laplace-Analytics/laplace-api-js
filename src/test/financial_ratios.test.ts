@@ -36,7 +36,8 @@ describe('FinancialRatios', () => {
     const resp = await financialClient.getHistoricalRatios(
       "TUPRS",
       Object.values(HistoricalRatiosKey).flat(),
-      Region.Tr
+      Region.Tr,
+      Locale.Tr
     );
     expect(resp).not.toBeEmpty();
     for (const ratio of resp) {

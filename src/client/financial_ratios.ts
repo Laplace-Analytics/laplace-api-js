@@ -179,10 +179,11 @@ export class FinancialClient extends Client  {
     });
   }
 
-  async getHistoricalRatios(symbol: string, keys: HistoricalRatiosKey[], region: Region): Promise<StockHistoricalRatios[]> {
+  async getHistoricalRatios(symbol: string, keys: HistoricalRatiosKey[], region: Region, locale: Locale): Promise<StockHistoricalRatios[]> {
     const url = new URL(`${this['baseUrl']}/api/v2/stock/historical-ratios`);
     url.searchParams.append('symbol', symbol);
     url.searchParams.append('region', region);
+    url.searchParams.append('locale', locale);
     url.searchParams.append('slugs', keys.join(','));
 
     return this.sendRequest<StockHistoricalRatios[]>({
