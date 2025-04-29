@@ -8,6 +8,7 @@ export enum AssetType {
   Index = 'index',
   Etf = 'etf',
   Commodity = 'commodity',
+  StockRights = 'stock_rights'
 }
 
 export enum AssetClass {

@@ -31,6 +31,7 @@ export interface CapitalIncrease {
   rightsTotalAmount: string;
   rightsStartDate: string;
   rightsEndDate: string;
+  rightsLastSellDate: string;
   bonusRate: string;
   bonusTotalAmount: string;
   bonusStartDate: string;
