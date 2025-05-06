@@ -65,7 +65,7 @@ describe('FinancialFundamentals', () => {
     const pageSize = 20;
     
     async function testTopMovers(direction: TopMoverDirection, shouldBePositive: boolean) {
-      const result = await stockClient.getTopMovers(region, page, pageSize, AssetType.Stock, direction);
+      const result = await stockClient.getTopMovers(region, page, pageSize, direction, AssetType.Stock);
       
       expect(Array.isArray(result)).toBe(true);
       expect(result.length).toBeGreaterThan(0);

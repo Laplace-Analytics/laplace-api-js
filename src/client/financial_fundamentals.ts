@@ -91,13 +91,13 @@ export class FinancialFundamentalsClient extends Client {
     });
   }
 
-  async getTopMovers(region: Region, page: number, pageSize: number, assetType: AssetType, direction: TopMoverDirection): Promise<TopMover[]> {
+  async getTopMovers(region: Region, page: number, pageSize: number, direction: TopMoverDirection, assetType?: AssetType): Promise<TopMover[]> {
     const url = new URL(`${this['baseUrl']}/api/v2/stock/top-movers`);
     url.searchParams.append('region', region);
     url.searchParams.append('page', page.toString());
     url.searchParams.append('pageSize', pageSize.toString());
     url.searchParams.append('direction', direction);
-    url.searchParams.append('assetType', assetType);
+    if (assetType) url.searchParams.append('assetType', assetType);
 
     return this.sendRequest<TopMover[]>({
       method: 'GET',
