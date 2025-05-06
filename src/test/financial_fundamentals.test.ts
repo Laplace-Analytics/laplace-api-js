@@ -4,6 +4,7 @@ import { Client } from '../client/client';
 import { FinancialFundamentalsClient, TopMoverDirection } from '../client/financial_fundamentals';
 import { Region } from '../client/collections';
 import './client_test_suite';
+import { AssetType } from '../client/stocks';
 
 describe('FinancialFundamentals', () => {
   let client: Client;
@@ -64,7 +65,7 @@ describe('FinancialFundamentals', () => {
     const pageSize = 20;
     
     async function testTopMovers(direction: TopMoverDirection, shouldBePositive: boolean) {
-      const result = await stockClient.getTopMovers(region, page, pageSize, direction);
+      const result = await stockClient.getTopMovers(region, page, pageSize, AssetType.Stock, direction);
       
       expect(Array.isArray(result)).toBe(true);
       expect(result.length).toBeGreaterThan(0);
@@ -80,6 +81,10 @@ describe('FinancialFundamentals', () => {
         shouldBePositive ? mover.change > 0 : mover.change < 0
       );
       expect(directionCheck).toBe(true);
+
+      const assetTypeCheck = result.every(mover => mover.assetType === AssetType.Stock)
+
+      expect(assetTypeCheck).toBe(true);
       
       expect(result.length).toBeLessThanOrEqual(pageSize);
     }
