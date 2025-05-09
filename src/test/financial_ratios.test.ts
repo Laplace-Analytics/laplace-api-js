@@ -68,10 +68,10 @@ describe('FinancialRatios', () => {
     const resp = await financialClient.getHistoricalFinancialSheets(
       'TUPRS',
       { year: 2022, month: 1, day: 1 },
-      { year: 2023, month: 1, day: 1 },
-      FinancialSheetType.BalanceSheet,
-      FinancialSheetPeriod.Annual,
-      Currency.EUR,
+      { year: 2025, month: 1, day: 1 },
+      FinancialSheetType.CashFlow,
+      FinancialSheetPeriod.Quarterly,
+      Currency.TRY,
       Region.Tr
     );
     expect(resp).not.toBeEmpty();
