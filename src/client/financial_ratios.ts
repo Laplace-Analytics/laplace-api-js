@@ -212,7 +212,7 @@ export class FinancialClient extends Client  {
     currency: Currency,
     region: Region
   ): Promise<HistoricalFinancialSheets> {
-    const url = new URL(`${this['baseUrl']}/api/v1/stock/historical-financial-sheets`);
+    const url = new URL(`${this['baseUrl']}/api/v2/stock/historical-financial-sheets`);
     url.searchParams.append('symbol', symbol);
     url.searchParams.append('from', `${from.year.toString().padStart(4, '0')}-${from.month.toString().padStart(2, '0')}-${from.day.toString().padStart(2, '0')}`);
     url.searchParams.append('to', `${to.year.toString().padStart(4, '0')}-${to.month.toString().padStart(2, '0')}-${to.day.toString().padStart(2, '0')}`);
