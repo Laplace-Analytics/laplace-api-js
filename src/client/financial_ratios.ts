@@ -131,7 +131,7 @@ export interface HistoricalFinancialSheets {
 
 export interface HistoricalFinancialSheet {
   period: string;
-  rows: HistoricalFinancialSheetRow[];
+  items: HistoricalFinancialSheetRow[];
 }
 
 export interface HistoricalFinancialSheetRow {
