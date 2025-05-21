@@ -107,6 +107,9 @@ export class LivePriceWebSocketClient {
   private wsUrl: string | null = null;
   private readonly options: Required<WebSocketOptions>;
   private connectPromise: Promise<void> | null = null;
+  private lastMessageTimestamp: number = 0;
+  private inactivityCheckInterval: NodeJS.Timeout | null = null;
+  private readonly INACTIVITY_TIMEOUT = 15000;
 
   constructor(options: WebSocketOptions = {}) {
     this.options = {
@@ -117,6 +120,32 @@ export class LivePriceWebSocketClient {
       maxReconnectDelay: 30000,
       ...options,
     };
+  }
+
+  private startInactivityInterval() {
+    this.lastMessageTimestamp = Date.now();
+    if (this.inactivityCheckInterval) {
+      clearInterval(this.inactivityCheckInterval);
+      this.inactivityCheckInterval = null;
+    }
+ 
+    this.inactivityCheckInterval = setInterval(async ()=> {
+      if (Date.now() - this.lastMessageTimestamp >= this.INACTIVITY_TIMEOUT) {
+        this.stopInactivityInterval();
+        try {
+          this.attemptReconnect();
+        } catch(error) {
+          this.log(`Failed to reconnect: ${error}`, "error");
+        }
+      }
+    }, this.INACTIVITY_TIMEOUT)
+  }
+
+  private stopInactivityInterval() {
+    if (this.inactivityCheckInterval) {
+      clearInterval(this.inactivityCheckInterval);
+      this.inactivityCheckInterval = null;
+    }
   }
 
   private log(message: string, level: "info" | "error" | "warn" = "info") {
@@ -183,6 +212,7 @@ export class LivePriceWebSocketClient {
       this.ws.onopen = () => {
         this.reconnectAttempts = 0;
         this.log("WebSocket connected");
+        this.startInactivityInterval();
         resolve();
       };
 
@@ -198,6 +228,8 @@ export class LivePriceWebSocketClient {
       this.ws.onclose = () => {
         this.isClosed = true;
         this.log("WebSocket closed");
+
+        this.stopInactivityInterval();
         if (this.closedReason !== WebSocketCloseReason.NORMAL_CLOSURE) {
           try {
             this.attemptReconnect();
@@ -225,6 +257,7 @@ export class LivePriceWebSocketClient {
       };
 
       this.ws.onmessage = (event) => {
+        this.lastMessageTimestamp = Date.now();
         try {
           const rawData = JSON.parse(event.data.toString());
 
