@@ -7,6 +7,7 @@ import {
   FinancialSheetType,
   FinancialSheetPeriod,
   Currency,
+  HistoricalFinancialSheetRow,
 } from "../client/financial_ratios";
 import { Region, Locale } from "../client/collections";
 import "./client_test_suite";
@@ -68,12 +69,41 @@ describe('FinancialRatios', () => {
     const resp = await financialClient.getHistoricalFinancialSheets(
       'TUPRS',
       { year: 2022, month: 1, day: 1 },
-      { year: 2023, month: 1, day: 1 },
-      FinancialSheetType.BalanceSheet,
-      FinancialSheetPeriod.Annual,
-      Currency.EUR,
+      { year: 2025, month: 1, day: 1 },
+      FinancialSheetType.CashFlow,
+      FinancialSheetPeriod.Quarterly,
+      Currency.TRY,
       Region.Tr
     );
+
+    expect(resp).toBeDefined();
+    expect(resp).not.toBeNull();
     expect(resp).not.toBeEmpty();
+
+    expect(resp.sheets).toBeDefined();
+    expect(Array.isArray(resp.sheets)).toBe(true);
+    expect(resp.sheets.length).toBeGreaterThan(0);
+
+    const firstSheet = resp.sheets[0];
+    expect(firstSheet).toBeDefined();
+
+    expect(firstSheet.period).toBeDefined();
+    expect(typeof firstSheet.period).toBe("string")
+
+    expect(firstSheet.items).toBeDefined();
+    expect(Array.isArray(firstSheet.items)).toBe(true);
+    expect(firstSheet.items.length).toBeGreaterThan(0);
+
+    const firstRow = firstSheet.items[0];
+    expect(firstRow).toBeDefined();
+
+    expect(firstRow).toMatchObject<HistoricalFinancialSheetRow>({
+      description: expect.any(String),
+      value: expect.any(Number),
+      lineCodeId: expect.any(Number),
+      indentLevel: expect.any(Number),
+      firstAncestorLineCodeId: expect.any(Number),
+      sectionLineCodeId: expect.any(Number),
+    });
   });
 });
