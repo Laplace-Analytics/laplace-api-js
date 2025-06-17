@@ -7,6 +7,7 @@ import {
   BrokerClient,
   BrokerSort,
   BrokerStats,
+  BrokerStockStats,
   StockBrokerStats,
   StockOverallStats,
 } from "../client/broker";
@@ -38,7 +39,7 @@ describe("BrokerClient", () => {
       "2025-05-28",
       BrokerSort.Volume,
       0,
-      3
+      5
     );
 
     expect(response).toBeDefined();
@@ -132,7 +133,7 @@ describe("BrokerClient", () => {
       BrokerSort.Volume,
       "TUPRS",
       0,
-      3
+      5
     );
 
     expect(response).toBeDefined();
@@ -216,7 +217,7 @@ describe("BrokerClient", () => {
   });
 
   test("getTopBrokersForBroker returns top brokers without averageCost", async () => {
-    const response = await brokerClient.getTopBrokersForBroker(
+    const response = await brokerClient.getTopStocksForBroker(
       region,
       fromDate,
       toDate,
@@ -239,7 +240,7 @@ describe("BrokerClient", () => {
     }
 
     for (const item of response.topItems) {
-      expect(item).toMatchObject<BrokerStats>({
+      expect(item).toMatchObject<BrokerStockStats>({
         totalBuyAmount: expect.any(Number),
         totalSellAmount: expect.any(Number),
         netAmount: expect.any(Number),
@@ -247,12 +248,13 @@ describe("BrokerClient", () => {
         totalSellVolume: expect.any(Number),
         totalVolume: expect.any(Number),
         totalAmount: expect.any(Number),
-        broker: {
-          id: expect.any(Number),
+        stock: {
+          id: expect.any(String),
           symbol: expect.any(String),
           name: expect.any(String),
-          longName: expect.any(String),
-          logo: expect.any(String),
+          assetType: expect.any(String),
+          assetClass: expect.any(String),
+          region: expect.any(String),
         },
       });
     }

@@ -1,5 +1,6 @@
 import { Client } from "./client";
 import { Region } from "./collections";
+import { AssetClass, AssetType } from "./stocks";
 
 export enum BrokerSort {
   NetBuy = "netBuy",
@@ -13,6 +14,15 @@ export interface Broker {
   name: string;
   longName: string;
   logo: string;
+}
+
+export interface BrokerStock {
+  symbol: string;
+  name: string;
+  id: string;
+  assetType: AssetType;
+  assetClass: AssetClass;
+  region: Region;
 }
 
 export interface BaseBrokerStats {
@@ -60,6 +70,16 @@ export interface TopStockBrokersResponse {
   topStats: StockOverallStats;
   restStats: StockOverallStats;
   topItems: StockBrokerStats[];
+}
+
+export interface BrokerStockStats extends BaseBrokerStats {
+  stock: BrokerStock;
+}
+
+export interface TopStocksForBrokerResponse {
+  topStats: BaseBrokerStats;
+  restStats: BaseBrokerStats;
+  topItems: BrokerStockStats[];
 }
 
 export class BrokerClient extends Client {
@@ -153,15 +173,15 @@ export class BrokerClient extends Client {
     });
   }
 
-  async getTopBrokersForBroker(
+  async getTopStocksForBroker(
     region: Region,
     fromDate: string,
     toDate: string,
     sortBy: BrokerSort,
     brokerSymbol: string,
     top: number = 5
-  ): Promise<TopBrokersResponse> {
-    return this.sendRequest<TopBrokersResponse>({
+  ): Promise<TopStocksForBrokerResponse> {
+    return this.sendRequest<TopStocksForBrokerResponse>({
       method: "GET",
       url: BrokerClient.BASE + "/top",
       params: {
