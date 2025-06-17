@@ -1,6 +1,6 @@
 {
   "name": "laplace-api",
-  "version": "3.0.1",
+  "version": "3.1.0",
   "description": "Client library for Laplace API for the US stock market and BIST (Istanbul stock market) fundamental financial data.",
   "main": "index.js",
   "scripts": {
