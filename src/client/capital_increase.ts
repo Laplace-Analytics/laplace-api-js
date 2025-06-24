@@ -1,5 +1,5 @@
 import { Client } from './client';
-import { Region, Locale } from './collections';
+import { Region } from './collections';
 
 // type PaginatedResponse[T any] struct {
 // 	RecordCount int `json:"recordCount"`
@@ -18,23 +18,23 @@ export interface CapitalIncrease {
   currentCapital: string;
   targetCapital: string;
   types: string[];
-  spkApplicationResult: string;
-  spkApplicationDate: string;
-  spkApprovalDate: string;
-  paymentDate: string;
-  registrationDate: string;
+  spkApplicationResult: string | null;
+  spkApplicationDate: string | null;
+  spkApprovalDate: string | null;
+  paymentDate: string | null;
+  registrationDate: string | null;
   specifiedCurrency: string;
   symbol: string;
-  relatedDisclosureIDs: number[];
+  relatedDisclosureIds: number[];
   rightsRate: string;
   rightsPrice: string;
   rightsTotalAmount: string;
-  rightsStartDate: string;
-  rightsEndDate: string;
-  rightsLastSellDate: string;
+  rightsStartDate: string | null;
+  rightsEndDate: string | null;
+  rightsLastSellDate: string | null;
   bonusRate: string;
   bonusTotalAmount: string;
-  bonusStartDate: string;
+  bonusStartDate: string | null;
   bonusDividendRate: string;
   bonusDividendTotalAmount: string;
   externalCapitalIncreaseAmount: string;
