@@ -14,28 +14,28 @@ export interface StockDividend {
 }
 
 export interface StockStats {
-  previousClose: number;
-  marketCap: number;
-  peRatio: number;
-  pbRatio: number;
-  yearLow: number;
-  yearHigh: number;
-  weeklyReturn: number;
-  monthlyReturn: number;
-  '3MonthReturn': number;
-  ytdReturn: number;
-  yearlyReturn: number;
-  '3YearReturn': number;
-  '5YearReturn': number;
+  previousClose?: number;
+  marketCap?: number;
+  peRatio?: number;
+  pbRatio?: number;
+  yearLow?: number;
+  yearHigh?: number;
+  weeklyReturn?: number;
+  monthlyReturn?: number;
+  "3MonthReturn"?: number;
+  ytdReturn?: number;
+  yearlyReturn?: number;
+  "3YearReturn"?: number;
+  "5YearReturn"?: number;
   symbol: string;
-  latestPrice: number;
-  dailyChange: number;
-  dayLow: number;
-  dayHigh: number;
-  lowerPriceLimit: number;
-  upperPriceLimit: number;
-  dayOpen: number;
-  eps: number;
+  latestPrice?: number;
+  dailyChange?: number;
+  dayLow?: number;
+  dayHigh?: number;
+  lowerPriceLimit?: number;
+  upperPriceLimit?: number;
+  dayOpen?: number;
+  eps?: number;
 }
 
 export enum StockStatsKey {
