@@ -1,6 +1,5 @@
 import { Logger } from "winston";
 import { LaplaceConfiguration } from "../utilities/configuration";
-import { Region } from "../client/collections";
 import "./client_test_suite";
 import { LivePriceClient } from "../client/live-price";
 import {
@@ -16,8 +15,8 @@ describe("LivePrice", () => {
   let ws: LivePriceWebSocketClient;
 
   const TEST_CONSTANTS = {
-    JEST_TIMEOUT: 30000,
-    MAIN_TIMEOUT: 25000,
+    JEST_TIMEOUT: 15000,
+    MAIN_TIMEOUT: 10000,
   };
 
   beforeAll(async () => {
@@ -67,7 +66,7 @@ describe("LivePrice", () => {
             }
           );
 
-        await new Promise((resolve) => setTimeout(resolve, 20000));
+        await new Promise((resolve) => setTimeout(resolve, TEST_CONSTANTS.MAIN_TIMEOUT));
 
         for (const symbol of symbols) {
           const symbolData = receivedData.filter(
@@ -100,7 +99,7 @@ describe("LivePrice", () => {
             }
           );
 
-        await new Promise((resolve) => setTimeout(resolve, 20000));
+        await new Promise((resolve) => setTimeout(resolve, TEST_CONSTANTS.MAIN_TIMEOUT));
 
         for (const symbol of symbols) {
           const symbolData = receivedData.filter(
