@@ -1,19 +1,24 @@
-import { Client } from './client';
-import { Region, Locale } from './collections';
+import { Client } from "./client";
+import { Region, Locale } from "./collections";
 
-export interface StockSectorFinancialRatioComparison {
-  metric_name: string;
-  normalizedValue: number;
-  details: StockSectorFinancialRatioComparisonDetail[];
+export enum RatioComparisonPeerType {
+  Industry = "industry",
+  Sector = "sector"
 }
 
-export interface StockSectorFinancialRatioComparisonDetail {
+export interface StockPeerFinancialRatioComparison {
+  metricName: string;
+  normalizedValue: number;
+  data: StockPeerFinancialRatioComparisonData[];
+}
+
+export interface StockPeerFinancialRatioComparisonData {
   slug: string;
   value: number;
-  sectorAverage: number;
+  average: number;
 }
 
-export interface StockHistoricalRatios {
+export interface TRStockHistoricalRatios {
   slug: string;
   finalValue: number;
   threeYearGrowth: number;
@@ -22,19 +27,51 @@ export interface StockHistoricalRatios {
   currency: Currency;
   format: HistoricalRatiosFormat;
   name: string;
-  items: StockHistoricalRatiosData[]
+  items: TRStockHistoricalRatiosData[];
 }
 
-export interface StockHistoricalRatiosData {
+export interface TRStockHistoricalRatiosData {
   period: string;
   value: number;
   sectorMean: number;
 }
 
+export interface USStockHistoricalRatios {
+  symbol: string;
+  data: USStockHistoricalRatiosData[];
+  formatting: Record<string, USStockHistoricalRatiosFormatting>;
+}
+
+export interface USStockHistoricalRatiosData {
+  fiscalYear: number;
+  fiscalQuarter: number;
+  values: Record<string, USStockHistoricalRatiosValue>;
+}
+
+export interface USStockHistoricalRatiosValue {
+  value: number;
+  sectorAverage: number;
+}
+
+export interface USStockHistoricalRatiosFormatting {
+  name: string;
+  slug: string;
+  precision: number;
+  multiplier: number;
+  suffix: string;
+  prefix: string;
+  interval: string;
+  description: string;
+}
+
+export type StockHistoricalRatios =
+  | USStockHistoricalRatios
+  | TRStockHistoricalRatios[];
+
 export enum HistoricalRatiosFormat {
   CURRENCY = "currency",
   PERCENTAGE = "percentage",
-  DECIMAL = "decimal"
+  DECIMAL = "decimal",
 }
 
 export enum HistoricalRatiosKey {
@@ -113,7 +150,7 @@ export enum HistoricalRatiosKey {
   FinancialExpensesToEBIT = 'financial_expenses_ebit_ratio'
 }
 
-export interface StockHistoricalRatiosDescription {
+export interface StockHistoricalRatiosDescriptionUS {
   slug: string;
   name: string;
   suffix: string;
@@ -124,6 +161,23 @@ export interface StockHistoricalRatiosDescription {
   description: string;
   interval: string;
 }
+
+export interface StockHistoricalRatiosDescriptionTR {
+  id: number;
+  format: string;
+  currency: string;
+  slug: string;
+  createdAt: string;
+  updatedAt: string;
+  name: string;
+  description: string;
+  locale: string;
+  isRealtime: boolean;
+}
+
+export type StockHistoricalRatiosDescription =
+  | StockHistoricalRatiosDescriptionUS
+  | StockHistoricalRatiosDescriptionTR;
 
 export interface HistoricalFinancialSheets {
   sheets: HistoricalFinancialSheet[];
@@ -139,8 +193,6 @@ export interface HistoricalFinancialSheetRow {
   value: number;
   lineCodeId: number;
   indentLevel: number;
-  firstAncestorLineCodeId: number;
-  sectionLineCodeId: number;
 }
 
 export enum FinancialSheetType {
@@ -167,35 +219,74 @@ export interface FinancialSheetDate {
   year: number;
 }
 
-export class FinancialClient extends Client  {
-  async getFinancialRatioComparison(symbol: string, region: Region): Promise<StockSectorFinancialRatioComparison[]> {
-    const url = new URL(`${this['baseUrl']}/api/v1/stock/financial-ratio-comparison`);
-    url.searchParams.append('symbol', symbol);
-    url.searchParams.append('region', region);
+export class FinancialClient extends Client {
+  async getFinancialRatioComparison(
+    symbol: string,
+    region: Region,
+    peerType: RatioComparisonPeerType
+  ): Promise<StockPeerFinancialRatioComparison[]> {
+    const url = new URL(
+      `${this["baseUrl"]}/api/v2/stock/financial-ratio-comparison`
+    );
+    url.searchParams.append("symbol", symbol);
+    url.searchParams.append("region", region);
+    url.searchParams.append("peerType", peerType);
 
-    return this.sendRequest<StockSectorFinancialRatioComparison[]>({
+    return this.sendRequest<StockPeerFinancialRatioComparison[]>({
+      method: "GET",
+      url: url.toString(),
+    });
+  }
+
+  async getHistoricalRatios(
+    symbol: string,
+    keys: HistoricalRatiosKey[],
+    region: Region.Tr,
+    locale: Locale
+  ): Promise<TRStockHistoricalRatios[]>;
+  async getHistoricalRatios(
+    symbol: string,
+    keys: HistoricalRatiosKey[],
+    region: Region.Us,
+    locale: Locale
+  ): Promise<USStockHistoricalRatios>;
+
+  async getHistoricalRatios(
+    symbol: string,
+    keys: HistoricalRatiosKey[],
+    region: Region,
+    locale: Locale
+  ): Promise<StockHistoricalRatios> {
+    const url = new URL(`${this["baseUrl"]}/api/v2/stock/historical-ratios`);
+    url.searchParams.append("symbol", symbol);
+    url.searchParams.append("region", region);
+    url.searchParams.append("locale", locale);
+    url.searchParams.append("slugs", keys.join(","));
+
+    return this.sendRequest<StockHistoricalRatios>({
       method: 'GET',
       url: url.toString(),
     });
   }
 
-  async getHistoricalRatios(symbol: string, keys: HistoricalRatiosKey[], region: Region, locale: Locale): Promise<StockHistoricalRatios[]> {
-    const url = new URL(`${this['baseUrl']}/api/v2/stock/historical-ratios`);
-    url.searchParams.append('symbol', symbol);
-    url.searchParams.append('region', region);
-    url.searchParams.append('locale', locale);
-    url.searchParams.append('slugs', keys.join(','));
+  async getHistoricalRatiosDescriptions(
+    locale: Locale,
+    region: Region.Us
+  ): Promise<StockHistoricalRatiosDescriptionUS[]>;
+  async getHistoricalRatiosDescriptions(
+    locale: Locale,
+    region: Region.Tr
+  ): Promise<StockHistoricalRatiosDescriptionTR[]>;
 
-    return this.sendRequest<StockHistoricalRatios[]>({
-      method: 'GET',
-      url: url.toString(),
-    });
-  }
-
-  async getHistoricalRatiosDescriptions(locale: Locale, region: Region): Promise<StockHistoricalRatiosDescription[]> {
-    const url = new URL(`${this['baseUrl']}/api/v1/stock/historical-ratios/descriptions`);
-    url.searchParams.append('locale', locale);
-    url.searchParams.append('region', region);
+  async getHistoricalRatiosDescriptions(
+    locale: Locale,
+    region: Region
+  ): Promise<StockHistoricalRatiosDescription[]> {
+    const url = new URL(
+      `${this["baseUrl"]}/api/v2/stock/historical-ratios/descriptions`
+    );
+    url.searchParams.append("locale", locale);
+    url.searchParams.append("region", region);
 
     return this.sendRequest<StockHistoricalRatiosDescription[]>({
       method: 'GET',
