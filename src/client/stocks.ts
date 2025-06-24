@@ -64,7 +64,7 @@ export interface StockDetail extends Stock {
   shortDescription: string;
   localizedShortDescription: LocaleString;
   region: string;
-  markets: Market[];
+  markets?: Market[];
 }
 
 export enum Market {
