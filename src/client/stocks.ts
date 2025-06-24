@@ -113,7 +113,7 @@ export interface TickRule {
   additionalPrice: number;
   lowerPriceLimit: number;
   upperPriceLimit: number;
-  rules: TickSizeRule[];
+  rules: TickSizeRule[] | null;
 }
 
 export interface TickSizeRule {
