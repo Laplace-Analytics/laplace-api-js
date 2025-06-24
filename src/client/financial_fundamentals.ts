@@ -3,12 +3,14 @@ import { Region } from './collections';
 import { AssetClass, AssetType } from './stocks';
 
 export interface StockDividend {
-  date: Date;
-  dividendAmount: number;
-  dividendRatio: number;
-  netDividendAmount: number;
-  netDividendRatio: number;
+  date: string;
+  netAmount: number;
+  netRatio: number;
+  grossAmount: number;
+  grossRatio: number;
   priceThen: number;
+  stoppageRatio: number;
+  stoppageAmount: number;
 }
 
 export interface StockStats {
@@ -69,10 +71,13 @@ export enum TopMoverDirection {
 }
 
 export class FinancialFundamentalsClient extends Client {
-  async getStockDividends(symbol: string, region: Region): Promise<StockDividend[]> {
-    const url = new URL(`${this['baseUrl']}/api/v1/stock/dividends`);
-    url.searchParams.append('symbol', symbol);
-    url.searchParams.append('region', region);
+  async getStockDividends(
+    symbol: string,
+    region: Region
+  ): Promise<StockDividend[]> {
+    const url = new URL(`${this["baseUrl"]}/api/v2/stock/dividends`);
+    url.searchParams.append("symbol", symbol);
+    url.searchParams.append("region", region);
 
     return this.sendRequest<StockDividend[]>({
       method: 'GET',
