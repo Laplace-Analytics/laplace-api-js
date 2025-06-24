@@ -26,14 +26,14 @@ export enum SortBy {
 export interface Collection {
   id: string;
   title: string;
-  description: string;
-  region: Region[];
-  assetClass: string;
+  description?: string;
+  region?: Region[];
+  assetClass?: string;
   imageUrl: string;
   avatarUrl: string;
   numStocks: number;
-  image: string;
-  order: number;
+  image?: string;
+  order?: number;
   status?: string;
   metaData?: Record<string, any>;
 }
