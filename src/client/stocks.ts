@@ -102,8 +102,10 @@ export interface StockRestriction {
   id: number;
   title: string;
   description: string;
+  symbol?: string;
   startDate: string;
   endDate: string;
+  market?: string;
 }
 
 export interface TickRule {
