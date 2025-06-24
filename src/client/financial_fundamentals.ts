@@ -61,8 +61,8 @@ export enum StockStatsKey {
 export interface TopMover {
   symbol: string;
   change: number;
-  assetClass: AssetClass;
-  assetType: AssetType
+  assetClass?: AssetClass;
+  assetType?: AssetType;
 }
 
 export enum TopMoverDirection {
