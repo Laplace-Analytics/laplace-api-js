@@ -190,6 +190,14 @@ export class StockClient extends Client {
     });
   }
 
+  async getAllStockRestrictions(region: Region): Promise<StockRestriction[]> {
+    return this.sendRequest<StockRestriction[]>({
+      method: 'GET',
+      url: '/api/v1/stock/restrictions/all',
+      params: { region },
+    });
+  }
+
   async getTickRules(symbol: string, region: Region): Promise<TickRule> {
     return this.sendRequest<TickRule>({
       method: 'GET',
