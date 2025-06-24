@@ -71,10 +71,6 @@ export class CollectionClient extends Client {
     return this.getAllCollectionsPrivate(CollectionType.Theme, region, locale);
   }
 
-  async getAllCustomThemes(region: Region, locale: Locale): Promise<Collection[]> {
-    return this.getAllCollectionsPrivate(CollectionType.CustomTheme, region, locale);
-  }
-
   async getAllCollections(region: Region, locale: Locale): Promise<Collection[]> {
     return this.getAllCollectionsPrivate(CollectionType.Collection, region, locale);
   }
@@ -89,10 +85,6 @@ export class CollectionClient extends Client {
 
   async getThemeDetail(id: string, region: Region, locale: Locale): Promise<CollectionDetail> {
     return this.getCollectionDetailPrivate(id, CollectionType.Theme, region, locale);
-  }
-
-  async getCustomThemeDetail(id: string, region: Region, locale: Locale): Promise<CollectionDetail> {
-    return this.getCollectionDetailPrivate(id, CollectionType.CustomTheme, region, locale);
   }
 
   async getCollectionDetail(id: string, region: Region, locale: Locale): Promise<CollectionDetail> {
