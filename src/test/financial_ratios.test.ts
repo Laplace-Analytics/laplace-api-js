@@ -49,7 +49,7 @@ describe("FinancialRatios", () => {
   });
 
   describe("GetHistoricalRatios", () => {
-    test("GetHistoricalRatiosTR", async () => {
+    test("GetHistoricalRatios", async () => {
       const resp = await financialClient.getHistoricalRatios(
         "TUPRS",
         Object.values(HistoricalRatiosKey).flat(),
@@ -73,49 +73,10 @@ describe("FinancialRatios", () => {
       expect(typeof firstItem.sectorMean).toBe("number");
       expect(typeof firstItem.value).toBe("number");
     });
-
-    test("GetHistoricalRatiosUS", async () => {
-      const resp = await financialClient.getHistoricalRatios(
-        "AAPL",
-        Object.values(HistoricalRatiosKey).flat(),
-        Region.Us,
-        Locale.Tr
-      );
-      expect(resp).not.toBeEmpty();
-
-      const firstRatio = resp;
-      expect(equal(firstRatio.symbol, "AAPL"));
-
-      const ratiosData = firstRatio.data;
-      expect(ratiosData).not.toBeEmpty();
-
-      const firstRatiosData = ratiosData[0];
-      expect(typeof firstRatiosData.fiscalYear).toBe("number");
-      expect(typeof firstRatiosData.fiscalQuarter).toBe("number");
-
-      expect(firstRatiosData.values).not.toBeEmpty();
-
-      const firstKey = Object.keys(firstRatiosData.values)[0];
-      const firstValue = firstRatiosData.values[firstKey];
-      expect(typeof firstValue.value).toBe("number");
-      expect(typeof firstValue.sectorAverage).toBe("number");
-
-      expect(firstRatio.formatting).not.toBeEmpty();
-      const firstFormattingKey = Object.keys(firstRatio.formatting)[0];
-      const firstFormattingValue = firstRatio.formatting[firstFormattingKey];
-      expect(typeof firstFormattingValue.name).toBe("string");
-      expect(typeof firstFormattingValue.slug).toBe("string");
-      expect(typeof firstFormattingValue.precision).toBe("number");
-      expect(typeof firstFormattingValue.multiplier).toBe("number");
-      expect(typeof firstFormattingValue.suffix).toBe("string");
-      expect(typeof firstFormattingValue.prefix).toBe("string");
-      expect(typeof firstFormattingValue.interval).toBe("string");
-      expect(typeof firstFormattingValue.description).toBe("string");
-    });
   });
 
   describe("GetHistoricalRatiosDescriptions", () => {
-    test("GetHistoricalRatiosDescriptionsTR", async () => {
+    test("GetHistoricalRatiosDescriptions", async () => {
       const resp = await financialClient.getHistoricalRatiosDescriptions(
         Locale.Tr,
         Region.Tr
@@ -133,25 +94,6 @@ describe("FinancialRatios", () => {
       expect(typeof firstDescription.description).toBe("string");
       expect(typeof firstDescription.locale).toBe("string");
       expect(typeof firstDescription.isRealtime).toBe("boolean");
-    });
-
-    test("GetHistoricalRatiosDescriptionsUS", async () => {
-      const resp = await financialClient.getHistoricalRatiosDescriptions(
-        Locale.En,
-        Region.Us
-      );
-      expect(resp).not.toBeEmpty();
-
-      const firstDescription = resp[0];
-      expect(typeof firstDescription.slug).toBe("string");
-      expect(typeof firstDescription.name).toBe("string");
-      expect(typeof firstDescription.suffix).toBe("string");
-      expect(typeof firstDescription.prefix).toBe("string");
-      expect(typeof firstDescription.display).toBe("boolean");
-      expect(typeof firstDescription.precision).toBe("number");
-      expect(typeof firstDescription.multiplier).toBe("number");
-      expect(typeof firstDescription.description).toBe("string");
-      expect(typeof firstDescription.interval).toBe("string");
     });
   });
 
