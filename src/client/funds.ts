@@ -73,6 +73,10 @@ export interface FundAsset {
   categoryPercentage: number;
 }
 
+export interface FundDistribution {
+  categories: FundCategoryDistribution[];
+}
+
 export interface FundCategoryDistribution {
   category: FundAssetCategory;
   percentage: number;
@@ -114,7 +118,7 @@ export class FundsClient extends Client {
   }
 
   async getFundDistribution(symbol: string, region: Region) {
-    return this.sendRequest<FundCategoryDistribution[]>({
+    return this.sendRequest<FundDistribution>({
       method: "GET",
       url: `/api/v1/fund/distribution`,
       params: { symbol, region },

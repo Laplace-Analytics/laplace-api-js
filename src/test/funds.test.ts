@@ -77,10 +77,10 @@ describe("Funds Client", () => {
       const resp = await client.getFundDistribution("SPP", Region.Tr);
 
       expect(resp).toBeDefined();
-      expect(Array.isArray(resp)).toBe(true);
+      expect(Array.isArray(resp.categories)).toBe(true);
 
-      if (resp.length > 0) {
-        const distribution = resp[0];
+      if (resp.categories.length > 0) {
+        const distribution = resp.categories[0];
         expect(distribution.category).toBeDefined();
         expect(typeof distribution.percentage).toBe("number");
       }
