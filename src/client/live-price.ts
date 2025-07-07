@@ -24,6 +24,21 @@ export interface USStockLiveData {
   ap: number; // AskPrice
 }
 
+export enum AccessorType {
+  User = "user"
+}
+
+interface UpdateUserDetailsParams {
+  externalUserID: string;
+  firstName?: string;
+  lastName?: string;
+  address?: string;
+  city?: string;
+  countryCode?: string;
+  accessorType?: AccessorType; 
+  active: boolean;
+}
+
 function getSSELivePrice<T>(
   client: Client,
   symbols: string[],
@@ -57,6 +72,16 @@ export class LivePriceClient extends Client {
     });
 
     return response.url;
+  }
+
+  async updateUserDetails(params: UpdateUserDetailsParams): Promise<void> {
+    const url = new URL(`${this["baseUrl"]}/api/v1/ws/user`);
+
+    await this.sendRequest<void>({
+      method: "PUT",
+      url: url.toString(),
+      data: params,
+    });
   }
 
   getLivePriceForBIST(

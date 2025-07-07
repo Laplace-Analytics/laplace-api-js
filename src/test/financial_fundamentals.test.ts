@@ -1,13 +1,11 @@
 import { Logger } from 'winston';
 import { LaplaceConfiguration } from '../utilities/configuration';
-import { Client } from '../client/client';
 import { FinancialFundamentalsClient, TopMoverDirection } from '../client/financial_fundamentals';
-import { Region } from '../client/collections';
 import './client_test_suite';
-import { AssetType } from '../client/stocks';
+import { Region } from '../client/collections';
+import { AssetType, AssetClass } from '../client/stocks';
 
 describe('FinancialFundamentals', () => {
-  let client: Client;
   let stockClient: FinancialFundamentalsClient;
 
   beforeAll(() => {
@@ -22,10 +20,23 @@ describe('FinancialFundamentals', () => {
     stockClient = new FinancialFundamentalsClient(config, logger);
   });
 
-  test('GetStockDividends', async () => {
-    const resp = await stockClient.getStockDividends('TUPRS', Region.Tr);
+  test("GetStockDividend", async () => {
+    const resp = await stockClient.getStockDividends("TUPRS", Region.Tr);
     expect(resp).not.toBeEmpty();
-  });
+   
+    const firstDividend = resp[0];
+    expect(typeof firstDividend.date).toBe("string");
+    expect(() => new Date(firstDividend.date)).not.toThrow();
+    expect(new Date(firstDividend.date).getTime()).not.toBeNaN();
+    
+    expect(typeof firstDividend.netAmount).toBe("number");
+    expect(typeof firstDividend.netRatio).toBe("number");
+    expect(typeof firstDividend.grossAmount).toBe("number");
+    expect(typeof firstDividend.grossRatio).toBe("number");
+    expect(typeof firstDividend.priceThen).toBe("number");
+    expect(typeof firstDividend.stoppageRatio).toBe("number");
+    expect(typeof firstDividend.stoppageAmount).toBe("number");
+   });
 
   test('GetStockStats', async () => {
     const resp = await stockClient.getStockStats(['TUPRS'], Region.Tr);
@@ -65,7 +76,7 @@ describe('FinancialFundamentals', () => {
     const pageSize = 20;
     
     async function testTopMovers(direction: TopMoverDirection, shouldBePositive: boolean) {
-      const result = await stockClient.getTopMovers(region, page, pageSize, direction, AssetType.Stock);
+      const result = await stockClient.getTopMovers(region, page, pageSize, direction, AssetType.Stock, AssetClass.Equity);
       
       expect(Array.isArray(result)).toBe(true);
       expect(result.length).toBeGreaterThan(0);
@@ -85,6 +96,10 @@ describe('FinancialFundamentals', () => {
       const assetTypeCheck = result.every(mover => mover.assetType === AssetType.Stock)
 
       expect(assetTypeCheck).toBe(true);
+
+      const assetClassCheck = result.every(mover => mover.assetClass === AssetClass.Equity)
+
+      expect(assetClassCheck).toBe(true);
       
       expect(result.length).toBeLessThanOrEqual(pageSize);
     }

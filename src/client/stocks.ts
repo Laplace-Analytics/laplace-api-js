@@ -64,7 +64,7 @@ export interface StockDetail extends Stock {
   shortDescription: string;
   localizedShortDescription: LocaleString;
   region: string;
-  markets: Market[];
+  markets?: Market[];
 }
 
 export enum Market {
@@ -102,8 +102,10 @@ export interface StockRestriction {
   id: number;
   title: string;
   description: string;
+  symbol?: string;
   startDate: string;
   endDate: string;
+  market?: string;
 }
 
 export interface TickRule {
@@ -111,7 +113,7 @@ export interface TickRule {
   additionalPrice: number;
   lowerPriceLimit: number;
   upperPriceLimit: number;
-  rules: TickSizeRule[];
+  rules: TickSizeRule[] | null;
 }
 
 export interface TickSizeRule {
@@ -185,6 +187,14 @@ export class StockClient extends Client {
       method: 'GET',
       url: '/api/v1/stock/restrictions',
       params: { symbol, region },
+    });
+  }
+
+  async getAllStockRestrictions(region: Region): Promise<StockRestriction[]> {
+    return this.sendRequest<StockRestriction[]>({
+      method: 'GET',
+      url: '/api/v1/stock/restrictions/all',
+      params: { region },
     });
   }
 

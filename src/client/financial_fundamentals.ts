@@ -3,37 +3,39 @@ import { Region } from './collections';
 import { AssetClass, AssetType } from './stocks';
 
 export interface StockDividend {
-  date: Date;
-  dividendAmount: number;
-  dividendRatio: number;
-  netDividendAmount: number;
-  netDividendRatio: number;
+  date: string;
+  netAmount: number;
+  netRatio: number;
+  grossAmount: number;
+  grossRatio: number;
   priceThen: number;
+  stoppageRatio: number;
+  stoppageAmount: number;
 }
 
 export interface StockStats {
-  previousClose: number;
-  marketCap: number;
-  peRatio: number;
-  pbRatio: number;
-  yearLow: number;
-  yearHigh: number;
-  weeklyReturn: number;
-  monthlyReturn: number;
-  '3MonthReturn': number;
-  ytdReturn: number;
-  yearlyReturn: number;
-  '3YearReturn': number;
-  '5YearReturn': number;
+  previousClose?: number;
+  marketCap?: number;
+  peRatio?: number;
+  pbRatio?: number;
+  yearLow?: number;
+  yearHigh?: number;
+  weeklyReturn?: number;
+  monthlyReturn?: number;
+  "3MonthReturn"?: number;
+  ytdReturn?: number;
+  yearlyReturn?: number;
+  "3YearReturn"?: number;
+  "5YearReturn"?: number;
   symbol: string;
-  latestPrice: number;
-  dailyChange: number;
-  dayLow: number;
-  dayHigh: number;
-  lowerPriceLimit: number;
-  upperPriceLimit: number;
-  dayOpen: number;
-  eps: number;
+  latestPrice?: number;
+  dailyChange?: number;
+  dayLow?: number;
+  dayHigh?: number;
+  lowerPriceLimit?: number;
+  upperPriceLimit?: number;
+  dayOpen?: number;
+  eps?: number;
 }
 
 export enum StockStatsKey {
@@ -59,8 +61,8 @@ export enum StockStatsKey {
 export interface TopMover {
   symbol: string;
   change: number;
-  assetClass: AssetClass;
-  assetType: AssetType
+  assetClass?: AssetClass;
+  assetType?: AssetType;
 }
 
 export enum TopMoverDirection {
@@ -69,10 +71,13 @@ export enum TopMoverDirection {
 }
 
 export class FinancialFundamentalsClient extends Client {
-  async getStockDividends(symbol: string, region: Region): Promise<StockDividend[]> {
-    const url = new URL(`${this['baseUrl']}/api/v1/stock/dividends`);
-    url.searchParams.append('symbol', symbol);
-    url.searchParams.append('region', region);
+  async getStockDividends(
+    symbol: string,
+    region: Region
+  ): Promise<StockDividend[]> {
+    const url = new URL(`${this["baseUrl"]}/api/v2/stock/dividends`);
+    url.searchParams.append("symbol", symbol);
+    url.searchParams.append("region", region);
 
     return this.sendRequest<StockDividend[]>({
       method: 'GET',
@@ -91,13 +96,16 @@ export class FinancialFundamentalsClient extends Client {
     });
   }
 
-  async getTopMovers(region: Region, page: number, pageSize: number, direction: TopMoverDirection, assetType?: AssetType): Promise<TopMover[]> {
+  async getTopMovers(region: Region, page: number, pageSize: number, direction: TopMoverDirection, assetType?: AssetType,
+    assetClass?: AssetClass
+  ): Promise<TopMover[]> {
     const url = new URL(`${this['baseUrl']}/api/v2/stock/top-movers`);
     url.searchParams.append('region', region);
     url.searchParams.append('page', page.toString());
     url.searchParams.append('pageSize', pageSize.toString());
     url.searchParams.append('direction', direction);
     if (assetType) url.searchParams.append('assetType', assetType);
+    if (assetClass) url.searchParams.append("assetClass", assetClass);
 
     return this.sendRequest<TopMover[]>({
       method: 'GET',

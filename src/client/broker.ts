@@ -1,11 +1,21 @@
+import { PaginatedResponse } from "./capital_increase";
 import { Client } from "./client";
 import { Region } from "./collections";
 import { AssetClass, AssetType } from "./stocks";
 
 export enum BrokerSort {
-  NetBuy = "netBuy",
-  NetSell = "netSell",
-  Volume = "volume",
+  NetAmount = "netAmount",
+  TotalAmount = "totalAmount",
+  TotalVolume = "totalVolume",
+  TotalBuyAmount = "totalBuyAmount",
+  TotalBuyVolume = "totalBuyVolume",
+  TotalSellAmount = "totalSellAmount",
+  TotalSellVolume = "totalSellVolume",
+}
+
+export enum SortDirection {
+  Desc = "desc",
+  Asc = "asc",
 }
 
 export interface Broker {
@@ -22,10 +32,9 @@ export interface BrokerStock {
   id: string;
   assetType: AssetType;
   assetClass: AssetClass;
-  region: Region;
 }
 
-export interface BaseBrokerStats {
+export interface BrokerStats {
   totalBuyAmount: number;
   totalSellAmount: number;
   netAmount: number;
@@ -33,164 +42,133 @@ export interface BaseBrokerStats {
   totalSellVolume: number;
   totalVolume: number;
   totalAmount: number;
+  averageCost?: number;
 }
 
-export interface BrokerStats extends BaseBrokerStats {
-  broker: Broker;
+export interface BrokerItem extends BrokerStats {
+  broker?: Broker;
+  stock?: BrokerStock;
 }
 
-export interface MarketBrokersResponse {
-  recordCount: number;
-  totalStats: BaseBrokerStats;
-  items: BrokerStats[];
-}
-
-export interface TopBrokersResponse {
-  topStats: BaseBrokerStats;
-  restStats: BaseBrokerStats;
-  topItems: BrokerStats[];
-}
-
-export interface StockBrokerStats extends BaseBrokerStats {
-  averageCost: number;
-  broker: Broker;
-}
-
-export interface StockOverallStats extends BaseBrokerStats {
-  averageCost: number;
-}
-
-export interface StockBrokersResponse {
-  recordCount: number;
-  totalStats: StockOverallStats;
-  items: StockBrokerStats[];
-}
-
-export interface TopStockBrokersResponse {
-  topStats: StockOverallStats;
-  restStats: StockOverallStats;
-  topItems: StockBrokerStats[];
-}
-
-export interface BrokerStockStats extends BaseBrokerStats {
-  stock: BrokerStock;
-}
-
-export interface TopStocksForBrokerResponse {
-  topStats: BaseBrokerStats;
-  restStats: BaseBrokerStats;
-  topItems: BrokerStockStats[];
+export interface BrokerList extends PaginatedResponse<BrokerItem> {
+  totalStats: BrokerStats;
 }
 
 export class BrokerClient extends Client {
   private static readonly BASE = "/api/v1/brokers";
 
-  async getMarketBrokers(
+  async getBrokers(
     region: Region,
+    page: number,
+    size: number
+  ): Promise<PaginatedResponse<Broker>> {
+    return this.sendRequest<PaginatedResponse<Broker>>({
+      method: "GET",
+      url: BrokerClient.BASE,
+      params: {
+        region,
+        page,
+        size,
+      },
+    });
+  }
+
+  async getMarketStocks(
+    region: Region,
+    sortBy: BrokerSort,
+    sortDirection: SortDirection,
     fromDate: string,
     toDate: string,
+    page: number,
+    size: number
+  ): Promise<BrokerList> {
+    return this.sendRequest<BrokerList>({
+      method: "GET",
+      url: BrokerClient.BASE + "/market/stock",
+      params: {
+        region,
+        sortBy,
+        sortDirection,
+        fromDate,
+        toDate,
+        page,
+        size,
+      },
+    });
+  }
+
+  async getMarketBrokers(
+    region: Region,
     sortBy: BrokerSort,
-    page: number = 0,
-    size: number = 10
-  ): Promise<MarketBrokersResponse> {
-    return this.sendRequest<MarketBrokersResponse>({
+    sortDirection: SortDirection,
+    fromDate: string,
+    toDate: string,
+    page: number,
+    size: number
+  ): Promise<BrokerList> {
+    return this.sendRequest<BrokerList>({
       method: "GET",
       url: BrokerClient.BASE + "/market",
       params: {
         region,
+        sortBy,
+        sortDirection,
         fromDate,
         toDate,
-        sortBy,
         page,
         size,
       },
     });
   }
 
-  async getTopMarketBrokers(
-    region: Region,
-    fromDate: string,
-    toDate: string,
-    sortBy: BrokerSort,
-    top: number = 5
-  ): Promise<TopBrokersResponse> {
-    return this.sendRequest<TopBrokersResponse>({
-      method: "GET",
-      url: BrokerClient.BASE + "/market/top",
-      params: {
-        region,
-        fromDate,
-        toDate,
-        sortBy,
-        top,
-      },
-    });
-  }
-
-  async getStockBrokers(
-    region: Region,
-    fromDate: string,
-    toDate: string,
-    sortBy: BrokerSort,
+  async getBrokersByStock(
     symbol: string,
-    page: number = 0,
-    size: number = 10
-  ): Promise<StockBrokersResponse> {
-    return this.sendRequest<StockBrokersResponse>({
+    region: Region,
+    sortBy: BrokerSort,
+    sortDirection: SortDirection,
+    fromDate: string,
+    toDate: string,
+    page: number,
+    size: number
+  ): Promise<BrokerList> {
+    return this.sendRequest<BrokerList>({
       method: "GET",
-      url: BrokerClient.BASE + "/stock",
+      url: BrokerClient.BASE + "/" + symbol,
       params: {
+        symbol,
         region,
+        sortBy,
+        sortDirection,
         fromDate,
         toDate,
-        sortBy,
         page,
         size,
-        symbol,
       },
     });
   }
 
-  async getTopStockBrokers(
-    region: Region,
-    fromDate: string,
-    toDate: string,
-    sortBy: BrokerSort,
+  async getStocksByBroker(
     symbol: string,
-    top: number = 5
-  ): Promise<TopStockBrokersResponse> {
-    return this.sendRequest<TopStockBrokersResponse>({
-      method: "GET",
-      url: BrokerClient.BASE + "/stock/top",
-      params: {
-        region,
-        fromDate,
-        toDate,
-        sortBy,
-        top,
-        symbol,
-      },
-    });
-  }
-
-  async getTopStocksForBroker(
     region: Region,
+    sortBy: BrokerSort,
+    sortDirection: SortDirection,
     fromDate: string,
     toDate: string,
-    sortBy: BrokerSort,
-    brokerSymbol: string,
-    top: number = 5
-  ): Promise<TopStocksForBrokerResponse> {
-    return this.sendRequest<TopStocksForBrokerResponse>({
+    page: number,
+    size: number
+  ): Promise<BrokerList> {
+    return this.sendRequest<BrokerList>({
       method: "GET",
-      url: BrokerClient.BASE + "/top",
+      url: BrokerClient.BASE + "/stock/" + symbol,
       params: {
+        symbol,
         region,
+        sortBy,
+        sortDirection,
         fromDate,
         toDate,
-        sortBy,
-        top,
-        brokerSymbol,
+        page,
+        size,
       },
     });
   }

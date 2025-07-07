@@ -1,11 +1,17 @@
-import { Logger } from 'winston';
-import { LaplaceConfiguration } from '../utilities/configuration';
-import { CustomThemeClient, CollectionStatus, CreateCustomThemeParams, UpdateCustomThemeParams } from '../client/custom_theme';
-import { Region, Locale, SortBy } from '../client/collections';
-import { Stock, StockClient } from '../client/stocks';
-import './client_test_suite';
+import { Logger } from "winston";
+import { LaplaceConfiguration } from "../utilities/configuration";
+import {
+  CustomThemeClient,
+  CollectionStatus,
+  CreateCustomThemeParams,
+  UpdateCustomThemeParams,
+} from "../client/custom_theme";
+import { Stock, StockClient } from "../client/stocks";
+import "./client_test_suite";
+import { validateCollection } from "./helpers";
+import { Locale, Region, SortBy } from "../client/collections";
 
-describe('CustomTheme', () => {
+describe("CustomTheme", () => {
   let client: CustomThemeClient;
   let stocksClient: StockClient;
 
@@ -22,9 +28,12 @@ describe('CustomTheme', () => {
     stocksClient = new StockClient(config, logger);
   });
 
-  test('GetAllCustomThemes', async () => {
+  test("GetAllCustomThemes", async () => {
     const resp = await client.getAllCustomThemes(Locale.Tr);
     expect(resp).not.toBeEmpty();
+
+    const firstTheme = resp[0];
+    validateCollection(firstTheme);
   });
 
   test('CreateUpdateDeleteCustomTheme', async () => {
