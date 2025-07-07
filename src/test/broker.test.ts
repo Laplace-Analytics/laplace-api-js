@@ -5,7 +5,7 @@ import "./client_test_suite";
 import {
   BrokerClient,
   BrokerSort,
-  BrokerSortDirection,
+  SortDirection,
   BrokerStats,
 } from "../client/broker";
 
@@ -33,7 +33,7 @@ describe("BrokerClient", () => {
     const response = await brokerClient.getMarketBrokers(
       Region.Tr,
       BrokerSort.TotalVolume,
-      BrokerSortDirection.Desc,
+      SortDirection.Desc,
       "2025-05-27",
       "2025-05-28",
       0,
@@ -84,7 +84,7 @@ describe("BrokerClient", () => {
     const response = await brokerClient.getMarketStocks(
       region,
       BrokerSort.TotalVolume,
-      BrokerSortDirection.Desc,
+      SortDirection.Desc,
       fromDate,
       toDate,
       0,
@@ -135,7 +135,7 @@ describe("BrokerClient", () => {
       "TUPRS",
       region,
       BrokerSort.TotalVolume,
-      BrokerSortDirection.Desc,
+      SortDirection.Desc,
       fromDate,
       toDate,
       0,
@@ -190,7 +190,7 @@ describe("BrokerClient", () => {
       "BIYKR",
       region,
       BrokerSort.TotalVolume,
-      BrokerSortDirection.Desc,
+      SortDirection.Desc,
       fromDate,
       toDate,
       0,

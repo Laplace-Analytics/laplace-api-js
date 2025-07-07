@@ -1,3 +1,4 @@
+import { PaginatedResponse } from "./capital_increase";
 import { Client } from "./client";
 import { Region } from "./collections";
 import { AssetClass, AssetType } from "./stocks";
@@ -12,7 +13,7 @@ export enum BrokerSort {
   TotalSellVolume = "totalSellVolume",
 }
 
-export enum BrokerSortDirection {
+export enum SortDirection {
   Desc = "desc",
   Asc = "asc",
 }
@@ -44,20 +45,13 @@ export interface BrokerStats {
   averageCost?: number;
 }
 
-export interface BrokerResponseItem extends BrokerStats {
+export interface BrokerItem extends BrokerStats {
   broker?: Broker;
   stock?: BrokerStock;
 }
 
-export interface BrokerListResponse {
-  recordCount: number;
+export interface BrokerList extends PaginatedResponse<BrokerItem> {
   totalStats: BrokerStats;
-  items: BrokerResponseItem[];
-}
-
-export interface BrokerSimpleListResponse {
-  recordCount: number;
-  items: Broker[];
 }
 
 export class BrokerClient extends Client {
@@ -67,8 +61,8 @@ export class BrokerClient extends Client {
     region: Region,
     page: number,
     size: number
-  ): Promise<BrokerSimpleListResponse> {
-    return this.sendRequest<BrokerSimpleListResponse>({
+  ): Promise<PaginatedResponse<Broker>> {
+    return this.sendRequest<PaginatedResponse<Broker>>({
       method: "GET",
       url: BrokerClient.BASE,
       params: {
@@ -82,13 +76,13 @@ export class BrokerClient extends Client {
   async getMarketStocks(
     region: Region,
     sortBy: BrokerSort,
-    sortDirection: BrokerSortDirection,
+    sortDirection: SortDirection,
     fromDate: string,
     toDate: string,
     page: number,
     size: number
-  ): Promise<BrokerListResponse> {
-    return this.sendRequest<BrokerListResponse>({
+  ): Promise<BrokerList> {
+    return this.sendRequest<BrokerList>({
       method: "GET",
       url: BrokerClient.BASE + "/market/stock",
       params: {
@@ -106,13 +100,13 @@ export class BrokerClient extends Client {
   async getMarketBrokers(
     region: Region,
     sortBy: BrokerSort,
-    sortDirection: BrokerSortDirection,
+    sortDirection: SortDirection,
     fromDate: string,
     toDate: string,
     page: number,
     size: number
-  ): Promise<BrokerListResponse> {
-    return this.sendRequest<BrokerListResponse>({
+  ): Promise<BrokerList> {
+    return this.sendRequest<BrokerList>({
       method: "GET",
       url: BrokerClient.BASE + "/market",
       params: {
@@ -131,13 +125,13 @@ export class BrokerClient extends Client {
     symbol: string,
     region: Region,
     sortBy: BrokerSort,
-    sortDirection: BrokerSortDirection,
+    sortDirection: SortDirection,
     fromDate: string,
     toDate: string,
     page: number,
     size: number
-  ): Promise<BrokerListResponse> {
-    return this.sendRequest<BrokerListResponse>({
+  ): Promise<BrokerList> {
+    return this.sendRequest<BrokerList>({
       method: "GET",
       url: BrokerClient.BASE + "/" + symbol,
       params: {
@@ -157,13 +151,13 @@ export class BrokerClient extends Client {
     symbol: string,
     region: Region,
     sortBy: BrokerSort,
-    sortDirection: BrokerSortDirection,
+    sortDirection: SortDirection,
     fromDate: string,
     toDate: string,
     page: number,
     size: number
-  ): Promise<BrokerListResponse> {
-    return this.sendRequest<BrokerListResponse>({
+  ): Promise<BrokerList> {
+    return this.sendRequest<BrokerList>({
       method: "GET",
       url: BrokerClient.BASE + "/stock/" + symbol,
       params: {
