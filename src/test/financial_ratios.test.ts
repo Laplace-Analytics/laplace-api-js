@@ -98,6 +98,22 @@ describe("FinancialRatios", () => {
   });
 
   test("GetHistoricalFinancialSheets", async () => {
+    try {
+      await financialClient.getHistoricalFinancialSheets(
+        "TUPRS",
+        { year: 2022, month: 1, day: 1 },
+        { year: 2025, month: 1, day: 1 },
+        FinancialSheetType.BalanceSheet,
+        FinancialSheetPeriod.Annual,
+        Currency.TRY,
+        Region.Tr
+      );
+    } catch (error) {
+      expect((error as Error).message).toContain(
+        "Balance sheet is only available for cumulative period"
+      );
+    }
+
     const resp = await financialClient.getHistoricalFinancialSheets(
       "TUPRS",
       { year: 2022, month: 1, day: 1 },
