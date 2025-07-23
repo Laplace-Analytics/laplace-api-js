@@ -1,9 +1,9 @@
-import { Client } from "./client";
-import { Region, Locale } from "./collections";
+import { Client } from './client';
+import { Region, Locale } from './collections';
 
 export enum RatioComparisonPeerType {
-  Industry = "industry",
-  Sector = "sector"
+  Industry = 'industry',
+  Sector = 'sector'
 }
 
 export interface StockPeerFinancialRatioComparison {
@@ -37,9 +37,9 @@ export interface StockHistoricalRatiosData {
 }
 
 export enum HistoricalRatiosFormat {
-  CURRENCY = "currency",
-  PERCENTAGE = "percentage",
-  DECIMAL = "decimal",
+  CURRENCY = 'currency',
+  PERCENTAGE = 'percentage',
+  DECIMAL = 'decimal',
 }
 
 export enum HistoricalRatiosKey {
@@ -178,14 +178,14 @@ export class FinancialClient extends Client {
     peerType: RatioComparisonPeerType
   ): Promise<StockPeerFinancialRatioComparison[]> {
     const url = new URL(
-      `${this["baseUrl"]}/api/v2/stock/financial-ratio-comparison`
+      `${this['baseUrl']}/api/v2/stock/financial-ratio-comparison`
     );
-    url.searchParams.append("symbol", symbol);
-    url.searchParams.append("region", region);
-    url.searchParams.append("peerType", peerType);
+    url.searchParams.append('symbol', symbol);
+    url.searchParams.append('region', region);
+    url.searchParams.append('peerType', peerType);
 
     return this.sendRequest<StockPeerFinancialRatioComparison[]>({
-      method: "GET",
+      method: 'GET',
       url: url.toString(),
     });
   }
@@ -196,11 +196,11 @@ export class FinancialClient extends Client {
     region: Region,
     locale: Locale
   ): Promise<StockHistoricalRatios[]> {
-    const url = new URL(`${this["baseUrl"]}/api/v2/stock/historical-ratios`);
-    url.searchParams.append("symbol", symbol);
-    url.searchParams.append("region", region);
-    url.searchParams.append("locale", locale);
-    url.searchParams.append("slugs", keys.join(","));
+    const url = new URL(`${this['baseUrl']}/api/v2/stock/historical-ratios`);
+    url.searchParams.append('symbol', symbol);
+    url.searchParams.append('region', region);
+    url.searchParams.append('locale', locale);
+    url.searchParams.append('slugs', keys.join(','));
 
     return this.sendRequest<StockHistoricalRatios[]>({
       method: 'GET',
@@ -213,10 +213,10 @@ export class FinancialClient extends Client {
     region: Region
   ): Promise<StockHistoricalRatiosDescription[]> {
     const url = new URL(
-      `${this["baseUrl"]}/api/v2/stock/historical-ratios/descriptions`
+      `${this['baseUrl']}/api/v2/stock/historical-ratios/descriptions`
     );
-    url.searchParams.append("locale", locale);
-    url.searchParams.append("region", region);
+    url.searchParams.append('locale', locale);
+    url.searchParams.append('region', region);
 
     return this.sendRequest<StockHistoricalRatiosDescription[]>({
       method: 'GET',
@@ -233,14 +233,33 @@ export class FinancialClient extends Client {
     currency: Currency,
     region: Region
   ): Promise<HistoricalFinancialSheets> {
-    const url = new URL(`${this['baseUrl']}/api/v2/stock/historical-financial-sheets`);
+    const url = new URL(
+      `${this['baseUrl']}/api/v2/stock/historical-financial-sheets`
+    );
     url.searchParams.append('symbol', symbol);
-    url.searchParams.append('from', `${from.year.toString().padStart(4, '0')}-${from.month.toString().padStart(2, '0')}-${from.day.toString().padStart(2, '0')}`);
-    url.searchParams.append('to', `${to.year.toString().padStart(4, '0')}-${to.month.toString().padStart(2, '0')}-${to.day.toString().padStart(2, '0')}`);
+    url.searchParams.append(
+      'from',
+      `${from.year.toString().padStart(4, '0')}-${from.month
+        .toString()
+        .padStart(2, '0')}-${from.day.toString().padStart(2, '0')}`
+    );
+    url.searchParams.append(
+      'to',
+      `${to.year.toString().padStart(4, '0')}-${to.month
+        .toString()
+        .padStart(2, '0')}-${to.day.toString().padStart(2, '0')}`
+    );
     url.searchParams.append('sheetType', sheetType);
     url.searchParams.append('periodType', period);
     url.searchParams.append('currency', currency);
     url.searchParams.append('region', region);
+
+    if (
+      sheetType === FinancialSheetType.BalanceSheet &&
+      period !== FinancialSheetPeriod.Cumulative
+    ) {
+      throw new Error('Balance sheet is only available for cumulative period');
+    }
 
     return this.sendRequest<HistoricalFinancialSheets>({
       method: 'GET',
