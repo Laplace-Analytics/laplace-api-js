@@ -258,7 +258,7 @@ export class FinancialClient extends Client {
       sheetType === FinancialSheetType.BalanceSheet &&
       period !== FinancialSheetPeriod.Cumulative
     ) {
-      throw new Error('Balance sheet is only available for cumulative period');
+      throw new Error('balance sheet is only available for cumulative period');
     }
 
     return this.sendRequest<HistoricalFinancialSheets>({
