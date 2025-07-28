@@ -21,4 +21,10 @@ jobs:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
     - run: npm ci
+    
+    - name: Create env file
+      run: |
+        echo "BASE_URL=${{ secrets.BASE_URL }}" > src/utilities/test.env
+        echo "API_KEY=${{ secrets.API_KEY }}" >> src/utilities/test.env
+        
     - run: npm test
