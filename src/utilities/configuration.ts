@@ -1,9 +1,9 @@
-import * as dotenv from 'dotenv';
-import * as envalid from 'envalid';
+import * as dotenv from "dotenv";
+import * as envalid from "envalid";
 const { str } = envalid;
 
 export interface LaplaceConfigurationInterface {
-  baseURL: string;
+  baseURL?: string;
   apiKey: string;
 }
 
@@ -11,18 +11,28 @@ export class LaplaceConfiguration implements LaplaceConfigurationInterface {
   baseURL: string;
   apiKey: string;
 
-  constructor({ baseURL, apiKey }: LaplaceConfigurationInterface) {
-    this.baseURL = baseURL;
+  constructor({
+    baseURL = "https://api.finfree.app",
+    apiKey,
+  }: LaplaceConfigurationInterface) {
+    this.baseURL = baseURL || "https://api.finfree.app";
     this.apiKey = apiKey;
   }
 
   validate(): null | Error {
-    // Add validation logic if needed
+    if (!this.apiKey) {
+      return new Error("API key is required");
+    }
+
+    // Remove baseURL validation since it's now optional
     return null;
   }
 
   applyDefaults(): null | Error {
-    // Apply default values if needed
+    if (!this.baseURL) {
+      this.baseURL = "https://api.finfree.app";
+    }
+
     return null;
   }
 }
@@ -41,14 +51,17 @@ function validationFuncRegular(config: LaplaceConfiguration): null | Error {
   return config.validate();
 }
 
-export function loadGlobal(filename?: string, validationFunc: ValidationFunc = validationFuncRegular): LaplaceConfiguration {
+export function loadGlobal(
+  filename?: string,
+  validationFunc: ValidationFunc = validationFuncRegular
+): LaplaceConfiguration {
   const envLoadResult = loadEnvironment(filename);
   if (envLoadResult.error) {
     throw envLoadResult.error;
   }
 
   const env = envalid.cleanEnv(process.env, {
-    BASE_URL: str(),
+    BASE_URL: str({ default: "https://api.finfree.app" }),
     API_KEY: str(),
   });
 
