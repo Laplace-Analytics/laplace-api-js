@@ -29,88 +29,93 @@ describe("LivePrice", () => {
     } as unknown as Logger;
 
     livePriceUrlClient = new LivePriceClient(config, logger);
-    url = await livePriceUrlClient.getWebSocketUrl("2459", [
-      LivePriceFeed.LiveBist,
-    ]);
+  });
 
-    ws = new LivePriceWebSocketClient({
-      enableLogging: true,
+  describe("Integration Tests", () => {
+    beforeAll(async () => {
+      url = await livePriceUrlClient.getWebSocketUrl("2459", [
+        LivePriceFeed.LiveBist,
+      ]);
+
+      ws = new LivePriceWebSocketClient({
+        enableLogging: true,
+      });
+
+      await ws.connect(url);
     });
 
-    await ws.connect(url);
-  });
+    afterAll(async () => {
+      try {
+        await ws.close();
+      } catch (error) {
+        console.error("Error closing websocket connection", error);
+      }
+    });
 
-  afterAll(async () => {
-    try {
-      await ws.close();
-    } catch (error) {
-      console.error("Error closing websocket connection", error);
-    }
-  });
+    describe("BIST Live Price Tests", () => {
+      const symbols = ["TUPRS", "SASA", "THYAO", "GARAN", "YKBNK"];
 
-  describe("BIST Live Price Tests", () => {
-    const symbols = ["TUPRS", "SASA", "THYAO", "GARAN", "YKBNK"];
+      it(
+        "should receive data for initial and updated symbols",
+        async () => {
+          const receivedData: BISTStockLiveData[] = [];
 
-    it(
-      "should receive data for initial and updated symbols",
-      async () => {
-        const receivedData: BISTStockLiveData[] = [];
+          let unsubscribe: (() => void) | null =
+            ws.subscribe<LivePriceFeed.LiveBist>(
+              symbols,
+              LivePriceFeed.LiveBist,
+              (data) => {
+                console.log("RECEIVED DATA", data);
+                receivedData.push(data);
+              }
+            );
 
-        let unsubscribe: (() => void) | null =
-          ws.subscribe<LivePriceFeed.LiveBist>(
-            symbols,
-            LivePriceFeed.LiveBist,
-            (data) => {
-              console.log("RECEIVED DATA", data);
-              receivedData.push(data);
-            }
-          );
+          await new Promise((resolve) => setTimeout(resolve, TEST_CONSTANTS.MAIN_TIMEOUT));
 
-        await new Promise((resolve) => setTimeout(resolve, TEST_CONSTANTS.MAIN_TIMEOUT));
+          for (const symbol of symbols) {
+            const symbolData = receivedData.filter(
+              (data) => data.symbol === symbol
+            );
+            expect(symbolData.length).toBeGreaterThan(0);
+          }
 
-        for (const symbol of symbols) {
-          const symbolData = receivedData.filter(
-            (data) => data.symbol === symbol
-          );
-          expect(symbolData.length).toBeGreaterThan(0);
-        }
+          unsubscribe();
+        },
+        TEST_CONSTANTS.JEST_TIMEOUT
+      );
+    });
 
-        unsubscribe();
-      },
-      TEST_CONSTANTS.JEST_TIMEOUT
-    );
-  });
+    describe("US Live Price Tests", () => {
+      const symbols = ["AAPL"];
 
-  describe("US Live Price Tests", () => {
-    const symbols = ["AAPL"];
+      it(
+        "should receive data for initial and updated symbols for us",
+        async () => {
+          const receivedData: USStockLiveData[] = [];
 
-    it(
-      "should receive data for initial and updated symbols for us",
-      async () => {
-        const receivedData: USStockLiveData[] = [];
+          let unsubscribe: (() => void) | null =
+            ws.subscribe<LivePriceFeed.LiveUs>(
+              symbols,
+              LivePriceFeed.LiveUs,
+              (data) => {
+                console.log("RECEIVED DATA FOR US", data);
+                receivedData.push(data);
+              }
+            );
 
-        let unsubscribe: (() => void) | null =
-          ws.subscribe<LivePriceFeed.LiveUs>(
-            symbols,
-            LivePriceFeed.LiveUs,
-            (data) => {
-              console.log("RECEIVED DATA FOR US", data);
-              receivedData.push(data);
-            }
-          );
+          await new Promise((resolve) => setTimeout(resolve, TEST_CONSTANTS.MAIN_TIMEOUT));
 
-        await new Promise((resolve) => setTimeout(resolve, TEST_CONSTANTS.MAIN_TIMEOUT));
+          for (const symbol of symbols) {
+            const symbolData = receivedData.filter(
+              (data) => data.symbol === symbol
+            );
+            expect(symbolData.length).toBeGreaterThan(0);
+          }
 
-        for (const symbol of symbols) {
-          const symbolData = receivedData.filter(
-            (data) => data.symbol === symbol
-          );
-          expect(symbolData.length).toBeGreaterThan(0);
-        }
-
-        unsubscribe();
-      },
-      TEST_CONSTANTS.JEST_TIMEOUT
-    );
+          unsubscribe();
+        },
+        TEST_CONSTANTS.JEST_TIMEOUT
+      );
+    });
   });
 });
