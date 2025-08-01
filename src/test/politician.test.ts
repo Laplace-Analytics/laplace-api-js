@@ -1,7 +1,7 @@
 import { Logger } from "winston";
 import { LaplaceConfiguration } from "../utilities/configuration";
 import "./client_test_suite";
-import { Holding, Politician, PoliticianClient, PoliticianPortfolio, TopHolding } from "../client/politician";
+import { Holding, Politician, PoliticianClient, PoliticianDetail, TopHolding } from "../client/politician";
 
 describe("Politician", () => {
   let politicianClient: PoliticianClient;
@@ -60,7 +60,7 @@ describe("Politician", () => {
     }
   ];
 
-  const mockPoliticianPortfolio: PoliticianPortfolio = {
+  const mockPoliticianPortfolio: PoliticianDetail = {
     id: 1,
     name: "John Doe",
     holdings: [
@@ -141,8 +141,8 @@ describe("Politician", () => {
     });
 
     describe("getPoliticianById", () => {
-      it("should fetch politician portfolio by ID", async () => {
-        const portfolio = await politicianClient.getPoliticianById(1);
+      it("should fetch politician detail by ID", async () => {
+        const portfolio = await politicianClient.getPoliticianDetail(1);
         expect(portfolio).toHaveProperty("id");
         expect(portfolio).toHaveProperty("name");
         expect(portfolio).toHaveProperty("holdings");
@@ -230,11 +230,11 @@ describe("Politician", () => {
       });
     });
 
-    describe("getPoliticianById", () => {
-      it("should return politician portfolio by ID successfully", async () => {
-        jest.spyOn(politicianClient, "getPoliticianById").mockResolvedValue(mockPoliticianPortfolio);
+    describe("getPoliticianDetail", () => {
+      it("should return politician by ID successfully", async () => {
+        jest.spyOn(politicianClient, "getPoliticianDetail").mockResolvedValue(mockPoliticianPortfolio);
 
-        const result = await politicianClient.getPoliticianById(1);
+        const result = await politicianClient.getPoliticianDetail(1);
 
         expect(result).toEqual(mockPoliticianPortfolio);
         expect(result.id).toBe(1);
@@ -244,9 +244,9 @@ describe("Politician", () => {
       });
 
       it("should handle errors when fetching politician by ID", async () => {
-        jest.spyOn(politicianClient, "getPoliticianById").mockRejectedValue(new Error("Failed to fetch politician"));
+        jest.spyOn(politicianClient, "getPoliticianDetail").mockRejectedValue(new Error("Failed to fetch politician"));
 
-        await expect(politicianClient.getPoliticianById(999)).rejects.toThrow("Failed to fetch politician");
+        await expect(politicianClient.getPoliticianDetail(999)).rejects.toThrow("Failed to fetch politician");
       });
     });
   });

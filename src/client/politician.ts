@@ -36,7 +36,7 @@ export interface TopHoldingPolitician {
     allocation: string;
 }
 
-export interface PoliticianPortfolio {
+export interface PoliticianDetail {
     id: number;
     name: string;
     holdings: HoldingShort[];
@@ -66,8 +66,8 @@ export class PoliticianClient extends Client {
         })
     }
 
-    async getPoliticianById(id: number): Promise<PoliticianPortfolio> {
-        return await this.sendRequest<PoliticianPortfolio>({
+    async getPoliticianDetail(id: number): Promise<PoliticianDetail> {
+        return await this.sendRequest<PoliticianDetail>({
             method: 'GET',
             url: `/api/v1/politician/${id}`
         })
