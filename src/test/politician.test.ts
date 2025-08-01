@@ -10,13 +10,13 @@ describe("Politician", () => {
     {
       id: 1,
       politicianName: "John Doe",
-      totalHoldings: "$1,000,000",
+      totalHoldings: 10000,
       lastUpdated: new Date("2024-01-01")
     },
     {
       id: 2,
       politicianName: "Jane Smith",
-      totalHoldings: "$2,500,000",
+      totalHoldings: 10000,
       lastUpdated: new Date("2024-01-02")
     }
   ];

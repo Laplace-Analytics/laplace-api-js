@@ -3,7 +3,7 @@ import { Client } from "./client";
 export interface Politician {
     id: number;
     politicianName: string;
-    totalHoldings: string;
+    totalHoldings: number;
     lastUpdated: Date;
 }
 
