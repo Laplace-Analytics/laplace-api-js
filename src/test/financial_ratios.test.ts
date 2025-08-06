@@ -197,7 +197,7 @@ describe("FinancialRatios", () => {
         );
       } catch (error) {
         expect((error as Error).message).toContain(
-          "Balance sheet is only available for cumulative period"
+          "balance sheet is only available for cumulative period"
         );
       }
 
