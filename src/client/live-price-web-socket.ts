@@ -1,3 +1,30 @@
+import { Logger } from "winston";
+import { LaplaceConfiguration } from "../utilities/configuration";
+import { Client } from "./client";
+
+interface WebSocketUrlResponse {
+  url: string;
+}
+
+interface WebSocketUrlParams {
+  externalUserId: string;
+  feeds: LivePriceFeed[];
+}
+
+export enum AccessorType {
+  User = "user",
+}
+
+interface UpdateUserDetailsParams {
+  externalUserID: string;
+  firstName?: string;
+  lastName?: string;
+  address?: string;
+  city?: string;
+  countryCode?: string;
+  accessorType?: AccessorType;
+  active: boolean;
+}
 
 interface RawBISTStockLiveData {
   _id: number;
@@ -88,7 +115,7 @@ export class WebSocketError extends Error {
   }
 }
 
-export class LivePriceWebSocketClient {
+export class LivePriceWebSocketClient extends Client {
   private ws: WebSocket | null = null;
   private subscriptionCounter = 0;
   private subscriptions = new Map<
@@ -99,7 +126,10 @@ export class LivePriceWebSocketClient {
       feed: LivePriceFeed;
     }
   >();
-  private symbolLastData = new Map<string, BISTStockLiveData | USStockLiveData>();
+  private symbolLastData = new Map<
+    string,
+    BISTStockLiveData | USStockLiveData
+  >();
   private reconnectAttempts = 0;
   private reconnectTimeout: NodeJS.Timeout | null = null;
   private isClosed: boolean = false;
@@ -110,8 +140,19 @@ export class LivePriceWebSocketClient {
   private lastMessageTimestamp: number = 0;
   private inactivityCheckInterval: NodeJS.Timeout | null = null;
   private readonly INACTIVITY_TIMEOUT = 15000;
+  private externalUserId: string | null = null;
+  private feeds: LivePriceFeed[] | null = null;
 
-  constructor(options: WebSocketOptions = {}) {
+  constructor(
+    feeds: LivePriceFeed[],
+    externalUserId: string,
+    cfg: LaplaceConfiguration,
+    logger: Logger,
+    options: WebSocketOptions = {}
+  ) {
+    super(cfg, logger);
+    this.feeds = feeds;
+    this.externalUserId = externalUserId;
     this.options = {
       enableLogging: true,
       logLevel: LogLevel.Error,
@@ -128,17 +169,17 @@ export class LivePriceWebSocketClient {
       clearInterval(this.inactivityCheckInterval);
       this.inactivityCheckInterval = null;
     }
- 
-    this.inactivityCheckInterval = setInterval(async ()=> {
+
+    this.inactivityCheckInterval = setInterval(async () => {
       if (Date.now() - this.lastMessageTimestamp >= this.INACTIVITY_TIMEOUT) {
         this.stopInactivityInterval();
         try {
           this.attemptReconnect();
-        } catch(error) {
+        } catch (error) {
           this.log(`Failed to reconnect: ${error}`, "error");
         }
       }
-    }, this.INACTIVITY_TIMEOUT)
+    }, this.INACTIVITY_TIMEOUT);
   }
 
   private stopInactivityInterval() {
@@ -175,12 +216,43 @@ export class LivePriceWebSocketClient {
     }
   }
 
-  async connect(url: string): Promise<WebSocket> {
+  async updateUserDetails(params: UpdateUserDetailsParams): Promise<void> {
+    const url = new URL(`${this["baseUrl"]}/api/v1/ws/user`);
+
+    await this.sendRequest<void>({
+      method: "PUT",
+      url: url.toString(),
+      data: params,
+    });
+  }
+
+  private async getWebSocketUrl(): Promise<string> {
+    const url = new URL(`${this["baseUrl"]}/api/v2/ws/url`);
+
+    const params: WebSocketUrlParams = {
+      externalUserId: this.externalUserId!,
+      feeds: this.feeds!,
+    };
+
+    const response = await this.sendRequest<WebSocketUrlResponse>({
+      method: "POST",
+      url: url.toString(),
+      data: params,
+    });
+
+    return response.url;
+  }
+
+  async connect(url?: string): Promise<WebSocket> {
     this.log("Connecting to WebSocket...");
-    this.wsUrl = url;
+    if (!this.externalUserId || !this.feeds) {
+      throw new Error("External user ID and feeds are required");
+    }
+
+    this.wsUrl = url || (await this.getWebSocketUrl());
 
     if (!this.ws || this.ws.readyState === WebSocket.CLOSED) {
-      this.ws = new WebSocket(url);
+      this.ws = new WebSocket(this.wsUrl);
       this.connectPromise = this.setupWebSocket();
 
       await this.connectPromise;
@@ -419,7 +491,8 @@ export class LivePriceWebSocketClient {
       if (symbolHandlers.length === 1) {
         symbolsToAdd.push(symbol);
       } else if (symbolHandlers.length > 1) {
-        const lastData: BISTStockLiveData | USStockLiveData | undefined = this.symbolLastData.get(symbol);
+        const lastData: BISTStockLiveData | USStockLiveData | undefined =
+          this.symbolLastData.get(symbol);
         if (lastData) {
           typedHandler(lastData);
         }
