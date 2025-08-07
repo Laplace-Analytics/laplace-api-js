@@ -3,8 +3,6 @@ import { LaplaceConfiguration } from "../utilities/configuration";
 import "./client_test_suite";
 import {
   LivePriceClient,
-  getLivePriceForBIST,
-  getLivePriceForUS,
 } from "../client/live-price";
 
 describe("LivePrice", () => {

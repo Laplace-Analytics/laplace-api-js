@@ -144,11 +144,15 @@ export class LivePriceWebSocketClient extends Client {
   private feeds: LivePriceFeed[] | null = null;
 
   constructor(
+    feeds: LivePriceFeed[],
+    externalUserId: string,
     cfg: LaplaceConfiguration,
     logger: Logger,
     options: WebSocketOptions = {}
   ) {
     super(cfg, logger);
+    this.feeds = feeds;
+    this.externalUserId = externalUserId;
     this.options = {
       enableLogging: true,
       logLevel: LogLevel.Error,
@@ -222,15 +226,12 @@ export class LivePriceWebSocketClient extends Client {
     });
   }
 
-  private async getWebSocketUrl(
-    externalUserId: string,
-    feeds: LivePriceFeed[]
-  ): Promise<string> {
+  private async getWebSocketUrl(): Promise<string> {
     const url = new URL(`${this["baseUrl"]}/api/v2/ws/url`);
 
     const params: WebSocketUrlParams = {
-      externalUserId,
-      feeds,
+      externalUserId: this.externalUserId!,
+      feeds: this.feeds!,
     };
 
     const response = await this.sendRequest<WebSocketUrlResponse>({
@@ -242,19 +243,13 @@ export class LivePriceWebSocketClient extends Client {
     return response.url;
   }
 
-  async connect(
-    externalUserId: string,
-    feeds: LivePriceFeed[]
-  ): Promise<WebSocket> {
+  async connect(url?: string): Promise<WebSocket> {
     this.log("Connecting to WebSocket...");
-    if (!externalUserId || !feeds) {
+    if (!this.externalUserId || !this.feeds) {
       throw new Error("External user ID and feeds are required");
     }
 
-    this.externalUserId = externalUserId;
-    this.feeds = feeds;
-
-    this.wsUrl = await this.getWebSocketUrl(externalUserId, feeds);
+    this.wsUrl = url || (await this.getWebSocketUrl());
 
     if (!this.ws || this.ws.readyState === WebSocket.CLOSED) {
       this.ws = new WebSocket(this.wsUrl);
@@ -434,7 +429,7 @@ export class LivePriceWebSocketClient extends Client {
 
     this.reconnectTimeout = setTimeout(async () => {
       try {
-        await this.connect(this.externalUserId!, this.feeds!);
+        await this.connect(url);
 
         this.isClosed = false;
 

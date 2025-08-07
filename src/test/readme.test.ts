@@ -67,7 +67,12 @@ describe("README Examples - Comprehensive Tests", () => {
     livePriceClient = new LivePriceClient(config, logger);
     brokerClient = new BrokerClient(config, logger);
     searchClient = new SearchClient(config, logger);
-    webSocketClient = new LivePriceWebSocketClient();
+    webSocketClient = new LivePriceWebSocketClient(
+      [LivePriceFeed.LiveBist, LivePriceFeed.LiveUs],
+      "test-user-id",
+      config,
+      logger
+    );
     capitalIncreaseClient = new CapitalIncreaseClient(config, logger);
     customThemeClient = new CustomThemeClient(config, logger);
     keyInsightClient = new KeyInsightClient(config, logger);
@@ -452,6 +457,7 @@ describe("README Examples - Comprehensive Tests", () => {
   describe("Error Handling", () => {
     test("should handle invalid API key", async () => {
       const invalidConfig = new LaplaceConfiguration({
+        baseURL: "https://api.laplace.com",
         apiKey: "invalid-key",
       });
 
