@@ -16,12 +16,37 @@ export interface BISTStockLiveData {
   s: string;  // Symbol
   ch: number; // DailyPercentChange
   p: number;  // ClosePrice
+  d: number; // Date
 }
 
 export interface USStockLiveData {
-  s: string;  // Symbol
-  bp: number; // BidPrice
-  ap: number; // AskPrice
+  s: string; // Symbol
+  p: number; // Price
+  d: number; // Date
+}
+
+export enum OrderbookLevelSide {
+  Bid = "bid",
+  Ask = "ask"
+}
+
+export interface OrderbookLevel {
+	level: number;
+	vol: number;
+	orders: number;
+	p: number;
+	side: OrderbookLevelSide;
+}
+
+export interface OrderbookDeletedLevel {
+	level: number;
+	side: OrderbookLevelSide;
+}
+
+export interface OrderbookLiveData {
+  updated?: string; // Symbol
+  deleted?: number; // Price
+  symbol: number; // Date
 }
 
 export enum AccessorType {
@@ -48,7 +73,35 @@ function getSSELivePrice<T>(
   events: AsyncIterable<T>,
   cancel: () => void
 } {
-  const url = `${client["baseUrl"]}/api/v1/stock/price/live?filter=${symbols.join(',')}&region=${region}&stream=${streamId}`;
+  const url = `${client["baseUrl"]}/api/v2/stock/price/live?filter=${symbols.join(',')}&region=${region}&stream=${streamId}`;
+
+  return client.sendSSERequest<T>(url);
+}
+
+function getSSEDelayedPrice<T>(
+  client: Client,
+  symbols: string[],
+  region: Region,
+  streamId: string = uuidv4(),
+): {
+  events: AsyncIterable<T>,
+  cancel: () => void
+} {
+  const url = `${client["baseUrl"]}/api/v1/stock/price/delayed?filter=${symbols.join(',')}&region=${region}&stream=${streamId}`;
+
+  return client.sendSSERequest<T>(url);
+}
+
+function getSSEOrderbookLivePrice<T>(
+  client: Client,
+  symbols: string[],
+  region: Region,
+  streamId: string = uuidv4(),
+): {
+  events: AsyncIterable<T>,
+  cancel: () => void
+} {
+  const url = `${client["baseUrl"]}/api/v1/stock/orderbook/live?filter=${symbols.join(',')}&region=${region}&stream=${streamId}`;
 
   return client.sendSSERequest<T>(url);
 }
@@ -100,5 +153,38 @@ export class LivePriceClient extends Client {
     cancel: () => void
   } {
     return getSSELivePrice<USStockLiveData>(this, symbols, region, streamId);
+  }
+
+  getDelayedPriceForBIST(
+    symbols: string[], 
+    region: Region,
+    streamId?: string,
+  ): {
+    events: AsyncIterable<BISTStockLiveData>,
+    cancel: () => void
+  } {
+    return getSSEDelayedPrice<BISTStockLiveData>(this, symbols, region, streamId);
+  }
+
+  getDelayedPriceForUS(
+    symbols: string[], 
+    region: Region,
+    streamId?: string,
+  ): {
+    events: AsyncIterable<USStockLiveData>,
+    cancel: () => void
+  } {
+    return getSSEDelayedPrice<USStockLiveData>(this, symbols, region, streamId);
+  }
+
+  getLiveOrderbook(
+    symbols: string[], 
+    region: Region,
+    streamId?: string,
+  ): {
+    events: AsyncIterable<OrderbookLiveData>,
+    cancel: () => void
+  } {
+    return getSSEOrderbookLivePrice<OrderbookLiveData>(this, symbols, region, streamId);
   }
 }

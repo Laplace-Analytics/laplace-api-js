@@ -1,5 +1,5 @@
 import { Client } from './client';
-import { Stock } from './stocks';
+import { PriceDataPoint, Stock } from './stocks';
 
 export enum CollectionType {
   Sector = 'sector',
@@ -40,6 +40,11 @@ export interface Collection {
 
 export interface CollectionDetail extends Collection {
   stocks: Stock[];
+}
+
+export interface CollectionPriceGraph {
+	previous_close: number;
+	graph: PriceDataPoint[];
 }
 
 export class CollectionClient extends Client {
@@ -104,6 +109,14 @@ export class CollectionClient extends Client {
       method: 'GET',
       url: `/api/v1/collection/${id}`,
       params: { region, locale },
+    });
+  }
+
+  async getAggregateGraph(period: string, sectorId: string, industryId: string, collectionId: string, region: Region): Promise<CollectionPriceGraph> {
+    return this.sendRequest<CollectionPriceGraph>({
+      method: 'GET',
+      url: `/api/v1/aggregate/graph`,
+      params: { period, sectorId, industryId, collectionId, region },
     });
   }
  }
