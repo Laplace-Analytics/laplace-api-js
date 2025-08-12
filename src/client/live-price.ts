@@ -58,8 +58,6 @@ export class LivePriceClient extends Client {
     externalUserId: string,
     feeds: LivePriceFeed[]
   ): Promise<string> {
-    const url = new URL(`${this["baseUrl"]}/api/v2/ws/url`);
-
     const params: WebSocketUrlParams = {
       externalUserId,
       feeds
@@ -67,7 +65,7 @@ export class LivePriceClient extends Client {
 
     const response = await this.sendRequest<WebSocketUrlResponse>({
       method: "POST",
-      url: url.toString(),
+      url: "/api/v2/ws/url",
       data: params,
     });
 
@@ -75,11 +73,9 @@ export class LivePriceClient extends Client {
   }
 
   async updateUserDetails(params: UpdateUserDetailsParams): Promise<void> {
-    const url = new URL(`${this["baseUrl"]}/api/v1/ws/user`);
-
     await this.sendRequest<void>({
       method: "PUT",
-      url: url.toString(),
+      url: "/api/v1/ws/user",
       data: params,
     });
   }

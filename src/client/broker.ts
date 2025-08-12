@@ -55,7 +55,6 @@ export interface BrokerList extends PaginatedResponse<BrokerItem> {
 }
 
 export class BrokerClient extends Client {
-  private static readonly BASE = "/api/v1/brokers";
 
   async getBrokers(
     region: Region,
@@ -64,7 +63,7 @@ export class BrokerClient extends Client {
   ): Promise<PaginatedResponse<Broker>> {
     return this.sendRequest<PaginatedResponse<Broker>>({
       method: "GET",
-      url: BrokerClient.BASE,
+      url: "/api/v1/brokers",
       params: {
         region,
         page,
@@ -84,7 +83,7 @@ export class BrokerClient extends Client {
   ): Promise<BrokerList> {
     return this.sendRequest<BrokerList>({
       method: "GET",
-      url: BrokerClient.BASE + "/market/stock",
+      url: "/api/v1/brokers/market/stock",
       params: {
         region,
         sortBy,
@@ -108,7 +107,7 @@ export class BrokerClient extends Client {
   ): Promise<BrokerList> {
     return this.sendRequest<BrokerList>({
       method: "GET",
-      url: BrokerClient.BASE + "/market",
+      url: "/api/v1/brokers/market",
       params: {
         region,
         sortBy,
@@ -133,7 +132,7 @@ export class BrokerClient extends Client {
   ): Promise<BrokerList> {
     return this.sendRequest<BrokerList>({
       method: "GET",
-      url: BrokerClient.BASE + "/" + symbol,
+      url: `/api/v1/brokers/${symbol}`,
       params: {
         symbol,
         region,
@@ -159,7 +158,7 @@ export class BrokerClient extends Client {
   ): Promise<BrokerList> {
     return this.sendRequest<BrokerList>({
       method: "GET",
-      url: BrokerClient.BASE + "/stock/" + symbol,
+      url: `/api/v1/brokers/stock/${symbol}`,
       params: {
         symbol,
         region,
