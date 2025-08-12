@@ -46,7 +46,7 @@ export class CollectionClient extends Client {
   async getAllSectors(region: Region, locale: Locale): Promise<Collection[]> {
     return this.sendRequest<Collection[]>({
       method: 'GET',
-      url: `/api/v1/${CollectionType.Sector}`,
+      url: `/api/v1/sector`,
       params: { region, locale },
     });
   }
@@ -54,7 +54,7 @@ export class CollectionClient extends Client {
   async getAllIndustries(region: Region, locale: Locale): Promise<Collection[]> {
     return this.sendRequest<Collection[]>({
       method: 'GET',
-      url: `/api/v1/${CollectionType.Industry}`,
+      url: `/api/v1/industry`,
       params: { region, locale },
     });
   }
@@ -62,7 +62,7 @@ export class CollectionClient extends Client {
   async getAllThemes(region: Region, locale: Locale): Promise<Collection[]> {
     return this.sendRequest<Collection[]>({
       method: 'GET',
-      url: `/api/v1/${CollectionType.Theme}`,
+      url: `/api/v1/theme`,
       params: { region, locale },
     });
   }
@@ -70,7 +70,7 @@ export class CollectionClient extends Client {
   async getAllCollections(region: Region, locale: Locale): Promise<Collection[]> {
     return this.sendRequest<Collection[]>({
       method: 'GET',
-      url: `/api/v1/${CollectionType.Collection}`,
+      url: `/api/v1/collection`,
       params: { region, locale },
     });
   }
@@ -78,7 +78,7 @@ export class CollectionClient extends Client {
   async getSectorDetail(id: string, region: Region, locale: Locale): Promise<CollectionDetail> {
     return this.sendRequest<CollectionDetail>({
       method: 'GET',
-      url: `/api/v1/${CollectionType.Sector}/${id}`,
+      url: `/api/v1/sector/${id}`,
       params: { region, locale },
     });
   }
@@ -86,7 +86,7 @@ export class CollectionClient extends Client {
   async getIndustryDetail(id: string, region: Region, locale: Locale): Promise<CollectionDetail> {
     return this.sendRequest<CollectionDetail>({
       method: 'GET',
-      url: `/api/v1/${CollectionType.Industry}/${id}`,
+      url: `/api/v1/industry/${id}`,
       params: { region, locale },
     });
   }
@@ -94,7 +94,7 @@ export class CollectionClient extends Client {
   async getThemeDetail(id: string, region: Region, locale: Locale): Promise<CollectionDetail> {
     return this.sendRequest<CollectionDetail>({
       method: 'GET',
-      url: `/api/v1/${CollectionType.Theme}/${id}`,
+      url: `/api/v1/theme/${id}`,
       params: { region, locale },
     });
   }
@@ -102,7 +102,7 @@ export class CollectionClient extends Client {
   async getCollectionDetail(id: string, region: Region, locale: Locale): Promise<CollectionDetail> {
     return this.sendRequest<CollectionDetail>({
       method: 'GET',
-      url: `/api/v1/${CollectionType.Collection}/${id}`,
+      url: `/api/v1/collection/${id}`,
       params: { region, locale },
     });
   }
