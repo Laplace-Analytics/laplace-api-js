@@ -1,5 +1,5 @@
 import { Client } from './client';
-import { PriceDataPoint, Stock } from './stocks';
+import { HistoricalPricePeriod, PriceDataPoint, Stock } from './stocks';
 
 export enum CollectionType {
   Sector = 'sector',
@@ -112,7 +112,7 @@ export class CollectionClient extends Client {
     });
   }
 
-  async getAggregateGraph(period: string, sectorId: string, industryId: string, collectionId: string, region: Region): Promise<CollectionPriceGraph> {
+  async getAggregateGraph(period: HistoricalPricePeriod, sectorId: string, industryId: string, collectionId: string, region: Region): Promise<CollectionPriceGraph> {
     return this.sendRequest<CollectionPriceGraph>({
       method: 'GET',
       url: `/api/v1/aggregate/graph`,
