@@ -2,18 +2,29 @@ import { Client } from "./client";
 import { Region } from "./collections";
 import { v4 as uuidv4 } from "uuid";
 
-export interface BISTStockLiveData {
+export type MessageType = "pr" | "state_change" | "heartbeat" | "ob";
+
+// Stream Message Wrapper - v2 formatter wraps all messages in this structure
+export interface StreamMessage<T> {
+  t: MessageType;
+  d: T; 
+}
+
+export interface BISTStockPriceData {
   s: string; // Symbol
   ch: number; // DailyPercentChange
   p: number;  // ClosePrice
   d: number; // Date
 }
 
-export interface USStockLiveData {
+export interface USStockPriceData {
   s: string; // Symbol
   p: number; // Price
   d: number; // Date
 }
+
+export type BISTStockStreamData = StreamMessage<BISTStockPriceData>;
+export type USStockStreamData = StreamMessage<USStockPriceData>;
 
 export enum OrderbookLevelSide {
   Bid = "bid",
@@ -178,22 +189,22 @@ function getOrderbook<T>(
 export function getLivePriceForBIST(
   client: Client,
   symbols: string[]
-): ILivePriceClient<BISTStockLiveData> {
-  return getLivePrice<BISTStockLiveData>(client, symbols, Region.Tr);
+): ILivePriceClient<BISTStockStreamData> {
+  return getLivePrice<BISTStockStreamData>(client, symbols, Region.Tr);
 }
 
 export function getLivePriceForUS(
   client: Client,
   symbols: string[]
-): ILivePriceClient<USStockLiveData> {
-  return getLivePrice<USStockLiveData>(client, symbols, Region.Us);
+): ILivePriceClient<USStockStreamData> {
+  return getLivePrice<USStockStreamData>(client, symbols, Region.Us);
 }
 
 export function getDelayedPriceForBIST(
   client: Client,
   symbols: string[]
-): ILivePriceClient<BISTStockLiveData> {
-  return getDelayedPrice<BISTStockLiveData>(client, symbols, Region.Tr);
+): ILivePriceClient<BISTStockStreamData> {
+  return getDelayedPrice<BISTStockStreamData>(client, symbols, Region.Tr);
 }
 
 export function getOrderbookForBIST(
@@ -204,17 +215,17 @@ export function getOrderbookForBIST(
 }
 
 export class LivePriceClient extends Client {
-  getLivePriceForBIST(symbols: string[]): ILivePriceClient<BISTStockLiveData> {
+  getLivePriceForBIST(symbols: string[]): ILivePriceClient<BISTStockStreamData> {
     return getLivePriceForBIST(this, symbols);
   }
 
-  getLivePriceForUS(symbols: string[]): ILivePriceClient<USStockLiveData> {
+  getLivePriceForUS(symbols: string[]): ILivePriceClient<USStockStreamData> {
     return getLivePriceForUS(this, symbols);
   }
 
   getDelayedPriceForBIST(
     symbols: string[],
-  ): ILivePriceClient<BISTStockLiveData> {
+  ): ILivePriceClient<BISTStockStreamData> {
     return getDelayedPriceForBIST(this, symbols);
   }
 
