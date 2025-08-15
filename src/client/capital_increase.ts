@@ -1,10 +1,5 @@
-import { Client } from './client';
-import { Region } from './collections';
-
-// type PaginatedResponse[T any] struct {
-// 	RecordCount int `json:"recordCount"`
-// 	Items       []T `json:"items"`
-// }
+import { Client } from "./client";
+import { Region } from "./collections";
 
 export interface PaginatedResponse<T> {
   recordCount: number;
@@ -48,8 +43,8 @@ export class CapitalIncreaseClient extends Client {
     region: Region
   ): Promise<PaginatedResponse<CapitalIncrease>> {
     return this.sendRequest<PaginatedResponse<CapitalIncrease>>({
-      method: 'GET',
-      url: '/api/v1/capital-increase/all',
+      method: "GET",
+      url: "/api/v1/capital-increase/all",
       params: { region, page, size },
     });
   }
@@ -58,7 +53,7 @@ export class CapitalIncreaseClient extends Client {
     symbol: string,
     page: number,
     size: number,
-    region: Region,
+    region: Region
   ): Promise<PaginatedResponse<CapitalIncrease>> {
     return this.sendRequest<PaginatedResponse<CapitalIncrease>>({
       method: 'GET',
