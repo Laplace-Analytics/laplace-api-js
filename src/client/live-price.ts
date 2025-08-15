@@ -39,6 +39,12 @@ export interface OrderbookLiveData {
   symbol: number; // Date
 }
 
+export enum PriceDataType {
+  Live = "live",
+  Delayed = "delayed",
+  Orderbook = "orderbook",
+}
+
 export interface ILivePriceClient<T> {
   close(): void;
   receive(): AsyncIterable<T>;
@@ -48,14 +54,16 @@ export interface ILivePriceClient<T> {
 class LivePriceClientImpl<T> implements ILivePriceClient<T> {
   private client: Client;
   private region: Region;
+  private dataType: PriceDataType;
   private symbols: string[] = [];
   private closed = false;
   private currentStream: AsyncIterable<T> | null = null;
   private cancelFn: (() => void) | null = null;
 
-  constructor(client: Client, region: Region) {
+  constructor(client: Client, region: Region, dataType: PriceDataType) {
     this.client = client;
     this.region = region;
+    this.dataType = dataType;
   }
 
   close(): void {
@@ -81,11 +89,31 @@ class LivePriceClientImpl<T> implements ILivePriceClient<T> {
     }
 
     const streamId = uuidv4();
-    const url = `${
-      this.client["baseUrl"]
-    }/api/v2/stock/price/live?filter=${symbols.join(",")}&region=${
-      this.region
-    }&stream=${streamId}`;
+    let url: string;
+
+    switch (this.dataType) {
+      case PriceDataType.Live:
+        url = `${
+          this.client["baseUrl"]
+        }/api/v2/stock/price/live?filter=${symbols.join(",")}&region=${
+          this.region
+        }&stream=${streamId}`;
+        break;
+      case PriceDataType.Delayed:
+        url = `${
+          this.client["baseUrl"]
+        }/api/v1/stock/price/delayed?filter=${symbols.join(",")}&region=${
+          this.region
+        }&stream=${streamId}`;
+        break;
+      case PriceDataType.Orderbook:
+        url = `${
+          this.client["baseUrl"]
+        }/api/v1/stock/orderbook/live?filter=${symbols.join(",")}&region=${
+          this.region
+        }&stream=${streamId}`;
+        break;
+    }
 
     const { events, cancel } = this.client.sendSSERequest<T>(url);
 
@@ -105,12 +133,46 @@ export function getLivePrice<T>(
     throw new Error("Client cannot be null");
   }
 
-  const livePriceClient = new LivePriceClientImpl<T>(client, region);
+  const livePriceClient = new LivePriceClientImpl<T>(client, region, PriceDataType.Live);
   livePriceClient.subscribe(symbols).catch((error) => {
     console.error("Failed to initialize live price client", error);
   });
 
   return livePriceClient;
+}
+
+export function getDelayedPrice<T>(
+  client: Client,
+  symbols: string[],
+  region: Region,
+): ILivePriceClient<T> {
+  if (!client) {
+    throw new Error("Client cannot be null");
+  }
+
+  const livePriceClient = new LivePriceClientImpl<T>(client, region, PriceDataType.Delayed);
+  livePriceClient.subscribe(symbols).catch((error) => {
+    console.error("Failed to initialize live price client", error);
+  });
+
+  return livePriceClient;
+}
+
+function getOrderbook<T>(
+  client: Client,
+  symbols: string[],
+  region: Region,
+): ILivePriceClient<T> {
+  if (!client) {
+    throw new Error("Client cannot be null");
+  }
+
+  const orderbookClient = new LivePriceClientImpl<T>(client, region, PriceDataType.Orderbook);
+  orderbookClient.subscribe(symbols).catch((error) => {
+    console.error("Failed to initialize orderbook client", error);
+  });
+
+  return orderbookClient;
 }
 
 export function getLivePriceForBIST(
@@ -127,32 +189,32 @@ export function getLivePriceForUS(
   return getLivePrice<USStockLiveData>(client, symbols, Region.Us);
 }
 
-function getSSEDelayedPrice<T>(
+export function getDelayedPriceForBIST(
   client: Client,
-  symbols: string[],
-  region: Region,
-  streamId: string = uuidv4(),
-): {
-  events: AsyncIterable<T>,
-  cancel: () => void
-} {
-  const url = `${client["baseUrl"]}/api/v1/stock/price/delayed?filter=${symbols.join(',')}&region=${region}&stream=${streamId}`;
-
-  return client.sendSSERequest<T>(url);
+  symbols: string[]
+): ILivePriceClient<BISTStockLiveData> {
+  return getDelayedPrice<BISTStockLiveData>(client, symbols, Region.Tr);
 }
 
-function getSSEOrderbookLivePrice<T>(
+export function getDelayedPriceForUS(
   client: Client,
-  symbols: string[],
-  region: Region,
-  streamId: string = uuidv4(),
-): {
-  events: AsyncIterable<T>,
-  cancel: () => void
-} {
-  const url = `${client["baseUrl"]}/api/v1/stock/orderbook/live?filter=${symbols.join(',')}&region=${region}&stream=${streamId}`;
+  symbols: string[]
+): ILivePriceClient<USStockLiveData> {
+  return getDelayedPrice<USStockLiveData>(client, symbols, Region.Us);
+}
 
-  return client.sendSSERequest<T>(url);
+export function getOrderbookForBIST(
+  client: Client,
+  symbols: string[]
+): ILivePriceClient<OrderbookLiveData> {
+  return getOrderbook<OrderbookLiveData>(client, symbols, Region.Tr);
+}
+
+export function getOrderbookForUS(
+  client: Client,
+  symbols: string[]
+): ILivePriceClient<OrderbookLiveData> {
+  return getOrderbook<OrderbookLiveData>(client, symbols, Region.Us);
 }
 export class LivePriceClient extends Client {
   getLivePriceForBIST(symbols: string[]): ILivePriceClient<BISTStockLiveData> {
@@ -164,35 +226,22 @@ export class LivePriceClient extends Client {
   }
 
   getDelayedPriceForBIST(
-    symbols: string[], 
-    region: Region,
-    streamId?: string,
-  ): {
-    events: AsyncIterable<BISTStockLiveData>,
-    cancel: () => void
-  } {
-    return getSSEDelayedPrice<BISTStockLiveData>(this, symbols, region, streamId);
+    symbols: string[],
+  ): ILivePriceClient<BISTStockLiveData> {
+    return getDelayedPriceForBIST(this, symbols);
   }
 
   getDelayedPriceForUS(
-    symbols: string[], 
-    region: Region,
-    streamId?: string,
-  ): {
-    events: AsyncIterable<USStockLiveData>,
-    cancel: () => void
-  } {
-    return getSSEDelayedPrice<USStockLiveData>(this, symbols, region, streamId);
+    symbols: string[],
+  ): ILivePriceClient<USStockLiveData>{
+    return getDelayedPriceForUS(this, symbols);
   }
 
-  getLiveOrderbook(
-    symbols: string[], 
-    region: Region,
-    streamId?: string,
-  ): {
-    events: AsyncIterable<OrderbookLiveData>,
-    cancel: () => void
-  } {
-    return getSSEOrderbookLivePrice<OrderbookLiveData>(this, symbols, region, streamId);
+  getOrderbookForBIST(symbols: string[]): ILivePriceClient<OrderbookLiveData> {
+    return getOrderbookForBIST(this, symbols);
+  }
+
+  getOrderbookForUS(symbols: string[]): ILivePriceClient<OrderbookLiveData> {
+    return getOrderbookForUS(this, symbols);
   }
 }
