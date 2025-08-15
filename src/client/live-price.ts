@@ -196,13 +196,6 @@ export function getDelayedPriceForBIST(
   return getDelayedPrice<BISTStockLiveData>(client, symbols, Region.Tr);
 }
 
-export function getDelayedPriceForUS(
-  client: Client,
-  symbols: string[]
-): ILivePriceClient<USStockLiveData> {
-  return getDelayedPrice<USStockLiveData>(client, symbols, Region.Us);
-}
-
 export function getOrderbookForBIST(
   client: Client,
   symbols: string[]
@@ -210,12 +203,6 @@ export function getOrderbookForBIST(
   return getOrderbook<OrderbookLiveData>(client, symbols, Region.Tr);
 }
 
-export function getOrderbookForUS(
-  client: Client,
-  symbols: string[]
-): ILivePriceClient<OrderbookLiveData> {
-  return getOrderbook<OrderbookLiveData>(client, symbols, Region.Us);
-}
 export class LivePriceClient extends Client {
   getLivePriceForBIST(symbols: string[]): ILivePriceClient<BISTStockLiveData> {
     return getLivePriceForBIST(this, symbols);
@@ -231,17 +218,7 @@ export class LivePriceClient extends Client {
     return getDelayedPriceForBIST(this, symbols);
   }
 
-  getDelayedPriceForUS(
-    symbols: string[],
-  ): ILivePriceClient<USStockLiveData>{
-    return getDelayedPriceForUS(this, symbols);
-  }
-
   getOrderbookForBIST(symbols: string[]): ILivePriceClient<OrderbookLiveData> {
     return getOrderbookForBIST(this, symbols);
-  }
-
-  getOrderbookForUS(symbols: string[]): ILivePriceClient<OrderbookLiveData> {
-    return getOrderbookForUS(this, symbols);
   }
 }
