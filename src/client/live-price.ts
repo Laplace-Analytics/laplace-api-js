@@ -34,9 +34,9 @@ export interface OrderbookDeletedLevel {
 }
 
 export interface OrderbookLiveData {
-  updated?: string; // Symbol
-  deleted?: number; // Price
-  symbol: number; // Date
+  updated?: OrderbookLevel[];
+  deleted?: OrderbookDeletedLevel[];
+  symbol: string;
 }
 
 export enum PriceDataType {
