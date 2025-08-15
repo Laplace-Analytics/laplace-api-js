@@ -56,8 +56,8 @@ export class CapitalIncreaseClient extends Client {
     region: Region
   ): Promise<PaginatedResponse<CapitalIncrease>> {
     return this.sendRequest<PaginatedResponse<CapitalIncrease>>({
-      method: "GET",
-      url: "/api/v1/capital-increase/" + symbol,
+      method: 'GET',
+      url: `/api/v1/capital-increase/${symbol}`,
       params: { region, page, size },
     });
   }
@@ -68,8 +68,8 @@ export class CapitalIncreaseClient extends Client {
     region: Region
   ): Promise<CapitalIncrease[]> {
     return this.sendRequest<CapitalIncrease[]>({
-      method: "GET",
-      url: "/api/v1/rights/active/" + symbol,
+      method: 'GET',
+      url: `/api/v1/rights/active/${symbol}`,
       params: { date, region },
     });
   }

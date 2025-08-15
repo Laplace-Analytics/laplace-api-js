@@ -8,10 +8,14 @@ import {
   Stock,
   AssetType,
   Market,
-  StockPriceGraph
+  StockPriceGraph,
+  MarketState,
+  EarningsTranscriptWithSummary,
+  EarningsTranscriptListItem
 } from "../client/stocks";
 import "./client_test_suite";
 import { Region, Locale } from "../client/collections";
+import { PaginatedResponse } from "../client/capital_increase";
 
 const mockStocksResponse: Stock[] = [
   {
@@ -117,6 +121,63 @@ const mockTickRulesResponse = {
     { priceFrom: 20, priceTo: 50, tickSize: 0.02 },
     { priceFrom: 50, priceTo: 100, tickSize: 0.05 }
   ]
+};
+
+const mockEarningsTranscriptList: EarningsTranscriptListItem[] = [
+  {
+    symbol: "TUPRS",
+    year: 2024,
+    quarter: 1,
+    date: "2024-05-15",
+    fiscal_year: 2024
+  },
+  {
+    symbol: "TUPRS",
+    year: 2023,
+    quarter: 4,
+    date: "2024-02-20",
+    fiscal_year: 2023
+  }
+];
+
+const mockEarningsTranscriptDetail: EarningsTranscriptWithSummary = {
+  symbol: "TUPRS",
+  year: 2024,
+  quarter: 1,
+  date: "2024-05-15",
+  content: "Q1 2024 earnings call transcript content...",
+  summary: "Strong Q1 performance with 15% revenue growth",
+  has_summary: true
+};
+
+const mockMarketStates: MarketState[] = [
+  {
+    id: 1,
+    marketSymbol: "XIST",
+    state: "OPEN",
+    lastTimestamp: "2024-03-14T10:00:00Z",
+    stockSymbol: "TUPRS"
+  },
+  {
+    id: 2,
+    marketSymbol: "XIST",
+    state: "CLOSED",
+    lastTimestamp: "2024-03-14T18:00:00Z",
+    stockSymbol: "GARAN"
+  }
+];
+
+const mockPaginatedMarketStates: PaginatedResponse<MarketState> = {
+  recordCount: 2,
+  items: mockMarketStates
+};
+
+const mockSingleMarketState: MarketState = {
+  id: 1,
+  marketSymbol: "XIST",
+  state: "OPEN",
+  lastTimestamp: "2024-03-14T10:00:00Z",
+  stockSymbol: "TUPRS"
 };
 
 describe("Stocks Client", () => {
@@ -323,6 +384,108 @@ describe("Stocks Client", () => {
         }
       });
     });
+
+    describe("getEarningsTranscripts", () => {
+      test("should return earnings transcript list", async () => {
+        const resp = await client.getEarningsTranscripts("TUPRS", Region.Tr);
+
+        expect(Array.isArray(resp)).toBe(true);
+
+        if (resp.length > 0) {
+          const firstTranscript = resp[0];
+          expect(typeof firstTranscript.symbol).toBe("string");
+          expect(typeof firstTranscript.year).toBe("number");
+          expect(typeof firstTranscript.quarter).toBe("number");
+          expect(typeof firstTranscript.date).toBe("string");
+          expect(typeof firstTranscript.fiscal_year).toBe("number");
+        }
+      });
+    });
+
+    describe("getEarningsTranscript", () => {
+      test("should return earnings transcript detail", async () => {
+        const resp = await client.getEarningsTranscript("TUPRS", 2023, 4);
+
+        expect(resp).toBeDefined();
+        expect(typeof resp.symbol).toBe("string");
+        expect(typeof resp.year).toBe("number");
+        expect(typeof resp.quarter).toBe("number");
+        expect(typeof resp.date).toBe("string");
+        expect(typeof resp.content).toBe("string");
+        expect(typeof resp.has_summary).toBe("boolean");
+
+        if (resp.summary) {
+          expect(typeof resp.summary).toBe("string");
+        }
+      });
+    });
+
+    describe("getStockStateAll", () => {
+      test("should return paginated stock states", async () => {
+        const resp = await client.getStockStateAll(0, 10, Region.Tr);
+
+        expect(resp).toBeDefined();
+        expect(Array.isArray(resp.items)).toBe(true);
+        expect(typeof resp.recordCount).toBe("number");
+
+        if (resp.items.length > 0) {
+          const firstState = resp.items[0];
+          expect(typeof firstState.id).toBe("number");
+          expect(typeof firstState.state).toBe("string");
+          expect(typeof firstState.lastTimestamp).toBe("string");
+        }
+      });
+    });
+
+    describe("getStockState", () => {
+      test("should return single stock state", async () => {
+        const resp = await client.getStockState("TUPRS");
+
+        expect(resp).toBeDefined();
+        expect(typeof resp.id).toBe("number");
+        expect(typeof resp.state).toBe("string");
+        expect(typeof resp.lastTimestamp).toBe("string");
+
+        if (resp.stockSymbol) {
+          expect(typeof resp.stockSymbol).toBe("string");
+        }
+        if (resp.marketSymbol) {
+          expect(typeof resp.marketSymbol).toBe("string");
+        }
+      });
+    });
+
+    describe("getStateAll", () => {
+      test("should return paginated market states", async () => {
+        const resp = await client.getStateAll(0, 10, Region.Tr);
+
+        expect(resp).toBeDefined();
+        expect(Array.isArray(resp.items)).toBe(true);
+        expect(typeof resp.recordCount).toBe("number");
+
+        if (resp.items.length > 0) {
+          const firstState = resp.items[0];
+          expect(typeof firstState.id).toBe("number");
+          expect(typeof firstState.state).toBe("string");
+          expect(typeof firstState.lastTimestamp).toBe("string");
+        }
+      });
+    });
+
+    describe("getState", () => {
+      test("should return single market state", async () => {
+        const resp = await client.getState("XIST");
+
+        expect(resp).toBeDefined();
+        expect(typeof resp.id).toBe("number");
+        expect(typeof resp.state).toBe("string");
+        expect(typeof resp.lastTimestamp).toBe("string");
+
+        if (resp.marketSymbol) {
+          expect(typeof resp.marketSymbol).toBe("string");
+        }
+      });
+    });
   });
 
   describe("Mock Tests", () => {
@@ -508,6 +671,156 @@ describe("Stocks Client", () => {
 
         await expect(client.getTickRules("TUPRS", Region.Tr))
           .rejects.toThrow("Failed to fetch tick rules");
+      });
+    });
+
+    describe("getEarningsTranscripts", () => {
+      test("should return earnings transcript list with mock data", async () => {
+        jest.spyOn(client, 'getEarningsTranscripts').mockResolvedValue(mockEarningsTranscriptList);
+
+        const resp = await client.getEarningsTranscripts("TUPRS", Region.Tr);
+
+        expect(resp).toHaveLength(2);
+        
+        const firstTranscript = resp[0];
+        expect(firstTranscript.symbol).toBe("TUPRS");
+        expect(firstTranscript.year).toBe(2024);
+        expect(firstTranscript.quarter).toBe(1);
+        expect(firstTranscript.date).toBe("2024-05-15");
+        expect(firstTranscript.fiscal_year).toBe(2024);
+
+        const secondTranscript = resp[1];
+        expect(secondTranscript.year).toBe(2023);
+        expect(secondTranscript.quarter).toBe(4);
+
+        expect(client.getEarningsTranscripts).toHaveBeenCalledWith("TUPRS", Region.Tr);
+      });
+
+      test("should handle API errors for earnings transcripts", async () => {
+        jest.spyOn(client, 'getEarningsTranscripts').mockRejectedValue(new Error("Transcripts not found"));
+
+        await expect(client.getEarningsTranscripts("INVALID", Region.Tr))
+          .rejects.toThrow("Transcripts not found");
+      });
+    });
+
+    describe("getEarningsTranscript", () => {
+      test("should return earnings transcript detail with mock data", async () => {
+        jest.spyOn(client, 'getEarningsTranscript').mockResolvedValue(mockEarningsTranscriptDetail);
+
+        const resp = await client.getEarningsTranscript("TUPRS", 2024, 1);
+
+        expect(resp.symbol).toBe("TUPRS");
+        expect(resp.year).toBe(2024);
+        expect(resp.quarter).toBe(1);
+        expect(resp.date).toBe("2024-05-15");
+        expect(resp.content).toBe("Q1 2024 earnings call transcript content...");
+        expect(resp.summary).toBe("Strong Q1 performance with 15% revenue growth");
+        expect(resp.has_summary).toBe(true);
+
+        expect(client.getEarningsTranscript).toHaveBeenCalledWith("TUPRS", 2024, 1);
+      });
+
+      test("should handle API errors for earnings transcript detail", async () => {
+        jest.spyOn(client, 'getEarningsTranscript').mockRejectedValue(new Error("Transcript not found"));
+
+        await expect(client.getEarningsTranscript("TUPRS", 2020, 1))
+          .rejects.toThrow("Transcript not found");
+      });
+    });
+
+    describe("getStockStateAll", () => {
+      test("should return paginated stock states with mock data", async () => {
+        jest.spyOn(client, 'getStockStateAll').mockResolvedValue(mockPaginatedMarketStates);
+
+        const resp = await client.getStockStateAll(0, 10, Region.Tr);
+
+        expect(resp.items).toHaveLength(2);
+        expect(resp.recordCount).toBe(2);
+
+        const firstState = resp.items[0];
+        expect(firstState.id).toBe(1);
+        expect(firstState.marketSymbol).toBe("XIST");
+        expect(firstState.state).toBe("OPEN");
+        expect(firstState.stockSymbol).toBe("TUPRS");
+
+        expect(client.getStockStateAll).toHaveBeenCalledWith(0, 10, Region.Tr);
+      });
+
+      test("should handle API errors for stock state all", async () => {
+        jest.spyOn(client, 'getStockStateAll').mockRejectedValue(new Error("Failed to fetch stock states"));
+
+        await expect(client.getStockStateAll(0, 10, Region.Tr))
+          .rejects.toThrow("Failed to fetch stock states");
+      });
+    });
+
+    describe("getStockState", () => {
+      test("should return single stock state with mock data", async () => {
+        jest.spyOn(client, 'getStockState').mockResolvedValue(mockSingleMarketState);
+
+        const resp = await client.getStockState("TUPRS");
+
+        expect(resp.id).toBe(1);
+        expect(resp.marketSymbol).toBe("XIST");
+        expect(resp.state).toBe("OPEN");
+        expect(resp.lastTimestamp).toBe("2024-03-14T10:00:00Z");
+        expect(resp.stockSymbol).toBe("TUPRS");
+
+        expect(client.getStockState).toHaveBeenCalledWith("TUPRS");
+      });
+
+      test("should handle API errors for single stock state", async () => {
+        jest.spyOn(client, 'getStockState').mockRejectedValue(new Error("Stock state not found"));
+
+        await expect(client.getStockState("INVALID"))
+          .rejects.toThrow("Stock state not found");
+      });
+    });
+
+    describe("getStateAll", () => {
+      test("should return paginated market states with mock data", async () => {
+        jest.spyOn(client, 'getStateAll').mockResolvedValue(mockPaginatedMarketStates);
+
+        const resp = await client.getStateAll(0, 10, Region.Tr);
+
+        expect(resp.items).toHaveLength(2);
+        expect(resp.recordCount).toBe(2);
+
+        const firstState = resp.items[0];
+        expect(firstState.state).toBe("OPEN");
+        expect(firstState.lastTimestamp).toBe("2024-03-14T10:00:00Z");
+
+        expect(client.getStateAll).toHaveBeenCalledWith(0, 10, Region.Tr);
+      });
+
+      test("should handle API errors for state all", async () => {
+        jest.spyOn(client, 'getStateAll').mockRejectedValue(new Error("Failed to fetch states"));
+
+        await expect(client.getStateAll(0, 10, Region.Tr))
+          .rejects.toThrow("Failed to fetch states");
+      });
+    });
+
+    describe("getState", () => {
+      test("should return single market state with mock data", async () => {
+        jest.spyOn(client, 'getState').mockResolvedValue(mockSingleMarketState);
+
+        const resp = await client.getState("XIST");
+
+        expect(resp.id).toBe(1);
+        expect(resp.marketSymbol).toBe("XIST");
+        expect(resp.state).toBe("OPEN");
+        expect(resp.lastTimestamp).toBe("2024-03-14T10:00:00Z");
+
+        expect(client.getState).toHaveBeenCalledWith("XIST");
+      });
+
+      test("should handle API errors for single state", async () => {
+        jest.spyOn(client, 'getState').mockRejectedValue(new Error("Market state not found"));
+
+        await expect(client.getState("INVALID"))
+          .rejects.toThrow("Market state not found");
       });
     });
   });

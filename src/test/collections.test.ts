@@ -1,9 +1,9 @@
 import { Logger } from "winston";
 import { LaplaceConfiguration } from "../utilities/configuration";
-import { CollectionClient, Locale, Region, Collection, CollectionDetail, CollectionType } from "../client/collections";
+import { CollectionClient, Locale, Region, Collection, CollectionDetail, CollectionType, CollectionPriceGraph } from "../client/collections";
 import "./client_test_suite";
 import { validateCollection, validateCollectionDetail } from "./helpers";
-import { Stock, AssetType } from "../client/stocks";
+import { Stock, AssetType, PriceDataPoint, HistoricalPricePeriod } from "../client/stocks";
 
 const mockStocks: Stock[] = [
   {
@@ -89,6 +89,35 @@ const mockCollections: Collection[] = [
     numStocks: 30
   }
 ];
+
+const mockPriceDataPoints: PriceDataPoint[] = [
+  {
+    d: 1710403200000,
+    o: 100.5,
+    h: 105.2,
+    l: 99.8,
+    c: 103.7
+  },
+  {
+    d: 1710489600000,
+    o: 103.7,
+    h: 107.1,
+    l: 102.3,
+    c: 106.4
+  },
+  {
+    d: 1710576000000,
+    o: 106.4,
+    h: 108.9,
+    l: 105.1,
+    c: 107.8
+  }
+];
+
+const mockCollectionPriceGraph: CollectionPriceGraph = {
+  previous_close: 98.5,
+  graph: mockPriceDataPoints
+};
 
 const mockIndustryDetail: CollectionDetail = {
   ...mockIndustries[0],
@@ -196,6 +225,35 @@ describe("Collections", () => {
       );
       expect(resp).not.toBeEmpty();
       validateCollectionDetail(resp);
+    });
+
+    test("GetAggregateGraph", async () => {
+      const resp = await client.getAggregateGraph(
+        HistoricalPricePeriod.OneYear,
+        "65533e047844ee7afe9941b9",
+        "65533e441fa5c7b58afa0944",
+        "",
+        Region.Tr
+      );
+      
+      expect(resp).not.toBeNull();
+      expect(resp.previous_close).toBeDefined();
+      expect(resp.graph).toBeDefined();
+      expect(resp.graph).toBeInstanceOf(Array);
+      
+      if (resp.graph.length > 0) {
+        const firstDataPoint = resp.graph[0];
+        expect(firstDataPoint.d).toBeDefined();
+        expect(firstDataPoint.o).toBeDefined();
+        expect(firstDataPoint.h).toBeDefined();
+        expect(firstDataPoint.l).toBeDefined();
+        expect(firstDataPoint.c).toBeDefined();
+        expect(typeof firstDataPoint.d).toBe('number');
+        expect(typeof firstDataPoint.o).toBe('number');
+        expect(typeof firstDataPoint.h).toBe('number');
+        expect(typeof firstDataPoint.l).toBe('number');
+        expect(typeof firstDataPoint.c).toBe('number');
+      }
     });
   });
 
@@ -318,6 +376,69 @@ describe("Collections", () => {
       });
     });
 
+    describe("Aggregate Graph", () => {
+      test("should get aggregate graph for sector", async () => {
+        jest.spyOn(client, 'getAggregateGraph').mockResolvedValue(mockCollectionPriceGraph);
+
+        const resp = await client.getAggregateGraph(HistoricalPricePeriod.OneMonth, "sector1", "", "", Region.Tr);
+
+        expect(resp.previous_close).toBe(98.5);
+        expect(resp.graph).toHaveLength(3);
+        expect(resp.graph[0].o).toBe(100.5);
+        expect(resp.graph[0].h).toBe(105.2);
+        expect(resp.graph[0].l).toBe(99.8);
+        expect(resp.graph[0].c).toBe(103.7);
+        expect(resp.graph[2].c).toBe(107.8);
+
+        expect(client.getAggregateGraph).toHaveBeenCalledWith(HistoricalPricePeriod.OneMonth, "sector1", "", "", Region.Tr);
+      });
+
+      test("should get aggregate graph for industry", async () => {
+        jest.spyOn(client, 'getAggregateGraph').mockResolvedValue(mockCollectionPriceGraph);
+
+        const resp = await client.getAggregateGraph(HistoricalPricePeriod.ThreeMonth, "", "industry1", "", Region.Tr);
+
+        expect(resp.previous_close).toBe(98.5);
+        expect(resp.graph).toHaveLength(3);
+        expect(resp.graph[1].o).toBe(103.7);
+        expect(resp.graph[1].h).toBe(107.1);
+        expect(resp.graph[1].l).toBe(102.3);
+        expect(resp.graph[1].c).toBe(106.4);
+
+        expect(client.getAggregateGraph).toHaveBeenCalledWith(HistoricalPricePeriod.ThreeMonth, "", "industry1", "", Region.Tr);
+      });
+
+      test("should get aggregate graph for collection", async () => {
+        jest.spyOn(client, 'getAggregateGraph').mockResolvedValue(mockCollectionPriceGraph);
+
+        const resp = await client.getAggregateGraph(HistoricalPricePeriod.OneWeek, "", "", "collection1", Region.Tr);
+
+        expect(resp.previous_close).toBe(98.5);
+        expect(resp.graph).toHaveLength(3);
+        expect(resp.graph[0].d).toBe(1710403200000);
+        expect(resp.graph[1].d).toBe(1710489600000);
+        expect(resp.graph[2].d).toBe(1710576000000);
+
+        expect(client.getAggregateGraph).toHaveBeenCalledWith(HistoricalPricePeriod.OneWeek, "", "", "collection1", Region.Tr);
+      });
+
+      test("should get aggregate graph for different periods", async () => {
+        jest.spyOn(client, 'getAggregateGraph').mockResolvedValue(mockCollectionPriceGraph);
+
+        const resp1D = await client.getAggregateGraph(HistoricalPricePeriod.OneDay, "sector1", "", "", Region.Tr);
+        expect(resp1D.previous_close).toBe(98.5);
+        expect(client.getAggregateGraph).toHaveBeenCalledWith(HistoricalPricePeriod.OneDay, "sector1", "", "", Region.Tr);
+
+        const resp1Y = await client.getAggregateGraph(HistoricalPricePeriod.OneYear, "", "industry1", "", Region.Tr);
+        expect(resp1Y.previous_close).toBe(98.5);
+        expect(client.getAggregateGraph).toHaveBeenCalledWith(HistoricalPricePeriod.OneYear, "", "industry1", "", Region.Tr);
+
+        const resp5Y = await client.getAggregateGraph(HistoricalPricePeriod.FiveYear, "", "", "collection1", Region.Tr);
+        expect(resp5Y.previous_close).toBe(98.5);
+        expect(client.getAggregateGraph).toHaveBeenCalledWith(HistoricalPricePeriod.FiveYear, "", "", "collection1", Region.Tr);
+      });
+    });
+
     describe("Error Handling", () => {
       test("should handle invalid industry ID", async () => {
         jest.spyOn(client, 'getIndustryDetail').mockRejectedValue(new Error("Industry not found"));
@@ -345,6 +466,13 @@ describe("Collections", () => {
 
         await expect(client.getCollectionDetail("invalid-id", Region.Tr, Locale.Tr))
           .rejects.toThrow("Collection not found");
+      });
+
+      test("should handle invalid aggregate graph request", async () => {
+        jest.spyOn(client, 'getAggregateGraph').mockRejectedValue(new Error("Invalid parameters"));
+
+        await expect(client.getAggregateGraph("invalid-period" as HistoricalPricePeriod, "invalid-sector", "", "", Region.Tr))
+          .rejects.toThrow("Invalid parameters");
       });
     });
   });

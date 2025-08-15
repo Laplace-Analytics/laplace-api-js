@@ -75,13 +75,10 @@ export class FinancialFundamentalsClient extends Client {
     symbol: string,
     region: Region
   ): Promise<StockDividend[]> {
-    const url = new URL(`${this["baseUrl"]}/api/v2/stock/dividends`);
-    url.searchParams.append("symbol", symbol);
-    url.searchParams.append("region", region);
-
     return this.sendRequest<StockDividend[]>({
       method: 'GET',
-      url: url.toString(),
+      url: "/api/v2/stock/dividends",
+      params: { symbol, region }
     });
   }
 

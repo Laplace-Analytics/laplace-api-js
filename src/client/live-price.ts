@@ -2,17 +2,58 @@ import { Client } from "./client";
 import { Region } from "./collections";
 import { v4 as uuidv4 } from "uuid";
 
-export interface BISTStockLiveData {
+export type MessageType = "pr" | "state_change" | "heartbeat" | "ob";
+
+// Stream Message Wrapper - v2 formatter wraps all messages in this structure
+export interface StreamMessage<T> {
+  t: MessageType;
+  d: T; 
+}
+
+export interface BISTStockPriceData {
   s: string; // Symbol
   ch: number; // DailyPercentChange
-  p: number; // ClosePrice
+  p: number;  // ClosePrice
   d: number; // Date
 }
 
-export interface USStockLiveData {
+export interface USStockPriceData {
   s: string; // Symbol
   p: number; // Price
   d: number; // Date
+}
+
+export type BISTStockStreamData = StreamMessage<BISTStockPriceData>;
+export type USStockStreamData = StreamMessage<USStockPriceData>;
+
+export enum OrderbookLevelSide {
+  Bid = "bid",
+  Ask = "ask"
+}
+
+export interface OrderbookLevel {
+	level: number;
+	vol: number;
+	orders: number;
+	p: number;
+	side: OrderbookLevelSide;
+}
+
+export interface OrderbookDeletedLevel {
+	level: number;
+	side: OrderbookLevelSide;
+}
+
+export interface OrderbookLiveData {
+  updated?: OrderbookLevel[];
+  deleted?: OrderbookDeletedLevel[];
+  symbol: string;
+}
+
+export enum PriceDataType {
+  Live = "live",
+  Delayed = "delayed",
+  Orderbook = "orderbook",
 }
 
 export interface ILivePriceClient<T> {
@@ -24,14 +65,16 @@ export interface ILivePriceClient<T> {
 class LivePriceClientImpl<T> implements ILivePriceClient<T> {
   private client: Client;
   private region: Region;
+  private dataType: PriceDataType;
   private symbols: string[] = [];
   private closed = false;
   private currentStream: AsyncIterable<T> | null = null;
   private cancelFn: (() => void) | null = null;
 
-  constructor(client: Client, region: Region) {
+  constructor(client: Client, region: Region, dataType: PriceDataType) {
     this.client = client;
     this.region = region;
+    this.dataType = dataType;
   }
 
   close(): void {
@@ -57,11 +100,31 @@ class LivePriceClientImpl<T> implements ILivePriceClient<T> {
     }
 
     const streamId = uuidv4();
-    const url = `${
-      this.client["baseUrl"]
-    }/api/v1/stock/price/live?filter=${symbols.join(",")}&region=${
-      this.region
-    }&stream=${streamId}`;
+    let url: string;
+
+    switch (this.dataType) {
+      case PriceDataType.Live:
+        url = `${
+          this.client["baseUrl"]
+        }/api/v2/stock/price/live?filter=${symbols.join(",")}&region=${
+          this.region
+        }&stream=${streamId}`;
+        break;
+      case PriceDataType.Delayed:
+        url = `${
+          this.client["baseUrl"]
+        }/api/v1/stock/price/delayed?filter=${symbols.join(",")}&region=${
+          this.region
+        }&stream=${streamId}`;
+        break;
+      case PriceDataType.Orderbook:
+        url = `${
+          this.client["baseUrl"]
+        }/api/v1/stock/orderbook/live?filter=${symbols.join(",")}&region=${
+          this.region
+        }&stream=${streamId}`;
+        break;
+    }
 
     const { events, cancel } = this.client.sendSSERequest<T>(url);
 
@@ -81,7 +144,7 @@ export function getLivePrice<T>(
     throw new Error("Client cannot be null");
   }
 
-  const livePriceClient = new LivePriceClientImpl<T>(client, region);
+  const livePriceClient = new LivePriceClientImpl<T>(client, region, PriceDataType.Live);
   livePriceClient.subscribe(symbols).catch((error) => {
     console.error("Failed to initialize live price client", error);
   });
@@ -89,26 +152,84 @@ export function getLivePrice<T>(
   return livePriceClient;
 }
 
+export function getDelayedPrice<T>(
+  client: Client,
+  symbols: string[],
+  region: Region,
+): ILivePriceClient<T> {
+  if (!client) {
+    throw new Error("Client cannot be null");
+  }
+
+  const livePriceClient = new LivePriceClientImpl<T>(client, region, PriceDataType.Delayed);
+  livePriceClient.subscribe(symbols).catch((error) => {
+    console.error("Failed to initialize live price client", error);
+  });
+
+  return livePriceClient;
+}
+
+function getOrderbook<T>(
+  client: Client,
+  symbols: string[],
+  region: Region,
+): ILivePriceClient<T> {
+  if (!client) {
+    throw new Error("Client cannot be null");
+  }
+
+  const orderbookClient = new LivePriceClientImpl<T>(client, region, PriceDataType.Orderbook);
+  orderbookClient.subscribe(symbols).catch((error) => {
+    console.error("Failed to initialize orderbook client", error);
+  });
+
+  return orderbookClient;
+}
+
 export function getLivePriceForBIST(
   client: Client,
   symbols: string[]
-): ILivePriceClient<BISTStockLiveData> {
-  return getLivePrice<BISTStockLiveData>(client, symbols, Region.Tr);
+): ILivePriceClient<BISTStockStreamData> {
+  return getLivePrice<BISTStockStreamData>(client, symbols, Region.Tr);
 }
 
 export function getLivePriceForUS(
   client: Client,
   symbols: string[]
-): ILivePriceClient<USStockLiveData> {
-  return getLivePrice<USStockLiveData>(client, symbols, Region.Us);
+): ILivePriceClient<USStockStreamData> {
+  return getLivePrice<USStockStreamData>(client, symbols, Region.Us);
+}
+
+export function getDelayedPriceForBIST(
+  client: Client,
+  symbols: string[]
+): ILivePriceClient<BISTStockStreamData> {
+  return getDelayedPrice<BISTStockStreamData>(client, symbols, Region.Tr);
+}
+
+export function getOrderbookForBIST(
+  client: Client,
+  symbols: string[]
+): ILivePriceClient<OrderbookLiveData> {
+  return getOrderbook<OrderbookLiveData>(client, symbols, Region.Tr);
 }
 
 export class LivePriceClient extends Client {
-  getLivePriceForBIST(symbols: string[]): ILivePriceClient<BISTStockLiveData> {
+  getLivePriceForBIST(symbols: string[]): ILivePriceClient<BISTStockStreamData> {
     return getLivePriceForBIST(this, symbols);
   }
 
-  getLivePriceForUS(symbols: string[]): ILivePriceClient<USStockLiveData> {
+  getLivePriceForUS(symbols: string[]): ILivePriceClient<USStockStreamData> {
     return getLivePriceForUS(this, symbols);
+  }
+
+  getDelayedPriceForBIST(
+    symbols: string[],
+  ): ILivePriceClient<BISTStockStreamData> {
+    return getDelayedPriceForBIST(this, symbols);
+  }
+
+  getOrderbookForBIST(symbols: string[]): ILivePriceClient<OrderbookLiveData> {
+    return getOrderbookForBIST(this, symbols);
   }
 }
