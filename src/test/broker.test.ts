@@ -13,6 +13,7 @@ import {
   BrokerItem,
 } from "../client/broker";
 import { AssetType, AssetClass } from "../client/stocks";
+import { PaginatedResponse } from "../client/capital_increase";
 
 const mockBroker: Broker = {
   id: 1001,
@@ -28,6 +29,24 @@ const mockBroker2: Broker = {
   name: "GEDİK YATIRIM",
   longName: "Gedik Yatırım Menkul Değerler A.Ş.",
   logo: "https://example.com/gedik.png"
+};
+
+const mockBroker3: Broker = {
+  id: 1001,
+  symbol: "BIYKR",
+  name: "BİYİKLI YATIRIM",
+  longName: "Bıyıklı Yatırım Menkul Değerler A.Ş.",
+  logo: "https://example.com/biykr.png",
+  supportedAssetClasses: [AssetClass.Equity]
+};
+
+const mockBroker4: Broker = {
+  id: 1002,
+  symbol: "GEDIK",
+  name: "GEDİK YATIRIM",
+  longName: "Gedik Yatırım Menkul Değerler A.Ş.",
+  logo: "https://example.com/gedik.png",
+  supportedAssetClasses: [AssetClass.Equity]
 };
 
 const mockStock: BrokerStock = {
@@ -75,6 +94,11 @@ const mockBrokerList: BrokerList = {
   recordCount: 2,
   items: [mockBrokerItem, mockBrokerItem2],
   totalStats: mockBrokerStats
+};
+
+const mockBrokersPaginatedResponse: PaginatedResponse<Broker> = {
+  recordCount: 2,
+  items: [mockBroker3, mockBroker4]
 };
 
 describe("BrokerClient", () => {
@@ -304,6 +328,53 @@ describe("BrokerClient", () => {
         }
       }
     });
+
+    test("getBrokers with assetClass parameter", async () => {
+      const response = await brokerClient.getBrokers(
+        Region.Tr,
+        0,
+        10,
+        AssetClass.Equity
+      );
+
+      expect(response).toBeDefined();
+      expect(typeof response.recordCount).toBe("number");
+      expect(Array.isArray(response.items)).toBe(true);
+
+      for (const broker of response.items) {
+        expect(broker).toMatchObject({
+          id: expect.any(Number),
+          symbol: expect.any(String),
+          name: expect.any(String),
+          longName: expect.any(String),
+          logo: expect.any(String),
+        });
+        expect(Array.isArray(broker.supportedAssetClasses)).toBe(true);
+        expect(broker.supportedAssetClasses).toEqual([AssetClass.Equity]);
+      }
+    });
+
+    test("getBrokers without assetClass parameter", async () => {
+      const response = await brokerClient.getBrokers(
+        Region.Tr,
+        0,
+        10
+      );
+
+      expect(response).toBeDefined();
+      expect(typeof response.recordCount).toBe("number");
+      expect(Array.isArray(response.items)).toBe(true);
+
+      for (const broker of response.items) {
+        expect(broker).toMatchObject({
+          id: expect.any(Number),
+          symbol: expect.any(String),
+          name: expect.any(String),
+          longName: expect.any(String),
+          logo: expect.any(String),
+        });
+      }
+    });
   });
 
   describe("Mock Tests", () => {
@@ -511,6 +582,91 @@ describe("BrokerClient", () => {
           0,
           5
         )).rejects.toThrow("Invalid broker symbol");
+      });
+    });
+
+    describe("getBrokers", () => {
+      test("should return paginated broker list", async () => {
+        jest.spyOn(brokerClient, 'getBrokers').mockResolvedValue(mockBrokersPaginatedResponse);
+
+        const response = await brokerClient.getBrokers(
+          Region.Tr,
+          0,
+          5,
+          AssetClass.Equity
+        );
+
+        expect(response.recordCount).toBe(2);
+        expect(response.items).toHaveLength(2);
+
+        const firstBroker = response.items[0];
+        expect(firstBroker.id).toBe(1001);
+        expect(firstBroker.symbol).toBe("BIYKR");
+        expect(firstBroker.name).toBe("BİYİKLI YATIRIM");
+        expect(firstBroker.longName).toBe("Bıyıklı Yatırım Menkul Değerler A.Ş.");
+        expect(firstBroker.logo).toBe("https://example.com/biykr.png");
+        expect(firstBroker.supportedAssetClasses).toEqual([AssetClass.Equity]);
+
+        expect(brokerClient.getBrokers).toHaveBeenCalledWith(
+          Region.Tr,
+          0,
+          5,
+          AssetClass.Equity
+        );
+      });
+
+      test("should handle getBrokers without assetClass parameter", async () => {
+        jest.spyOn(brokerClient, 'getBrokers').mockResolvedValue(mockBrokersPaginatedResponse);
+
+        const response = await brokerClient.getBrokers(
+          Region.Tr,
+          0,
+          5
+        );
+
+        expect(response.recordCount).toBe(2);
+        expect(response.items).toHaveLength(2);
+
+        const firstBroker = response.items[0];
+        expect(firstBroker.id).toBe(1001);
+        expect(firstBroker.symbol).toBe("BIYKR");
+        expect(firstBroker.name).toBe("BİYİKLI YATIRIM");
+        expect(firstBroker.longName).toBe("Bıyıklı Yatırım Menkul Değerler A.Ş.");
+        expect(firstBroker.logo).toBe("https://example.com/biykr.png");
+
+        expect(brokerClient.getBrokers).toHaveBeenCalledWith(
+          Region.Tr,
+          0,
+          5
+        );
+      });
+
+      test("should handle empty brokers response", async () => {
+        const emptyResponse: PaginatedResponse<Broker> = {
+          recordCount: 0,
+          items: []
+        };
+        jest.spyOn(brokerClient, 'getBrokers').mockResolvedValue(emptyResponse);
+
+        const response = await brokerClient.getBrokers(
+          Region.Tr,
+          0,
+          10
+        );
+
+        expect(response.recordCount).toBe(0);
+        expect(response.items).toHaveLength(0);
+      });
+
+      test("should handle getBrokers error", async () => {
+        jest.spyOn(brokerClient, 'getBrokers').mockRejectedValue(new Error("Unsupported asset class"));
+
+        await expect(brokerClient.getBrokers(
+          Region.Tr,
+          0,
+          10,
+          AssetClass.Crypto
+        )).rejects.toThrow("Unsupported asset class");
       });
     });
   });
