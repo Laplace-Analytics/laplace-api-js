@@ -24,6 +24,7 @@ export interface Broker {
   name: string;
   longName: string;
   logo: string;
+  supportedAssetClasses?: AssetClass[]
 }
 
 export interface BrokerStock {
