@@ -60,7 +60,8 @@ export class BrokerClient extends Client {
   async getBrokers(
     region: Region,
     page: number,
-    size: number
+    size: number,
+    assetClass?: AssetClass
   ): Promise<PaginatedResponse<Broker>> {
     return this.sendRequest<PaginatedResponse<Broker>>({
       method: "GET",
@@ -69,6 +70,7 @@ export class BrokerClient extends Client {
         region,
         page,
         size,
+        assetClass
       },
     });
   }
