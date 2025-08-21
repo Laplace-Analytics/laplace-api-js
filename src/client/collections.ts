@@ -1,5 +1,5 @@
 import { Client } from './client';
-import { Stock } from './stocks';
+import { HistoricalPricePeriod, PriceDataPoint, Stock } from './stocks';
 
 export enum CollectionType {
   Sector = 'sector',
@@ -42,52 +42,81 @@ export interface CollectionDetail extends Collection {
   stocks: Stock[];
 }
 
+export interface CollectionPriceGraph {
+	previous_close: number;
+	graph: PriceDataPoint[];
+}
+
 export class CollectionClient extends Client {
-  private async getAllCollectionsPrivate(collectionType: CollectionType, region: Region, locale: Locale): Promise<Collection[]> {
+  async getAllSectors(region: Region, locale: Locale): Promise<Collection[]> {
     return this.sendRequest<Collection[]>({
       method: 'GET',
-      url: `/api/v1/${collectionType}`,
+      url: `/api/v1/sector`,
       params: { region, locale },
     });
   }
-
-  private async getCollectionDetailPrivate(id: string, collectionType: CollectionType, region: Region, locale: Locale): Promise<CollectionDetail> {
+ 
+  async getAllIndustries(region: Region, locale: Locale): Promise<Collection[]> {
+    return this.sendRequest<Collection[]>({
+      method: 'GET',
+      url: `/api/v1/industry`,
+      params: { region, locale },
+    });
+  }
+ 
+  async getAllThemes(region: Region, locale: Locale): Promise<Collection[]> {
+    return this.sendRequest<Collection[]>({
+      method: 'GET',
+      url: `/api/v1/theme`,
+      params: { region, locale },
+    });
+  }
+ 
+  async getAllCollections(region: Region, locale: Locale): Promise<Collection[]> {
+    return this.sendRequest<Collection[]>({
+      method: 'GET',
+      url: `/api/v1/collection`,
+      params: { region, locale },
+    });
+  }
+ 
+  async getSectorDetail(id: string, region: Region, locale: Locale): Promise<CollectionDetail> {
     return this.sendRequest<CollectionDetail>({
       method: 'GET',
-      url: `/api/v1/${collectionType}/${id}`,
+      url: `/api/v1/sector/${id}`,
+      params: { region, locale },
+    });
+  }
+ 
+  async getIndustryDetail(id: string, region: Region, locale: Locale): Promise<CollectionDetail> {
+    return this.sendRequest<CollectionDetail>({
+      method: 'GET',
+      url: `/api/v1/industry/${id}`,
+      params: { region, locale },
+    });
+  }
+ 
+  async getThemeDetail(id: string, region: Region, locale: Locale): Promise<CollectionDetail> {
+    return this.sendRequest<CollectionDetail>({
+      method: 'GET',
+      url: `/api/v1/theme/${id}`,
+      params: { region, locale },
+    });
+  }
+ 
+  async getCollectionDetail(id: string, region: Region, locale: Locale): Promise<CollectionDetail> {
+    return this.sendRequest<CollectionDetail>({
+      method: 'GET',
+      url: `/api/v1/collection/${id}`,
       params: { region, locale },
     });
   }
 
-  async getAllSectors(region: Region, locale: Locale): Promise<Collection[]> {
-    return this.getAllCollectionsPrivate(CollectionType.Sector, region, locale);
+  async getAggregateGraph(period: HistoricalPricePeriod, sectorId: string, industryId: string, collectionId: string, region: Region): Promise<CollectionPriceGraph> {
+    return this.sendRequest<CollectionPriceGraph>({
+      method: 'GET',
+      url: `/api/v1/aggregate/graph`,
+      params: { period, sectorId, industryId, collectionId, region },
+    });
   }
-
-  async getAllIndustries(region: Region, locale: Locale): Promise<Collection[]> {
-    return this.getAllCollectionsPrivate(CollectionType.Industry, region, locale);
-  }
-
-  async getAllThemes(region: Region, locale: Locale): Promise<Collection[]> {
-    return this.getAllCollectionsPrivate(CollectionType.Theme, region, locale);
-  }
-
-  async getAllCollections(region: Region, locale: Locale): Promise<Collection[]> {
-    return this.getAllCollectionsPrivate(CollectionType.Collection, region, locale);
-  }
-
-  async getSectorDetail(id: string, region: Region, locale: Locale): Promise<CollectionDetail> {
-    return this.getCollectionDetailPrivate(id, CollectionType.Sector, region, locale);
-  }
-
-  async getIndustryDetail(id: string, region: Region, locale: Locale): Promise<CollectionDetail> {
-    return this.getCollectionDetailPrivate(id, CollectionType.Industry, region, locale);
-  }
-
-  async getThemeDetail(id: string, region: Region, locale: Locale): Promise<CollectionDetail> {
-    return this.getCollectionDetailPrivate(id, CollectionType.Theme, region, locale);
-  }
-
-  async getCollectionDetail(id: string, region: Region, locale: Locale): Promise<CollectionDetail> {
-    return this.getCollectionDetailPrivate(id, CollectionType.Collection, region, locale);
-  }
-}
+ }

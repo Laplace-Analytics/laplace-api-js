@@ -1,3 +1,4 @@
+import { PaginatedResponse } from './capital_increase';
 import { Client } from './client';
 import { Region, Locale } from './collections';
 import { LaplaceHTTPError } from './errors';
@@ -122,6 +123,32 @@ export interface TickSizeRule {
   tickSize: number;
 }
 
+export interface EarningsTranscriptListItem {
+	symbol: string;
+	year: number;
+	quarter: number;
+	date: string;
+	fiscal_year: number;
+}
+
+export interface EarningsTranscriptWithSummary {
+	symbol: string;
+	year: number;
+	quarter: number;
+	date: string;
+	content: string;
+	summary?: string;
+	has_summary: boolean;
+}
+
+export interface MarketState {
+	id: number;
+	marketSymbol?: string | null;
+	state: string;
+	lastTimestamp: string;
+	stockSymbol?: string | null;
+}
+
 export class StockClient extends Client {
   async getAllStocks(region: Region, page: number|null = null, pageSize: number|null = null): Promise<Stock[]> {
     return this.sendRequest<Stock[]>({
@@ -203,6 +230,52 @@ export class StockClient extends Client {
       method: 'GET',
       url: '/api/v1/stock/rules',
       params: { symbol, region },
+    });
+  }
+
+  async getEarningsTranscripts(symbol: string, region: Region): Promise<EarningsTranscriptListItem[]> {
+    return this.sendRequest<EarningsTranscriptListItem[]>({
+      method: 'GET',
+      url: '/api/v1/earnings/transcripts',
+      params: { symbol, region },
+    });
+  }
+
+  async getEarningsTranscript(symbol: string, year: number, quarter: number): Promise<EarningsTranscriptWithSummary> {
+    return this.sendRequest<EarningsTranscriptWithSummary>({
+      method: 'GET',
+      url: '/api/v1/earnings/transcript',
+      params: { symbol, year, quarter },
+    });
+  }
+
+  async getStockStateAll(page: number, size: number, region: Region): Promise<PaginatedResponse<MarketState>> {
+    return this.sendRequest<PaginatedResponse<MarketState>>({
+      method: 'GET',
+      url: '/api/v1/state/stock/all',
+      params: { page, size, region },
+    });
+  }
+
+  async getStockState(symbol: string): Promise<MarketState> {
+    return this.sendRequest<MarketState>({
+      method: 'GET',
+      url: `/api/v1/state/stock/${symbol}`,
+    });
+  }
+
+  async getStateAll(page: number, size: number, region: Region): Promise<PaginatedResponse<MarketState>> {
+    return this.sendRequest<PaginatedResponse<MarketState>>({
+      method: 'GET',
+      url: '/api/v1/state/all',
+      params: { page, size, region },
+    });
+  }
+
+  async getState(symbol: string): Promise<MarketState> {
+    return this.sendRequest<MarketState>({
+      method: 'GET',
+      url: `/api/v1/state/${symbol}`,
     });
   }
 }

@@ -1,9 +1,7 @@
 import { Logger } from "winston";
 import { LaplaceConfiguration } from "../utilities/configuration";
 import "./client_test_suite";
-import {
-  LivePriceClient,
-} from "../client/live-price";
+import { BISTStockStreamData, LivePriceClient, OrderbookLiveData } from "../client/live-price";
 
 describe("LivePrice", () => {
   let client: LivePriceClient;
@@ -66,7 +64,7 @@ describe("LivePrice", () => {
       "should receive BIST live price data",
       async () => {
         const symbols = ["AKBNK"];
-        let receivedData: any = null;
+        let receivedData: BISTStockStreamData | null = null;
         let receivedError: Error | null = null;
 
         const lc = client.getLivePriceForBIST(symbols);
@@ -98,12 +96,13 @@ describe("LivePrice", () => {
           await Promise.race([dataPromise, timeoutPromise]);
 
           if (receivedData) {
-            console.log("Received BIST data:", receivedData);
-            expect(receivedData.s).toBeDefined();
-            expect(typeof receivedData.s).toBe("string");
-            expect(typeof receivedData.p).toBe("number");
-            expect(typeof receivedData.ch).toBe("number");
-            expect(typeof receivedData.d).toBe("number");
+            const tempReceivedData = (receivedData as BISTStockStreamData).d;
+            console.log("Received BIST data:", tempReceivedData);
+            expect(tempReceivedData.s).toBeDefined();
+            expect(typeof tempReceivedData.s).toBe("string");
+            expect(typeof tempReceivedData.p).toBe("number");
+            expect(typeof tempReceivedData.ch).toBe("number");
+            expect(typeof tempReceivedData.d).toBe("number");
           } else {
             console.log("Timeout waiting for BIST data");
           }
@@ -193,7 +192,7 @@ describe("LivePrice", () => {
           const dataPromise = (async () => {
             try {
               for await (const data of receiveChan) {
-                receivedData.push(data.s);
+                receivedData.push(data.d.s);
 
                 // Switch symbols after 5 seconds
                 if (!switchOccurred && receivedData.length > 0) {
@@ -287,6 +286,143 @@ describe("LivePrice", () => {
           expect(receivedAfterClose).toBe(false);
         } catch (error) {
           console.error("Close test error:", error);
+        }
+      },
+      TEST_CONSTANTS.JEST_TIMEOUT
+    );
+  });
+
+  describe("GetDelayedPriceForBIST", () => {
+    it(
+      "should receive BIST delayed price data",
+      async () => {
+        const symbols = ["AKBNK"];
+        let receivedData: BISTStockStreamData | null = null; 
+        let receivedError: Error | null = null;
+
+        const lc = client.getDelayedPriceForBIST(symbols);
+        activeConnections.push(lc);
+
+        try {
+          const receiveChan = lc.receive();
+
+          const timeoutPromise = new Promise<void>((_, reject) => {
+            const timeout = setTimeout(
+              () => reject(new Error("Timeout waiting for delayed data")),
+              TEST_CONSTANTS.MAIN_TIMEOUT
+            );
+            activeTimeouts.push(timeout);
+          });
+
+          const dataPromise = (async () => {
+            try {
+              for await (const data of receiveChan) {
+                receivedData = data;
+                break;
+              }
+            } catch (error) {
+              console.log("Error in delayed data stream:", error);
+            }
+          })();
+
+          await Promise.race([dataPromise, timeoutPromise]);
+
+          if (receivedData != null) {
+            const tempReceivedData = (receivedData as BISTStockStreamData).d;
+            console.log("Received BIST delayed data:", tempReceivedData);
+            expect(tempReceivedData.s).toBeDefined();
+            expect(typeof tempReceivedData.s).toBe("string");
+            expect(typeof tempReceivedData.p).toBe("number");
+            expect(typeof tempReceivedData.ch).toBe("number");
+            expect(typeof tempReceivedData.d).toBe("number");
+          } else {
+            console.log("Timeout waiting for BIST delayed data");
+          }
+        } catch (error) {
+          receivedError = error as Error;
+          console.log("Received delayed error:", receivedError.message);
+        } finally {
+          lc.close();
+        }
+      },
+      TEST_CONSTANTS.JEST_TIMEOUT
+    );
+  });
+
+  describe("GetOrderbookForBIST", () => {
+    it(
+      "should receive BIST orderbook data",
+      async () => {
+        const symbols = ["AKBNK"];
+        let receivedData: OrderbookLiveData | null = null;
+        let receivedError: Error | null = null;
+
+        const lc = client.getOrderbookForBIST(symbols);
+        activeConnections.push(lc);
+
+        try {
+          const receiveChan = lc.receive();
+
+          const timeoutPromise = new Promise<void>((_, reject) => {
+            const timeout = setTimeout(
+              () => reject(new Error("Timeout waiting for orderbook data")),
+              TEST_CONSTANTS.MAIN_TIMEOUT
+            );
+            activeTimeouts.push(timeout);
+          });
+
+          const dataPromise = (async () => {
+            try {
+              for await (const data of receiveChan) {
+                console.log(data);
+                receivedData = data;
+                break;
+              }
+            } catch (error) {
+              console.log("Error in orderbook data stream:", error);
+            }
+          })();
+
+          await Promise.race([dataPromise, timeoutPromise]);
+
+          if (receivedData != null) {
+            const tempReceivedData = receivedData as OrderbookLiveData;
+            console.log("Received BIST orderbook data:", tempReceivedData);
+            expect(tempReceivedData.symbol).toBeDefined();
+            expect(typeof tempReceivedData.symbol).toBe("string");
+
+            if (tempReceivedData.updated != null) {
+              expect(Array.isArray(tempReceivedData.updated)).toBe(true);
+
+              if (tempReceivedData.updated.length > 0) {
+                const firsData = tempReceivedData.updated[0];
+                console.log("updated first data:", firsData)
+                expect(typeof firsData.level).toBe("number");
+                expect(typeof firsData.vol).toBe("number");
+                expect(typeof firsData.orders).toBe("number");
+                expect(typeof firsData.p).toBe("number");
+                expect(typeof firsData.side).toBe("string");
+              }
+            }
+
+            if (tempReceivedData.deleted != null) {
+              expect(Array.isArray(tempReceivedData.deleted)).toBe(true);
+
+              if (tempReceivedData.deleted.length > 0) {
+                const firsData = tempReceivedData.deleted[0];
+                console.log("deleted first data:", firsData)
+                expect(typeof firsData.level).toBe("number");
+                expect(typeof firsData.side).toBe("string");
+              }
+            }
+          } else {
+            console.log("Timeout waiting for BIST orderbook data");
+          }
+        } catch (error) {
+          receivedError = error as Error;
+          console.log("Received orderbook error:", receivedError.message);
+        } finally {
+          lc.close();
         }
       },
       TEST_CONSTANTS.JEST_TIMEOUT
