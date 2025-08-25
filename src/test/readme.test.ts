@@ -70,8 +70,6 @@ describe("README Examples - Comprehensive Tests", () => {
     webSocketClient = new LivePriceWebSocketClient(
       [LivePriceFeed.LiveBist, LivePriceFeed.LiveUs],
       "test-user-id",
-      config,
-      logger
     );
     capitalIncreaseClient = new CapitalIncreaseClient(config, logger);
     customThemeClient = new CustomThemeClient(config, logger);
