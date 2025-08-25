@@ -67,10 +67,7 @@ describe("README Examples - Comprehensive Tests", () => {
     livePriceClient = new LivePriceClient(config, logger);
     brokerClient = new BrokerClient(config, logger);
     searchClient = new SearchClient(config, logger);
-    webSocketClient = new LivePriceWebSocketClient(
-      [LivePriceFeed.LiveBist, LivePriceFeed.LiveUs],
-      "test-user-id",
-    );
+    webSocketClient = new LivePriceWebSocketClient();
     capitalIncreaseClient = new CapitalIncreaseClient(config, logger);
     customThemeClient = new CustomThemeClient(config, logger);
     keyInsightClient = new KeyInsightClient(config, logger);
