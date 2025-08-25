@@ -112,16 +112,10 @@ export class LivePriceWebSocketClient {
   private lastMessageTimestamp: number = 0;
   private inactivityCheckInterval: NodeJS.Timeout | null = null;
   private readonly INACTIVITY_TIMEOUT = 15000;
-  private externalUserId: string | null = null;
-  private feeds: LivePriceFeed[] | null = null;
 
   constructor(
-    feeds: LivePriceFeed[],
-    externalUserId: string,
     options: WebSocketOptions = {}
   ) {
-    this.feeds = feeds;
-    this.externalUserId = externalUserId;
     this.options = {
       enableLogging: true,
       logLevel: LogLevel.Error,
@@ -187,9 +181,6 @@ export class LivePriceWebSocketClient {
 
   async connect(url: string): Promise<WebSocket> {
     this.log("Connecting to WebSocket...");
-    if (!this.externalUserId || !this.feeds) {
-      throw new Error("External user ID and feeds are required");
-    }
 
     this.wsUrl = url;
 
