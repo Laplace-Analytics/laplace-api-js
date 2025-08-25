@@ -1,31 +1,3 @@
-import { Logger } from "winston";
-import { LaplaceConfiguration } from "../utilities/configuration";
-import { Client } from "./client";
-
-interface WebSocketUrlResponse {
-  url: string;
-}
-
-interface WebSocketUrlParams {
-  externalUserId: string;
-  feeds: LivePriceFeed[];
-}
-
-export enum AccessorType {
-  User = "user",
-}
-
-interface UpdateUserDetailsParams {
-  externalUserID: string;
-  firstName?: string;
-  lastName?: string;
-  address?: string;
-  city?: string;
-  countryCode?: string;
-  accessorType?: AccessorType;
-  active: boolean;
-}
-
 interface RawBISTStockLiveData {
   _id: number;
   symbol: string;
@@ -115,7 +87,7 @@ export class WebSocketError extends Error {
   }
 }
 
-export class LivePriceWebSocketClient extends Client {
+export class LivePriceWebSocketClient {
   private ws: WebSocket | null = null;
   private subscriptionCounter = 0;
   private subscriptions = new Map<
@@ -146,11 +118,8 @@ export class LivePriceWebSocketClient extends Client {
   constructor(
     feeds: LivePriceFeed[],
     externalUserId: string,
-    cfg: LaplaceConfiguration,
-    logger: Logger,
     options: WebSocketOptions = {}
   ) {
-    super(cfg, logger);
     this.feeds = feeds;
     this.externalUserId = externalUserId;
     this.options = {
@@ -216,40 +185,13 @@ export class LivePriceWebSocketClient extends Client {
     }
   }
 
-  async updateUserDetails(params: UpdateUserDetailsParams): Promise<void> {
-    const url = new URL(`${this["baseUrl"]}/api/v1/ws/user`);
-
-    await this.sendRequest<void>({
-      method: "PUT",
-      url: url.toString(),
-      data: params,
-    });
-  }
-
-  private async getWebSocketUrl(): Promise<string> {
-    const url = new URL(`${this["baseUrl"]}/api/v2/ws/url`);
-
-    const params: WebSocketUrlParams = {
-      externalUserId: this.externalUserId!,
-      feeds: this.feeds!,
-    };
-
-    const response = await this.sendRequest<WebSocketUrlResponse>({
-      method: "POST",
-      url: url.toString(),
-      data: params,
-    });
-
-    return response.url;
-  }
-
-  async connect(url?: string): Promise<WebSocket> {
+  async connect(url: string): Promise<WebSocket> {
     this.log("Connecting to WebSocket...");
     if (!this.externalUserId || !this.feeds) {
       throw new Error("External user ID and feeds are required");
     }
 
-    this.wsUrl = url || (await this.getWebSocketUrl());
+    this.wsUrl = url;
 
     if (!this.ws || this.ws.readyState === WebSocket.CLOSED) {
       this.ws = new WebSocket(this.wsUrl);

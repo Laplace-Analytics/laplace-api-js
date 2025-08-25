@@ -1,6 +1,7 @@
 import { Client } from "./client";
 import { Region } from "./collections";
 import { v4 as uuidv4 } from "uuid";
+import { LivePriceFeed } from "./live-price-web-socket";
 
 export type MessageType = "pr" | "state_change" | "heartbeat" | "ob";
 
@@ -54,6 +55,30 @@ export enum PriceDataType {
   Live = "live",
   Delayed = "delayed",
   Orderbook = "orderbook",
+}
+
+interface WebSocketUrlResponse {
+  url: string;
+}
+
+interface WebSocketUrlParams {
+  externalUserId: string;
+  feeds: LivePriceFeed[];
+}
+
+export enum AccessorType {
+  User = "user",
+}
+
+interface UpdateUserDetailsParams {
+  externalUserID: string;
+  firstName?: string;
+  lastName?: string;
+  address?: string;
+  city?: string;
+  countryCode?: string;
+  accessorType?: AccessorType;
+  active: boolean;
 }
 
 export interface ILivePriceClient<T> {
@@ -231,5 +256,35 @@ export class LivePriceClient extends Client {
 
   getOrderbookForBIST(symbols: string[]): ILivePriceClient<OrderbookLiveData> {
     return getOrderbookForBIST(this, symbols);
+  }
+
+  async getClientWebsocketUrl(
+    externalUserId: string,
+    feeds: LivePriceFeed[]
+  ): Promise<string> {
+    const url = new URL(`${this["baseUrl"]}/api/v2/ws/url`);
+
+    const params: WebSocketUrlParams = {
+      externalUserId,
+      feeds
+    };
+
+    const response = await this.sendRequest<WebSocketUrlResponse>({
+      method: "POST",
+      url: url.toString(),
+      data: params,
+    });
+
+    return response.url;
+  }
+
+  async updateUserDetails(params: UpdateUserDetailsParams): Promise<void> {
+    const url = new URL(`${this["baseUrl"]}/api/v1/ws/user`);
+
+    await this.sendRequest<void>({
+      method: "PUT",
+      url: url.toString(),
+      data: params,
+    });
   }
 }
