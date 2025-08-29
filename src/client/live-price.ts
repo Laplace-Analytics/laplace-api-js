@@ -24,8 +24,16 @@ export interface USStockPriceData {
   d: number; // Date
 }
 
+export interface BISTBidAskPriceData {
+  s: string; // Symbol
+  bid: number; // Bid price
+  ask: number; // Ask price
+  d: number; // Date
+}
+
 export type BISTStockStreamData = StreamMessage<BISTStockPriceData>;
 export type USStockStreamData = StreamMessage<USStockPriceData>;
+export type BISTBidAskStreamData = StreamMessage<BISTBidAskPriceData>;
 
 export enum OrderbookLevelSide {
   Bid = "bid",
@@ -55,6 +63,7 @@ export enum PriceDataType {
   Live = "live",
   Delayed = "delayed",
   Orderbook = "orderbook",
+  BidAsk = "bidask",
 }
 
 interface WebSocketUrlResponse {
@@ -149,6 +158,13 @@ class LivePriceClientImpl<T> implements ILivePriceClient<T> {
           this.region
         }&stream=${streamId}`;
         break;
+      case PriceDataType.BidAsk:
+        url = `${
+          this.client["baseUrl"]
+        }/api/v1/stock/price/bids?filter=${symbols.join(",")}&region=${
+          this.region
+        }&stream=${streamId}`;
+        break;
     }
 
     const { events, cancel } = this.client.sendSSERequest<T>(url);
@@ -211,6 +227,23 @@ function getOrderbook<T>(
   return orderbookClient;
 }
 
+function getBidAskPrice<T>(
+  client: Client,
+  symbols: string[],
+  region: Region,
+): ILivePriceClient<T> {
+  if (!client) {
+    throw new Error("Client cannot be null");
+  }
+
+  const bidAskClient = new LivePriceClientImpl<T>(client, region, PriceDataType.BidAsk);
+  bidAskClient.subscribe(symbols).catch((error) => {
+    console.error("Failed to initialize bid/ask price client", error);
+  });
+
+  return bidAskClient;
+}
+
 export function getLivePriceForBIST(
   client: Client,
   symbols: string[]
@@ -239,6 +272,13 @@ export function getOrderbookForBIST(
   return getOrderbook<OrderbookLiveData>(client, symbols, Region.Tr);
 }
 
+export function getBidAskPriceForBIST(
+  client: Client,
+  symbols: string[]
+): ILivePriceClient<BISTBidAskStreamData> {
+  return getBidAskPrice<BISTBidAskStreamData>(client, symbols, Region.Tr);
+}
+
 export class LivePriceClient extends Client {
   getLivePriceForBIST(symbols: string[]): ILivePriceClient<BISTStockStreamData> {
     return getLivePriceForBIST(this, symbols);
@@ -256,6 +296,10 @@ export class LivePriceClient extends Client {
 
   getOrderbookForBIST(symbols: string[]): ILivePriceClient<OrderbookLiveData> {
     return getOrderbookForBIST(this, symbols);
+  }
+
+  getBidAskPriceForBIST(symbols: string[]): ILivePriceClient<BISTBidAskStreamData> {
+    return getBidAskPriceForBIST(this, symbols);
   }
 
   async getClientWebsocketUrl(
