@@ -289,16 +289,25 @@ const results = await client.search(
 ### WebSocket Client
 
 ```typescript
+// Server Side
+// Initialize LivePriceClient for server side use
+const livePriceClient = new LivePriceClient(config, logger);
+
+// Retrieve a websocket connection URL for the client, pass the URL to the client
+const wsURL = await livePriceClient.getClientWebsocketUrl('external-user-id', [LivePriceFeed.LiveBist])
+
+// Client Side
+// Client side retrieves the websocket connection URL from the server as wsURL
 // Create WebSocket client for real-time data
 const webSocketClient = new LivePriceWebSocketClient();
 
 // Connect to WebSocket
-await webSocketClient.connect("ws://example.com/websocket");
+await webSocketClient.connect(wsURL);
 
 // Subscribe to live price feeds
 const unsubscribe = webSocketClient.subscribe(
   ["THYAO", "GARAN"],
-  "live_price_tr",
+  LivePriceFeed.LiveBist,
   (data) => {
     console.log("Received live data:", data);
   }
@@ -306,6 +315,10 @@ const unsubscribe = webSocketClient.subscribe(
 
 // Close connection
 await webSocketClient.close();
+
+// Server Side
+// Use livePriceClient.getWebsocketUsageForMonth for getting a report on websocket client usage
+const usage = await livePriceClient.getWebsocketUsageForMonth('8', '2025', LivePriceFeed.LiveBist);
 ```
 
 ### Capital Increase Client
