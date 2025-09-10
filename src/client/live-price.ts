@@ -61,6 +61,12 @@ interface WebSocketUrlResponse {
   url: string;
 }
 
+interface WebSocketUsageResponse {
+  externalUserId: string;
+  firstConnectionTime: Date;
+  uniqueDeviceCount: number;
+}
+
 interface WebSocketUrlParams {
   externalUserId: string;
   feeds: LivePriceFeed[];
@@ -276,5 +282,27 @@ export class LivePriceClient extends Client {
     });
 
     return response.url;
+  }
+
+  async getWebsocketUsageForMonth(
+    month: string,
+    year: string,
+    feedType: LivePriceFeed,
+  ): Promise<WebSocketUsageResponse[]> {
+    const url = new URL(`${this["baseUrl"]}/api/v1/ws/report`);
+
+    const params = {
+      month,
+      year,
+      feedType
+    };
+
+    const response = await this.sendRequest<WebSocketUsageResponse[]>({
+      method: "GET",
+      url: url.toString(),
+      data: params,
+    });
+
+    return response;
   }
 }
