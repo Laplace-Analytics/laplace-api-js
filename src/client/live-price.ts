@@ -62,7 +62,7 @@ interface WebSocketUrlResponse {
 }
 
 interface WebSocketUsageResponse {
-  externalUserId: string;
+  externalUserID: string;
   firstConnectionTime: Date;
   uniqueDeviceCount: number;
 }
