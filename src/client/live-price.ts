@@ -290,17 +290,13 @@ export class LivePriceClient extends Client {
     feedType: LivePriceFeed,
   ): Promise<WebSocketUsageResponse[]> {
     const url = new URL(`${this["baseUrl"]}/api/v1/ws/report`);
-
-    const params = {
-      month,
-      year,
-      feedType
-    };
+    url.searchParams.append("month", month);
+    url.searchParams.append("year", year);
+    url.searchParams.append("feedType", feedType);
 
     const response = await this.sendRequest<WebSocketUsageResponse[]>({
       method: "GET",
       url: url.toString(),
-      data: params,
     });
 
     return response;
