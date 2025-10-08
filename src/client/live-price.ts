@@ -301,4 +301,16 @@ export class LivePriceClient extends Client {
 
     return response;
   }
+
+  async sendWebsocketEvent(
+    request: SendWebsocketEventRequest
+  ): Promise<void> {
+    const url = new URL(`${this["baseUrl"]}/api/v1/ws/event`);
+
+    await this.sendRequest<void>({
+      method: "POST",
+      url: url.toString(),
+      data: request,
+    });
+  }
 }
