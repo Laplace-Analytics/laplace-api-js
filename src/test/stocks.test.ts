@@ -180,6 +180,8 @@ const mockSingleMarketState: MarketState = {
   stockSymbol: "TUPRS"
 };
 
+const mockChartImageBlob = new Blob(['mock chart image data'], { type: 'image/png' });
+
 describe("Stocks Client", () => {
   let client: StockClient;
 
@@ -484,6 +486,19 @@ describe("Stocks Client", () => {
         if (resp.marketSymbol) {
           expect(typeof resp.marketSymbol).toBe("string");
         }
+      });
+    });
+
+    describe("getStockChartImage", () => {
+      test("should return chart image blob", async () => {
+        const resp = await client.getStockChartImage({
+          symbol: "TUPRS",
+          region: Region.Tr,
+        });
+    
+        expect(resp).toBeDefined();
+        expect(resp).toBeInstanceOf(Blob);
+        expect(resp.size).toBeGreaterThan(0);
       });
     });
   });
@@ -821,6 +836,30 @@ describe("Stocks Client", () => {
 
         await expect(client.getState("INVALID"))
           .rejects.toThrow("Market state not found");
+      });
+    });
+
+    describe("getStockChartImage", () => {
+      test("should return chart image with mock data", async () => {
+        jest.spyOn(client, 'getStockChartImage').mockResolvedValue(mockChartImageBlob);
+    
+        const resp = await client.getStockChartImage({
+          symbol: "TUPRS",
+          region: Region.Tr,
+        });
+    
+        expect(resp).toBeDefined();
+        expect(resp).toBeInstanceOf(Blob);
+        expect(resp.type).toBe('image/png');
+      });
+    
+      test("should handle API errors for chart image", async () => {
+        jest.spyOn(client, 'getStockChartImage').mockRejectedValue(new Error("Failed to generate chart"));
+    
+        await expect(client.getStockChartImage({
+          symbol: "INVALID",
+          region: Region.Tr
+        })).rejects.toThrow("Failed to generate chart");
       });
     });
   });

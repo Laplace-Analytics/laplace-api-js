@@ -149,6 +149,15 @@ export interface MarketState {
 	stockSymbol?: string | null;
 }
 
+export interface GenerateChartImageRequest {
+  symbol: string;
+  period?: HistoricalPricePeriod;
+  region: Region;
+  resolution?: HistoricalPriceInterval;
+  indicators?: string[];
+  chartType?: number;
+}
+
 export class StockClient extends Client {
   async getAllStocks(region: Region, page: number|null = null, pageSize: number|null = null): Promise<Stock[]> {
     return this.sendRequest<Stock[]>({
@@ -276,6 +285,25 @@ export class StockClient extends Client {
     return this.sendRequest<MarketState>({
       method: 'GET',
       url: `/api/v1/state/${symbol}`,
+    });
+  }
+
+  async getStockChartImage(request: GenerateChartImageRequest): Promise<Blob> {
+    const params: Partial<GenerateChartImageRequest> = {
+      symbol: request.symbol,
+      region: request.region,
+    };
+  
+    if (request.period) params.period = request.period;
+    if (request.resolution) params.resolution = request.resolution;
+    if (request.indicators) params.indicators = request.indicators;
+    if (request.chartType != null) params.chartType = request.chartType;
+  
+    return this.sendRequest<Blob>({
+      method: 'GET',
+      url: '/api/v1/stock/chart',
+      params,
+      responseType: 'blob',
     });
   }
 }
