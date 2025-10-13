@@ -1,7 +1,7 @@
 import { Logger } from "winston";
 import { LaplaceConfiguration } from "../utilities/configuration";
 import "./client_test_suite";
-import { BISTStockStreamData, LivePriceClient, OrderbookLiveData } from "../client/live-price";
+import { BISTBidAskStreamData, BISTStockStreamData, LivePriceClient, OrderbookLiveData } from "../client/live-price";
 
 describe("LivePrice", () => {
   let client: LivePriceClient;
@@ -467,6 +467,63 @@ describe("LivePrice", () => {
             expect(receivedData.s).toBeDefined();
             expect(typeof receivedData.s).toBe("string");
           }
+        } finally {
+          lc.close();
+        }
+      },
+      TEST_CONSTANTS.JEST_TIMEOUT
+    );
+  });
+
+  describe("GetBidAskForBIST", () => {
+    it(
+      "should receive BIST bid/ask data",
+      async () => {
+        const symbols = ["AKBNK"];
+        let receivedData: BISTBidAskStreamData | null = null;
+        let receivedError: Error | null = null;
+  
+        const lc = client.getBidAskForBIST(symbols);
+        activeConnections.push(lc);
+  
+        try {
+          const receiveChan = lc.receive();
+  
+          const timeoutPromise = new Promise<void>((_, reject) => {
+            const timeout = setTimeout(
+              () => reject(new Error("Timeout waiting for bid/ask data")),
+              TEST_CONSTANTS.MAIN_TIMEOUT
+            );
+            activeTimeouts.push(timeout);
+          });
+  
+          const dataPromise = (async () => {
+            try {
+              for await (const data of receiveChan) {
+                receivedData = data;
+                break;
+              }
+            } catch (error) {
+              console.log("Error in bid/ask data stream:", error);
+            }
+          })();
+  
+          await Promise.race([dataPromise, timeoutPromise]);
+  
+          if (receivedData != null) {
+            const tempReceivedData = (receivedData as BISTBidAskStreamData).d;
+            console.log("Received BIST bid/ask data:", tempReceivedData);
+            expect(tempReceivedData.s).toBeDefined();
+            expect(typeof tempReceivedData.s).toBe("string");
+            expect(typeof tempReceivedData.d).toBe("string");
+            expect(typeof tempReceivedData.ask).toBe("number");
+            expect(typeof tempReceivedData.bid).toBe("number");
+          } else {
+            console.log("Timeout waiting for BIST bid/ask data");
+          }
+        } catch (error) {
+          receivedError = error as Error;
+          console.log("Received bid/ask error:", receivedError.message);
         } finally {
           lc.close();
         }

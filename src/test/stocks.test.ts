@@ -125,14 +125,14 @@ const mockTickRulesResponse = {
 
 const mockEarningsTranscriptList: EarningsTranscriptListItem[] = [
   {
-    symbol: "TUPRS",
+    symbol: "AAPL",
     year: 2024,
     quarter: 1,
     date: "2024-05-15",
-    fiscal_year: 2024
+    fiscal_year: 2024,
   },
   {
-    symbol: "TUPRS",
+    symbol: "AAPL",
     year: 2023,
     quarter: 4,
     date: "2024-02-20",
@@ -141,7 +141,7 @@ const mockEarningsTranscriptList: EarningsTranscriptListItem[] = [
 ];
 
 const mockEarningsTranscriptDetail: EarningsTranscriptWithSummary = {
-  symbol: "TUPRS",
+  symbol: "AAPL",
   year: 2024,
   quarter: 1,
   date: "2024-05-15",
@@ -153,14 +153,14 @@ const mockEarningsTranscriptDetail: EarningsTranscriptWithSummary = {
 const mockMarketStates: MarketState[] = [
   {
     id: 1,
-    marketSymbol: "XIST",
+    marketSymbol: "BIST",
     state: "OPEN",
     lastTimestamp: "2024-03-14T10:00:00Z",
     stockSymbol: "TUPRS"
   },
   {
     id: 2,
-    marketSymbol: "XIST",
+    marketSymbol: "BIST",
     state: "CLOSED",
     lastTimestamp: "2024-03-14T18:00:00Z",
     stockSymbol: "GARAN"
@@ -174,11 +174,13 @@ const mockPaginatedMarketStates: PaginatedResponse<MarketState> = {
 
 const mockSingleMarketState: MarketState = {
   id: 1,
-  marketSymbol: "XIST",
+  marketSymbol: "BIST",
   state: "OPEN",
   lastTimestamp: "2024-03-14T10:00:00Z",
   stockSymbol: "TUPRS"
 };
+
+const mockChartImageBlob = new Blob(['mock chart image data'], { type: 'image/png' });
 
 describe("Stocks Client", () => {
   let client: StockClient;
@@ -387,7 +389,7 @@ describe("Stocks Client", () => {
 
     describe("getEarningsTranscripts", () => {
       test("should return earnings transcript list", async () => {
-        const resp = await client.getEarningsTranscripts("TUPRS", Region.Tr);
+        const resp = await client.getEarningsTranscripts("AAPL", Region.Us);
 
         expect(Array.isArray(resp)).toBe(true);
 
@@ -404,7 +406,7 @@ describe("Stocks Client", () => {
 
     describe("getEarningsTranscript", () => {
       test("should return earnings transcript detail", async () => {
-        const resp = await client.getEarningsTranscript("TUPRS", 2023, 4);
+        const resp = await client.getEarningsTranscript("AAPL", 2023, 4);
 
         expect(resp).toBeDefined();
         expect(typeof resp.symbol).toBe("string");
@@ -474,7 +476,7 @@ describe("Stocks Client", () => {
 
     describe("getState", () => {
       test("should return single market state", async () => {
-        const resp = await client.getState("XIST");
+        const resp = await client.getState("BIST");
 
         expect(resp).toBeDefined();
         expect(typeof resp.id).toBe("number");
@@ -485,6 +487,18 @@ describe("Stocks Client", () => {
           expect(typeof resp.marketSymbol).toBe("string");
         }
       });
+    });
+
+    describe("getStockChartImage", () => {
+      test("should return chart image blob", async () => {
+        const resp = await client.getStockChartImage({
+          symbol: "TUPRS",
+          region: Region.Tr,
+        });
+        expect(resp).toBeDefined();
+        expect(resp).toBeInstanceOf(Blob);
+        expect(resp.size).toBeGreaterThan(0);
+      }, 10000);
     });
   });
 
@@ -678,12 +692,12 @@ describe("Stocks Client", () => {
       test("should return earnings transcript list with mock data", async () => {
         jest.spyOn(client, 'getEarningsTranscripts').mockResolvedValue(mockEarningsTranscriptList);
 
-        const resp = await client.getEarningsTranscripts("TUPRS", Region.Tr);
+        const resp = await client.getEarningsTranscripts("AAPL", Region.Us);
 
         expect(resp).toHaveLength(2);
         
         const firstTranscript = resp[0];
-        expect(firstTranscript.symbol).toBe("TUPRS");
+        expect(firstTranscript.symbol).toBe("AAPL");
         expect(firstTranscript.year).toBe(2024);
         expect(firstTranscript.quarter).toBe(1);
         expect(firstTranscript.date).toBe("2024-05-15");
@@ -693,14 +707,18 @@ describe("Stocks Client", () => {
         expect(secondTranscript.year).toBe(2023);
         expect(secondTranscript.quarter).toBe(4);
 
-        expect(client.getEarningsTranscripts).toHaveBeenCalledWith("TUPRS", Region.Tr);
+        expect(client.getEarningsTranscripts).toHaveBeenCalledWith(
+          "AAPL",
+          Region.Us
+        );
       });
 
       test("should handle API errors for earnings transcripts", async () => {
         jest.spyOn(client, 'getEarningsTranscripts').mockRejectedValue(new Error("Transcripts not found"));
 
-        await expect(client.getEarningsTranscripts("INVALID", Region.Tr))
-          .rejects.toThrow("Transcripts not found");
+        await expect(
+          client.getEarningsTranscripts("INVALID", Region.Us)
+        ).rejects.toThrow("Transcripts not found");
       });
     });
 
@@ -708,9 +726,9 @@ describe("Stocks Client", () => {
       test("should return earnings transcript detail with mock data", async () => {
         jest.spyOn(client, 'getEarningsTranscript').mockResolvedValue(mockEarningsTranscriptDetail);
 
-        const resp = await client.getEarningsTranscript("TUPRS", 2024, 1);
+        const resp = await client.getEarningsTranscript("AAPL", 2024, 1);
 
-        expect(resp.symbol).toBe("TUPRS");
+        expect(resp.symbol).toBe("AAPL");
         expect(resp.year).toBe(2024);
         expect(resp.quarter).toBe(1);
         expect(resp.date).toBe("2024-05-15");
@@ -718,14 +736,19 @@ describe("Stocks Client", () => {
         expect(resp.summary).toBe("Strong Q1 performance with 15% revenue growth");
         expect(resp.has_summary).toBe(true);
 
-        expect(client.getEarningsTranscript).toHaveBeenCalledWith("TUPRS", 2024, 1);
+        expect(client.getEarningsTranscript).toHaveBeenCalledWith(
+          "AAPL",
+          2024,
+          1
+        );
       });
 
       test("should handle API errors for earnings transcript detail", async () => {
         jest.spyOn(client, 'getEarningsTranscript').mockRejectedValue(new Error("Transcript not found"));
 
-        await expect(client.getEarningsTranscript("TUPRS", 2020, 1))
-          .rejects.toThrow("Transcript not found");
+        await expect(
+          client.getEarningsTranscript("AAPL", 2020, 1)
+        ).rejects.toThrow("Transcript not found");
       });
     });
 
@@ -740,7 +763,7 @@ describe("Stocks Client", () => {
 
         const firstState = resp.items[0];
         expect(firstState.id).toBe(1);
-        expect(firstState.marketSymbol).toBe("XIST");
+        expect(firstState.marketSymbol).toBe("BIST");
         expect(firstState.state).toBe("OPEN");
         expect(firstState.stockSymbol).toBe("TUPRS");
 
@@ -762,7 +785,7 @@ describe("Stocks Client", () => {
         const resp = await client.getStockState("TUPRS");
 
         expect(resp.id).toBe(1);
-        expect(resp.marketSymbol).toBe("XIST");
+        expect(resp.marketSymbol).toBe("BIST");
         expect(resp.state).toBe("OPEN");
         expect(resp.lastTimestamp).toBe("2024-03-14T10:00:00Z");
         expect(resp.stockSymbol).toBe("TUPRS");
@@ -806,14 +829,14 @@ describe("Stocks Client", () => {
       test("should return single market state with mock data", async () => {
         jest.spyOn(client, 'getState').mockResolvedValue(mockSingleMarketState);
 
-        const resp = await client.getState("XIST");
+        const resp = await client.getState("BIST");
 
         expect(resp.id).toBe(1);
-        expect(resp.marketSymbol).toBe("XIST");
+        expect(resp.marketSymbol).toBe("BIST");
         expect(resp.state).toBe("OPEN");
         expect(resp.lastTimestamp).toBe("2024-03-14T10:00:00Z");
 
-        expect(client.getState).toHaveBeenCalledWith("XIST");
+        expect(client.getState).toHaveBeenCalledWith("BIST");
       });
 
       test("should handle API errors for single state", async () => {
@@ -821,6 +844,30 @@ describe("Stocks Client", () => {
 
         await expect(client.getState("INVALID"))
           .rejects.toThrow("Market state not found");
+      });
+    });
+
+    describe("getStockChartImage", () => {
+      test("should return chart image with mock data", async () => {
+        jest.spyOn(client, 'getStockChartImage').mockResolvedValue(mockChartImageBlob);
+    
+        const resp = await client.getStockChartImage({
+          symbol: "TUPRS",
+          region: Region.Tr,
+        });
+    
+        expect(resp).toBeDefined();
+        expect(resp).toBeInstanceOf(Blob);
+        expect(resp.type).toBe('image/png');
+      });
+    
+      test("should handle API errors for chart image", async () => {
+        jest.spyOn(client, 'getStockChartImage').mockRejectedValue(new Error("Failed to generate chart"));
+    
+        await expect(client.getStockChartImage({
+          symbol: "INVALID",
+          region: Region.Tr
+        })).rejects.toThrow("Failed to generate chart");
       });
     });
   });

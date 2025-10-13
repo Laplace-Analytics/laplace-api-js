@@ -26,6 +26,7 @@ export interface USStockPriceData {
 
 export type BISTStockStreamData = StreamMessage<BISTStockPriceData>;
 export type USStockStreamData = StreamMessage<USStockPriceData>;
+export type BISTBidAskStreamData = StreamMessage<BISTBidAskData>;
 
 export enum OrderbookLevelSide {
   Bid = "bid",
@@ -38,6 +39,13 @@ export interface OrderbookLevel {
 	orders: number;
 	p: number;
 	side: OrderbookLevelSide;
+}
+
+export interface BISTBidAskData {
+  d: string;
+  s: string;
+  ask: number;
+  bid: number;
 }
 
 export interface OrderbookDeletedLevel {
@@ -55,6 +63,7 @@ export enum PriceDataType {
   Live = "live",
   Delayed = "delayed",
   Orderbook = "orderbook",
+  Bids = "bids",
 }
 
 interface WebSocketUrlResponse {
@@ -85,6 +94,13 @@ interface UpdateUserDetailsParams {
   countryCode?: string;
   accessorType?: AccessorType;
   active: boolean;
+}
+
+export interface SendWebsocketEventRequest {
+  externalUserID?: string;
+  event: Record<string, any>;
+  transient?: boolean;
+  broadCastToAll?: boolean;
 }
 
 export interface ILivePriceClient<T> {
@@ -155,6 +171,13 @@ class LivePriceClientImpl<T> implements ILivePriceClient<T> {
           this.region
         }&stream=${streamId}`;
         break;
+      case PriceDataType.Bids:
+        url = `${
+          this.client["baseUrl"]
+        }/api/v1/stock/price/bids?filter=${symbols.join(",")}&region=${
+          this.region
+        }&stream=${streamId}`;
+        break;
     }
 
     const { events, cancel } = this.client.sendSSERequest<T>(url);
@@ -217,6 +240,27 @@ function getOrderbook<T>(
   return orderbookClient;
 }
 
+function getBidAsk<T>(
+  client: Client,
+  symbols: string[],
+  region: Region
+): ILivePriceClient<T> {
+  if (!client) {
+    throw new Error("Client cannot be null");
+  }
+
+  const bidAskClient = new LivePriceClientImpl<T>(
+    client,
+    region,
+    PriceDataType.Bids
+  );
+  bidAskClient.subscribe(symbols).catch((error) => {
+    console.error("Failed to initialize bist bid ask client", error);
+  });
+
+  return bidAskClient;
+}
+
 export function getLivePriceForBIST(
   client: Client,
   symbols: string[]
@@ -245,6 +289,13 @@ export function getOrderbookForBIST(
   return getOrderbook<OrderbookLiveData>(client, symbols, Region.Tr);
 }
 
+export function getBidAskForBIST(
+  client: Client,
+  symbols: string[]
+): ILivePriceClient<BISTBidAskStreamData> {
+  return getBidAsk<BISTBidAskStreamData>(client, symbols, Region.Tr);
+}
+
 export class LivePriceClient extends Client {
   getLivePriceForBIST(symbols: string[]): ILivePriceClient<BISTStockStreamData> {
     return getLivePriceForBIST(this, symbols);
@@ -262,6 +313,10 @@ export class LivePriceClient extends Client {
 
   getOrderbookForBIST(symbols: string[]): ILivePriceClient<OrderbookLiveData> {
     return getOrderbookForBIST(this, symbols);
+  }
+
+  getBidAskForBIST(symbols: string[]): ILivePriceClient<BISTBidAskStreamData> {
+    return getBidAskForBIST(this, symbols);
   }
 
   async getClientWebsocketUrl(
@@ -300,5 +355,17 @@ export class LivePriceClient extends Client {
     });
 
     return response;
+  }
+
+  async sendWebsocketEvent(
+    request: SendWebsocketEventRequest
+  ): Promise<void> {
+    const url = new URL(`${this["baseUrl"]}/api/v1/ws/event`);
+
+    await this.sendRequest<void>({
+      method: "POST",
+      url: url.toString(),
+      data: request,
+    });
   }
 }
