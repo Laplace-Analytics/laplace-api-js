@@ -1,3 +1,5 @@
+import { OrderbookLiveData } from "./live-price";
+
 interface RawBISTStockLiveData {
   _id: number;
   symbol: string;
@@ -33,14 +35,15 @@ export enum LivePriceFeed {
   LiveUs = "live_price_us",
   DelayedBist = "delayed_price_tr",
   DelayedUs = "delayed_price_us",
-  // DepthBist = "depth_tr",
+  DepthBist = "depth_tr",
 }
 
 type StockLiveDataType<T extends LivePriceFeed> = T extends
   | LivePriceFeed.LiveBist
   | LivePriceFeed.DelayedBist
-  ? // | LivePriceFeed.DepthBist
-    BISTStockLiveData
+  ? BISTStockLiveData
+  : T extends LivePriceFeed.DepthBist
+  ? OrderbookLiveData
   : USStockLiveData;
 
 export enum LogLevel {
@@ -94,13 +97,9 @@ export class LivePriceWebSocketClient {
     number,
     {
       symbols: string[];
-      handler: (data: BISTStockLiveData | USStockLiveData) => void;
+      handler: (data: BISTStockLiveData | USStockLiveData | OrderbookLiveData) => void;
       feed: LivePriceFeed;
     }
-  >();
-  private symbolLastData = new Map<
-    string,
-    BISTStockLiveData | USStockLiveData
   >();
   private reconnectAttempts = 0;
   private reconnectTimeout: NodeJS.Timeout | null = null;
@@ -276,13 +275,11 @@ export class LivePriceWebSocketClient {
                   WebSocketErrorType.MESSAGE_PARSE_ERROR
                 );
               }
-              let priceData: BISTStockLiveData | USStockLiveData;
+              let priceData: BISTStockLiveData | USStockLiveData | OrderbookLiveData;
 
               if (
                 feed === LivePriceFeed.DelayedBist ||
                 feed === LivePriceFeed.LiveBist
-                //  ||
-                // feed === LivePriceFeed.DepthBist
               ) {
                 const message = messageData as RawBISTStockLiveData;
                 priceData = {
@@ -293,6 +290,13 @@ export class LivePriceWebSocketClient {
                   timestamp: message?.d,
                   percentChange: message?.c,
                 } as BISTStockLiveData;
+              } else if (feed === LivePriceFeed.DepthBist) {
+                const message = messageData as OrderbookLiveData;
+                priceData = {
+                  updated: message.updated,
+                  deleted: message.deleted,
+                  symbol: message?.symbol,
+                } as OrderbookLiveData;
               } else {
                 const message = messageData as RawUSStockLiveData;
                 priceData = {
@@ -302,7 +306,6 @@ export class LivePriceWebSocketClient {
                 } as USStockLiveData;
               }
               if (priceData.symbol) {
-                this.symbolLastData.set(priceData.symbol, priceData);
                 const handlers = this.getHandlersForSymbol(
                   priceData.symbol,
                   feed
@@ -409,7 +412,7 @@ export class LivePriceWebSocketClient {
     const subscriptionId = this.subscriptionCounter++;
     let symbolsToAdd: string[] = [];
 
-    const typedHandler = (data: BISTStockLiveData | USStockLiveData) => {
+    const typedHandler = (data: BISTStockLiveData | USStockLiveData | OrderbookLiveData) => {
       handler(data as StockLiveDataType<F>);
     };
 
@@ -423,12 +426,6 @@ export class LivePriceWebSocketClient {
       const symbolHandlers = this.getHandlersForSymbol(symbol, feed);
       if (symbolHandlers.length === 1) {
         symbolsToAdd.push(symbol);
-      } else if (symbolHandlers.length > 1) {
-        const lastData: BISTStockLiveData | USStockLiveData | undefined =
-          this.symbolLastData.get(symbol);
-        if (lastData) {
-          typedHandler(lastData);
-        }
       }
     }
     this.addSymbols(symbolsToAdd, feed);
@@ -445,7 +442,7 @@ export class LivePriceWebSocketClient {
   private getHandlersForSymbol(
     symbol: string,
     feed: LivePriceFeed
-  ): ((data: BISTStockLiveData | USStockLiveData) => void)[] {
+  ): ((data: BISTStockLiveData | USStockLiveData | OrderbookLiveData) => void)[] {
     return Array.from(this.subscriptions.values())
       .filter((s) => s.symbols.includes(symbol) && s.feed === feed)
       .map((s) => s.handler);
