@@ -298,12 +298,14 @@ export class StockClient extends Client {
     if (request.resolution) params.resolution = request.resolution;
     if (request.indicators) params.indicators = request.indicators;
     if (request.chartType != null) params.chartType = request.chartType;
-  
-    return this.sendRequest<Blob>({
-      method: 'GET',
-      url: '/api/v1/stock/chart',
+
+    const data = await this.sendRequest<ArrayBuffer>({
+      method: "GET",
+      url: "/api/v1/stock/chart",
       params,
-      responseType: 'blob',
+      responseType: "arraybuffer",
     });
+
+    return new Blob([data], { type: "image/png" });
   }
 }
