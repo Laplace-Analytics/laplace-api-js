@@ -498,6 +498,11 @@ export class LivePriceWebSocketClient {
         feed: feed,
       })
     );
+
+    for (const symbol of symbols) {
+      const key = this.getLastDataKey(symbol, feed);
+      this.symbolLastData.delete(key);
+    }
   }
 
   private async addSymbols(symbols: string[], feed: LivePriceFeed) {
