@@ -46,6 +46,8 @@ type StockLiveDataType<T extends LivePriceFeed> = T extends
   ? OrderbookLiveData
   : USStockLiveData;
 
+type LastDataKey = `${string}:${LivePriceFeed}`;
+
 export enum LogLevel {
   Info = "info",
   Warn = "warn",
@@ -101,6 +103,13 @@ export class LivePriceWebSocketClient {
       feed: LivePriceFeed;
     }
   >();
+  private symbolLastData = new Map<
+    LastDataKey,
+    BISTStockLiveData | USStockLiveData | OrderbookLiveData
+  >();
+  private getLastDataKey(symbol: string, feed: LivePriceFeed): LastDataKey {
+    return `${symbol}:${feed}`;
+  }
   private reconnectAttempts = 0;
   private reconnectTimeout: NodeJS.Timeout | null = null;
   private isClosed: boolean = false;
@@ -306,6 +315,8 @@ export class LivePriceWebSocketClient {
                 } as USStockLiveData;
               }
               if (priceData.symbol) {
+                const lastDataKey = this.getLastDataKey(priceData.symbol, feed);
+                this.symbolLastData.set(lastDataKey, priceData);
                 const handlers = this.getHandlersForSymbol(
                   priceData.symbol,
                   feed
@@ -426,6 +437,17 @@ export class LivePriceWebSocketClient {
       const symbolHandlers = this.getHandlersForSymbol(symbol, feed);
       if (symbolHandlers.length === 1) {
         symbolsToAdd.push(symbol);
+      } else if (symbolHandlers.length > 1) {
+        const lastDataKey = this.getLastDataKey(symbol, feed);
+        const lastData:
+          | BISTStockLiveData
+          | USStockLiveData
+          | OrderbookLiveData
+          | undefined = this.symbolLastData.get(lastDataKey);
+          
+        if (lastData) {
+          typedHandler(lastData);
+        }
       }
     }
     this.addSymbols(symbolsToAdd, feed);
