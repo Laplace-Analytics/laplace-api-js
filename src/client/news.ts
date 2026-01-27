@@ -34,22 +34,10 @@ export interface News {
     qualityScore: number;
     createdAt: string;
     tickers?: NewsTicker[];
-    translations?: NewsTranslation;
     categories?: NewsCategories;
     sectors?: NewsSector;
     content?: NewsContent;
     industries?: NewsIndustry;
-}
-
-export interface NewsTranslation {
-    title: string;
-    description: string;
-    content: string;
-    summary: string;
-    summaryParsed: string[];
-    investorInsight: string;
-    language: string;
-    originalLanguage: boolean;
 }
 
 export interface NewsPublisher {
