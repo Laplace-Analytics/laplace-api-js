@@ -34,10 +34,22 @@ export interface News {
     qualityScore: number;
     createdAt: string;
     tickers?: NewsTicker[];
+    translations?: NewsTranslation;
     categories?: NewsCategories;
     sectors?: NewsSector;
     content?: NewsContent;
     industries?: NewsIndustry;
+}
+
+export interface NewsTranslation {
+    title: string;
+    description: string;
+    content: string;
+    summary: string;
+    summaryParsed: string[];
+    investorInsight: string;
+    language: string;
+    originalLanguage: boolean;
 }
 
 export interface NewsPublisher {
@@ -95,7 +107,7 @@ export class NewsClient extends Client {
     async getNews(
         region: Region,
         locale: Locale,
-        newsType: NewsType,
+        newsType: NewsType | null,
         page: number | null,
         size: number | null,
         orderBy: NewsOrderBy | null,
@@ -107,7 +119,10 @@ export class NewsClient extends Client {
         );
         url.searchParams.append("region", region);
         url.searchParams.append("locale", locale);
-        url.searchParams.append("newsType", newsType);
+
+        if (newsType) {
+            url.searchParams.append("newsType", newsType);
+        }
 
         if (page) {
             url.searchParams.append("page", page.toString());
