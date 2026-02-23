@@ -121,13 +121,13 @@ export enum HistoricalRatiosKey {
 export interface StockHistoricalRatiosDescription {
   id: number;
   format: string;
-  currency: string;
+  currency: Currency;
   slug: string;
   createdAt: string;
   updatedAt: string;
   name: string;
   description: string;
-  locale: string;
+  locale: Locale;
   isRealtime: boolean;
 }
 
@@ -194,13 +194,14 @@ export class FinancialClient extends Client {
     symbol: string,
     keys: HistoricalRatiosKey[],
     region: Region,
-    locale: Locale
+    locale?: Locale
   ): Promise<StockHistoricalRatios[]> {
     const url = new URL(`${this["baseUrl"]}/api/v2/stock/historical-ratios`);
     url.searchParams.append("symbol", symbol);
     url.searchParams.append("region", region);
-    url.searchParams.append("locale", locale);
     url.searchParams.append("slugs", keys.join(","));
+    if (locale != null) url.searchParams.append("locale", locale);
+
 
     return this.sendRequest<StockHistoricalRatios[]>({
       method: "GET",

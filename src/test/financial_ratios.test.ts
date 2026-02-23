@@ -8,79 +8,65 @@ import {
   Currency,
   HistoricalFinancialSheetRow,
   RatioComparisonPeerType,
-  StockPeerFinancialRatioComparison,
-  StockHistoricalRatios,
   HistoricalRatiosFormat,
-  StockHistoricalRatiosDescription,
-  HistoricalFinancialSheets
 } from "../client/financial_ratios";
 import "./client_test_suite";
 import { equal } from "assert";
 import { Locale, Region } from "../client/collections";
 
-const mockRatioComparisonResponse: StockPeerFinancialRatioComparison[] = [
+const mockRatioComparisonResponse = [
   {
-    metricName: "Net Kar Marjı",
-    normalizedValue: 0.85,
-    data: [
+    "metricName": "pricing",
+    "normalizedValue": 57.1272139065688,
+    "data": [
       {
-        slug: "TUPRS",
-        value: 12.5,
-        average: 8.2
-      },
-      {
-        slug: "SECTOR_AVERAGE",
-        value: 7.8,
-        average: 8.2
+        "slug": "F/K",
+        "value": 14.9584698641742,
+        "average": -26.1316853855662
       }
     ]
   }
 ];
 
-const mockHistoricalRatiosResponse: StockHistoricalRatios[] = [
+const mockHistoricalRatiosResponse = [
   {
-    slug: HistoricalRatiosKey.NetMargin,
-    finalValue: 12.5,
-    threeYearGrowth: 15.2,
-    yearGrowth: 5.8,
-    finalSectorValue: 7.8,
-    currency: Currency.TRY,
-    format: HistoricalRatiosFormat.PERCENTAGE,
-    name: "Net Kar Marjı",
-    items: [
+    "items": [
       {
-        period: "2024-Q1",
-        value: 12.5,
-        sectorMean: 7.8
-      },
-      {
-        period: "2023-Q4",
-        value: 11.8,
-        sectorMean: 7.5
+        "period": "2025-4",
+        "value": 0.080499759559051,
+        "sectorMean": 0.080499759559051
       }
-    ]
+    ],
+    "finalValue": 0.080499759559051,
+    "threeYearGrowth": -0.922611834325054,
+    "yearGrowth": -0.527234781985081,
+    "finalSectorValue": 0.080499759559051,
+    "slug": "roe",
+    "currency": "TRY",
+    "format": "percentage",
+    "name": "ROE"
   }
 ];
 
-const mockRatiosDescriptionsResponse: StockHistoricalRatiosDescription[] = [
+const mockRatiosDescriptionsResponse = [
   {
-    id: 1,
-    format: HistoricalRatiosFormat.PERCENTAGE,
-    currency: Currency.TRY,
-    slug: HistoricalRatiosKey.NetMargin,
-    createdAt: "2024-03-14T10:00:00Z",
-    updatedAt: "2024-03-14T10:00:00Z",
-    name: "Net Kar Marjı",
-    description: "Net karın satışlara oranı",
-    locale: Locale.Tr,
-    isRealtime: false
+    "id": 112,
+    "format": "percentage",
+    "currency": "TRY",
+    "slug": "gross-margin",
+    "createdAt": "2025-04-16T07:50:52.245181Z",
+    "updatedAt": "2025-04-16T07:50:52.245181Z",
+    "name": "Brüt Kâr Marjı",
+    "description": "Satışların maliyetinin gelirden çıkarılmasıyla brüt kâr bulunur. Brüt kârın satışlara oranı brüt kâr marjı olarak isimlendirilir.",
+    "locale": "tr",
+    "isRealtime": false
   }
 ];
 
-const mockFinancialSheetsResponse: HistoricalFinancialSheets = {
+const mockFinancialSheetsResponse = {
   sheets: [
     {
-      period: "2024-Q1",
+      period: "2024-1",
       items: [
         {
           description: "Satış Gelirleri",
@@ -153,6 +139,7 @@ describe("FinancialRatios", () => {
         expect(equal(firstRatio.currency, Currency.TRY));
         expect(typeof firstRatio.format).toBe("string");
         expect(typeof firstRatio.name).toBe("string");
+        expect(typeof firstRatio.slug).toBe("string");
 
         expect(firstRatio.items).not.toBeEmpty();
         const firstItem = firstRatio.items[0];
@@ -241,170 +228,243 @@ describe("FinancialRatios", () => {
     });
   });
 
-  describe("Mock Tests", () => {
+  describe("Mock Tests (Broker-style)", () => {
+    let client: FinancialClient;
+    let cli: { request: jest.Mock };
+  
     beforeEach(() => {
-      jest.clearAllMocks();
+      cli = { request: jest.fn() };
+  
+      const config = (global as any).testSuite.config as LaplaceConfiguration;
+      const logger: Logger = {
+        info: jest.fn(),
+        error: jest.fn(),
+        warn: jest.fn(),
+        debug: jest.fn(),
+      } as unknown as Logger;
+  
+      client = new FinancialClient(config, logger, cli as any);
     });
-
+  
     describe("getFinancialRatioComparison", () => {
-      test("should return ratio comparison with mock data", async () => {
-        jest.spyOn(financialClient, 'getFinancialRatioComparison').mockResolvedValue(mockRatioComparisonResponse);
-
-        const resp = await financialClient.getFinancialRatioComparison(
+      test("calls correct endpoint/query and matches raw response", async () => {
+        cli.request.mockResolvedValueOnce({ data: mockRatioComparisonResponse });
+  
+        const resp = await client.getFinancialRatioComparison(
           "TUPRS",
           Region.Tr,
           RatioComparisonPeerType.Sector
         );
-
+  
+        expect(cli.request).toHaveBeenCalledTimes(1);
+        const call = cli.request.mock.calls[0][0];
+  
+        expect(call.method).toBe("GET");
+        expect(typeof call.url).toBe("string");
+        expect(call.url).toContain("/api/v2/stock/financial-ratio-comparison");
+        expect(call.url).toContain("symbol=TUPRS");
+        expect(call.url).toContain("region=tr");
+        expect(call.url).toContain("peerType=sector");
+  
         expect(resp).toHaveLength(1);
-        
-        const comparison = resp[0];
-        expect(comparison.metricName).toBe("Net Kar Marjı");
-        expect(comparison.normalizedValue).toBe(0.85);
-        expect(comparison.data).toHaveLength(2);
-
-        const companyData = comparison.data[0];
-        expect(companyData.slug).toBe("TUPRS");
-        expect(companyData.value).toBe(12.5);
-        expect(companyData.average).toBe(8.2);
-
-        const sectorData = comparison.data[1];
-        expect(sectorData.slug).toBe("SECTOR_AVERAGE");
-        expect(sectorData.value).toBe(7.8);
-        expect(sectorData.average).toBe(8.2);
-
-        expect(financialClient.getFinancialRatioComparison).toHaveBeenCalledWith(
-          "TUPRS",
-          Region.Tr,
-          RatioComparisonPeerType.Sector
-        );
+  
+        const item = resp[0];
+        expect(item.metricName).toBe("pricing");
+        expect(item.normalizedValue).toBe(57.1272139065688);
+  
+        expect(item.data).toHaveLength(1);
+        expect(item.data[0].slug).toBe("F/K");
+        expect(item.data[0].value).toBe(14.9584698641742);
+        expect(item.data[0].average).toBe(-26.1316853855662);
+      });
+  
+      test("bubbles up request error", async () => {
+        cli.request.mockRejectedValueOnce(new Error("Bad request"));
+  
+        await expect(
+          client.getFinancialRatioComparison("TUPRS", Region.Tr, RatioComparisonPeerType.Sector)
+        ).rejects.toThrow("Bad request");
       });
     });
-
+  
     describe("getHistoricalRatios", () => {
-      test("should return historical ratios with mock data", async () => {
-        jest.spyOn(financialClient, 'getHistoricalRatios').mockResolvedValue(mockHistoricalRatiosResponse);
-
-        const resp = await financialClient.getHistoricalRatios(
+      test("calls correct endpoint/query (symbol, region, slugs, locale) and matches raw response", async () => {
+        cli.request.mockResolvedValueOnce({ data: mockHistoricalRatiosResponse });
+  
+        const resp = await client.getHistoricalRatios(
           "TUPRS",
-          [HistoricalRatiosKey.NetMargin],
+          [HistoricalRatiosKey.ReturnOnEquity],
           Region.Tr,
           Locale.Tr
         );
-
+  
+        expect(cli.request).toHaveBeenCalledTimes(1);
+        const call = cli.request.mock.calls[0][0];
+  
+        expect(call.method).toBe("GET");
+        expect(typeof call.url).toBe("string");
+        expect(call.url).toContain("/api/v2/stock/historical-ratios");
+        expect(call.url).toContain("symbol=TUPRS");
+        expect(call.url).toContain("region=tr");
+        expect(call.url).toContain("slugs=roe");
+        expect(call.url).toContain("locale=tr");
+  
         expect(resp).toHaveLength(1);
-        
-        const ratio = resp[0];
-        expect(ratio.slug).toBe(HistoricalRatiosKey.NetMargin);
-        expect(ratio.finalValue).toBe(12.5);
-        expect(ratio.threeYearGrowth).toBe(15.2);
-        expect(ratio.yearGrowth).toBe(5.8);
-        expect(ratio.finalSectorValue).toBe(7.8);
-        expect(ratio.currency).toBe(Currency.TRY);
-        expect(ratio.format).toBe(HistoricalRatiosFormat.PERCENTAGE);
-        expect(ratio.name).toBe("Net Kar Marjı");
-
-        expect(ratio.items).toHaveLength(2);
-        const firstItem = ratio.items[0];
-        expect(firstItem.period).toBe("2024-Q1");
-        expect(firstItem.value).toBe(12.5);
-        expect(firstItem.sectorMean).toBe(7.8);
-
-        expect(financialClient.getHistoricalRatios).toHaveBeenCalledWith(
-          "TUPRS",
-          [HistoricalRatiosKey.NetMargin],
-          Region.Tr,
-          Locale.Tr
-        );
+  
+        const r = resp[0];
+        expect(r.slug).toBe("roe");
+        expect(r.finalValue).toBe(0.080499759559051);
+        expect(r.threeYearGrowth).toBe(-0.922611834325054);
+        expect(r.yearGrowth).toBe(-0.527234781985081);
+        expect(r.finalSectorValue).toBe(0.080499759559051);
+        expect(r.currency).toBe("TRY");
+        expect(r.format).toBe("percentage");
+        expect(r.name).toBe("ROE");
+  
+        expect(r.items).toHaveLength(1);
+        expect(r.items[0].period).toBe("2025-4");
+        expect(r.items[0].value).toBe(0.080499759559051);
+        expect(r.items[0].sectorMean).toBe(0.080499759559051);
+      });
+  
+      test("omits locale query when locale is not provided", async () => {
+        cli.request.mockResolvedValueOnce({ data: mockHistoricalRatiosResponse });
+  
+        await client.getHistoricalRatios("TUPRS", [HistoricalRatiosKey.ReturnOnEquity], Region.Tr);
+  
+        const call = cli.request.mock.calls[0][0];
+        expect(call.url).toContain("/api/v2/stock/historical-ratios");
+        expect(call.url).not.toContain("locale=");
+      });
+  
+      test("bubbles up request error", async () => {
+        cli.request.mockRejectedValueOnce(new Error("Invalid slugs"));
+  
+        await expect(
+          client.getHistoricalRatios("TUPRS", [HistoricalRatiosKey.ReturnOnEquity], Region.Tr, Locale.Tr)
+        ).rejects.toThrow("Invalid slugs");
       });
     });
-
+  
     describe("getHistoricalRatiosDescriptions", () => {
-      test("should return ratio descriptions with mock data", async () => {
-        jest.spyOn(financialClient, 'getHistoricalRatiosDescriptions').mockResolvedValue(mockRatiosDescriptionsResponse);
-
-        const resp = await financialClient.getHistoricalRatiosDescriptions(
-          Locale.Tr,
-          Region.Tr
-        );
-
+      test("calls correct endpoint/query and matches raw response", async () => {
+        cli.request.mockResolvedValueOnce({ data: mockRatiosDescriptionsResponse });
+  
+        const resp = await client.getHistoricalRatiosDescriptions(Locale.Tr, Region.Tr);
+  
+        expect(cli.request).toHaveBeenCalledTimes(1);
+        const call = cli.request.mock.calls[0][0];
+  
+        expect(call.method).toBe("GET");
+        expect(typeof call.url).toBe("string");
+        expect(call.url).toContain("/api/v2/stock/historical-ratios/descriptions");
+        expect(call.url).toContain("locale=tr");
+        expect(call.url).toContain("region=tr");
+  
         expect(resp).toHaveLength(1);
-        
-        const description = resp[0];
-        expect(description.id).toBe(1);
-        expect(description.format).toBe(HistoricalRatiosFormat.PERCENTAGE);
-        expect(description.currency).toBe(Currency.TRY);
-        expect(description.slug).toBe(HistoricalRatiosKey.NetMargin);
-        expect(description.name).toBe("Net Kar Marjı");
-        expect(description.description).toBe("Net karın satışlara oranı");
-        expect(description.locale).toBe(Locale.Tr);
-        expect(description.isRealtime).toBe(false);
-
-        expect(financialClient.getHistoricalRatiosDescriptions).toHaveBeenCalledWith(
-          Locale.Tr,
-          Region.Tr
+  
+        const d = resp[0];
+        expect(d.id).toBe(112);
+        expect(d.format).toBe("percentage");
+        expect(d.currency).toBe("TRY");
+        expect(d.slug).toBe("gross-margin");
+        expect(d.createdAt).toBe("2025-04-16T07:50:52.245181Z");
+        expect(d.updatedAt).toBe("2025-04-16T07:50:52.245181Z");
+        expect(d.name).toBe("Brüt Kâr Marjı");
+        expect(d.description).toBe(
+          "Satışların maliyetinin gelirden çıkarılmasıyla brüt kâr bulunur. Brüt kârın satışlara oranı brüt kâr marjı olarak isimlendirilir."
         );
+        expect(d.locale).toBe("tr");
+        expect(d.isRealtime).toBe(false);
+      });
+  
+      test("bubbles up request error", async () => {
+        cli.request.mockRejectedValueOnce(new Error("Not found"));
+  
+        await expect(
+          client.getHistoricalRatiosDescriptions(Locale.Tr, Region.Tr)
+        ).rejects.toThrow("Not found");
       });
     });
-
+  
     describe("getHistoricalFinancialSheets", () => {
-      test("should return financial sheets with mock data", async () => {
-        jest.spyOn(financialClient, 'getHistoricalFinancialSheets').mockResolvedValue(mockFinancialSheetsResponse);
-
-        const resp = await financialClient.getHistoricalFinancialSheets(
-          "TUPRS",
-          { year: 2024, month: 1, day: 1 },
-          { year: 2024, month: 3, day: 31 },
-          FinancialSheetType.CashFlow,
-          FinancialSheetPeriod.Quarterly,
-          Currency.TRY,
-          Region.Tr
-        );
-
-        expect(resp.sheets).toHaveLength(1);
-        
-        const sheet = resp.sheets[0];
-        expect(sheet.period).toBe("2024-Q1");
-        expect(sheet.items).toHaveLength(2);
-
-        const revenue = sheet.items[0];
-        expect(revenue.description).toBe("Satış Gelirleri");
-        expect(revenue.value).toBe(50000000000);
-        expect(revenue.lineCodeId).toBe(1);
-        expect(revenue.indentLevel).toBe(0);
-
-        const cogs = sheet.items[1];
-        expect(cogs.description).toBe("Satışların Maliyeti");
-        expect(cogs.value).toBe(-40000000000);
-        expect(cogs.lineCodeId).toBe(2);
-        expect(cogs.indentLevel).toBe(0);
-
-        expect(financialClient.getHistoricalFinancialSheets).toHaveBeenCalledWith(
-          "TUPRS",
-          { year: 2024, month: 1, day: 1 },
-          { year: 2024, month: 3, day: 31 },
-          FinancialSheetType.CashFlow,
-          FinancialSheetPeriod.Quarterly,
-          Currency.TRY,
-          Region.Tr
-        );
+      test("throws error locally for balance sheet when period != cumulative (no request)", async () => {
+        await expect(
+          client.getHistoricalFinancialSheets(
+            "TUPRS",
+            { year: 2022, month: 1, day: 1 },
+            { year: 2025, month: 1, day: 1 },
+            FinancialSheetType.BalanceSheet,
+            FinancialSheetPeriod.Annual,
+            Currency.TRY,
+            Region.Tr
+          )
+        ).rejects.toThrow("balance sheet is only available for cumulative period");
+  
+        expect(cli.request).not.toHaveBeenCalled();
       });
-
-      test("should handle balance sheet period error", async () => {
-        jest.spyOn(financialClient, 'getHistoricalFinancialSheets').mockRejectedValue(
-          new Error("Balance sheet is only available for cumulative period")
-        );
-
-        await expect(financialClient.getHistoricalFinancialSheets(
+  
+      test("calls correct endpoint/query and matches raw response", async () => {
+        cli.request.mockResolvedValueOnce({ data: mockFinancialSheetsResponse });
+  
+        const resp = await client.getHistoricalFinancialSheets(
           "TUPRS",
           { year: 2024, month: 1, day: 1 },
           { year: 2024, month: 3, day: 31 },
-          FinancialSheetType.BalanceSheet,
+          FinancialSheetType.CashFlow,
           FinancialSheetPeriod.Quarterly,
           Currency.TRY,
           Region.Tr
-        )).rejects.toThrow("Balance sheet is only available for cumulative period");
+        );
+  
+        expect(cli.request).toHaveBeenCalledTimes(1);
+        const call = cli.request.mock.calls[0][0];
+  
+        expect(call.method).toBe("GET");
+        expect(typeof call.url).toBe("string");
+        expect(call.url).toContain("/api/v3/stock/historical-financial-sheets");
+  
+        expect(call.url).toContain("symbol=TUPRS");
+        expect(call.url).toContain("from=2024-01-01");
+        expect(call.url).toContain("to=2024-03-31");
+        expect(call.url).toContain("sheetType=cashFlowStatement");
+        expect(call.url).toContain("periodType=quarterly");
+        expect(call.url).toContain("currency=TRY");
+        expect(call.url).toContain("region=tr");
+  
+        expect(resp.sheets).toHaveLength(1);
+        expect(resp.sheets[0].period).toBe("2024-1");
+  
+        expect(resp.sheets[0].items).toHaveLength(2);
+  
+        const row0 = resp.sheets[0].items[0];
+        expect(row0.description).toBe("Satış Gelirleri");
+        expect(row0.value).toBe(50000000000);
+        expect(row0.lineCodeId).toBe(1);
+        expect(row0.indentLevel).toBe(0);
+  
+        const row1 = resp.sheets[0].items[1];
+        expect(row1.description).toBe("Satışların Maliyeti");
+        expect(row1.value).toBe(-40000000000);
+        expect(row1.lineCodeId).toBe(2);
+        expect(row1.indentLevel).toBe(0);
+      });
+  
+      test("bubbles up request error", async () => {
+        cli.request.mockRejectedValueOnce(new Error("Invalid parameters"));
+  
+        await expect(
+          client.getHistoricalFinancialSheets(
+            "TUPRS",
+            { year: 2024, month: 1, day: 1 },
+            { year: 2024, month: 3, day: 31 },
+            FinancialSheetType.CashFlow,
+            FinancialSheetPeriod.Quarterly,
+            Currency.TRY,
+            Region.Tr
+          )
+        ).rejects.toThrow("Invalid parameters");
       });
     });
-  });
+  });  
 });
