@@ -27,7 +27,8 @@ export interface Collection {
   id: string;
   title: string;
   description?: string;
-  region?: Region[];
+  region: Region[];
+  locale?: Locale;
   assetClass?: string;
   imageUrl: string;
   avatarUrl: string;
