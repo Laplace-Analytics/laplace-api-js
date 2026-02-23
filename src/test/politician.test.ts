@@ -1,87 +1,69 @@
 import { Logger } from "winston";
 import { LaplaceConfiguration } from "../utilities/configuration";
 import "./client_test_suite";
-import { Holding, Politician, PoliticianClient, PoliticianDetail, TopHolding } from "../client/politician";
+import { PoliticianClient } from "../client/politician";
 
-describe("Politician", () => {
-  let politicianClient: PoliticianClient;
-
-  const mockPoliticians: Politician[] = [
-    {
-      id: 1,
-      politicianName: "John Doe",
-      totalHoldings: 10000,
-      lastUpdated: new Date("2024-01-01")
-    },
-    {
-      id: 2,
-      politicianName: "Jane Smith",
-      totalHoldings: 10000,
-      lastUpdated: new Date("2024-01-02")
-    }
-  ];
-
-  const mockHoldings: Holding[] = [
-    {
-      politicianName: "John Doe",
-      symbol: "AAPL",
-      company: "Apple Inc.",
-      holding: "$500,000",
-      allocation: "50%",
-      lastUpdated: new Date("2024-01-01")
-    },
-    {
-      politicianName: "John Doe",
-      symbol: "GOOGL",
-      company: "Alphabet Inc.",
-      holding: "$500,000",
-      allocation: "50%",
-      lastUpdated: new Date("2024-01-01")
-    }
-  ];
-
-  const mockTopHoldings: TopHolding[] = [
-    {
-      symbol: "AAPL",
-      company: "Apple Inc.",
-      politicians: [
-        {
-          name: "John Doe",
-          holding: "$500,000",
-          allocation: "50%"
-        },
-        {
-          name: "Jane Smith",
-          holding: "$1,000,000",
-          allocation: "40%"
-        }
-      ],
-      count: 2
-    }
-  ];
-
-  const mockPoliticianPortfolio: PoliticianDetail = {
+const mockPoliticians = [
+  {
     id: 1,
-    name: "John Doe",
-    holdings: [
-      {
-        symbol: "AAPL",
-        company: "Apple Inc.",
-        holding: "$500,000",
-        allocation: "50%"
-      },
-      {
-        symbol: "GOOGL",
-        company: "Alphabet Inc.",
-        holding: "$500,000",
-        allocation: "50%"
-      }
-    ],
-    totalHoldings: 1000000,
+    politicianName: "John Doe",
+    totalHoldings: 10000,
     lastUpdated: new Date("2024-01-01")
-  };
+  },
+  {
+    id: 2,
+    politicianName: "Jane Smith",
+    totalHoldings: 20000,
+    lastUpdated: new Date("2024-01-02")
+  }
+];
 
-  beforeAll(async () => {
+const mockHoldings = [
+  {
+    politicianName: "John Doe",
+    symbol: "AAPL",
+    company: "Apple Inc.",
+    holding: "$500,000",
+    allocation: "50%",
+    lastUpdated: new Date("2024-01-01")
+  },
+  {
+    politicianName: "John Doe",
+    symbol: "GOOGL",
+    company: "Alphabet Inc.",
+    holding: "$500,000",
+    allocation: "50%",
+    lastUpdated: new Date("2024-01-01")
+  }
+];
+
+const mockTopHoldings = [
+  {
+    symbol: "AAPL",
+    company: "Apple Inc.",
+    politicians: [
+      { name: "John Doe", holding: "$500,000", allocation: "50%" },
+      { name: "Jane Smith", holding: "$1,000,000", allocation: "40%" }
+    ],
+    count: 2
+  }
+];
+
+const mockPoliticianDetail = {
+  id: 1,
+  name: "John Doe",
+  holdings: [
+    { symbol: "AAPL", company: "Apple Inc.", holding: "$500,000", allocation: "50%" },
+    { symbol: "GOOGL", company: "Alphabet Inc.", holding: "$500,000", allocation: "50%" }
+  ],
+  totalHoldings: 1000000,
+  lastUpdated: new Date("2024-01-01")
+};
+
+describe("Politician Client", () => {
+  let client: PoliticianClient;
+
+  beforeAll(() => {
     const config = (global as any).testSuite.config as LaplaceConfiguration;
     const logger: Logger = {
       info: jest.fn(),
@@ -90,164 +72,171 @@ describe("Politician", () => {
       debug: jest.fn(),
     } as unknown as Logger;
 
-    politicianClient = new PoliticianClient(config, logger);
+    client = new PoliticianClient(config, logger);
   });
 
   describe("Integration Tests", () => {
     describe("getAllPolitician", () => {
-      it("should fetch all politicians", async () => {
-        const politicians = await politicianClient.getAllPolitician();
-        expect(Array.isArray(politicians)).toBe(true);
-        if (politicians.length > 0) {
-          expect(politicians[0]).toHaveProperty("id");
-          expect(politicians[0]).toHaveProperty("politicianName");
-          expect(politicians[0]).toHaveProperty("totalHoldings");
-          expect(politicians[0]).toHaveProperty("lastUpdated");
+      test("should return all politicians", async () => {
+        const resp = await client.getAllPolitician();
+
+        expect(Array.isArray(resp)).toBe(true);
+
+        if (resp.length > 0) {
+          const first = resp[0];
+          expect(typeof first.id).toBe("number");
+          expect(typeof first.politicianName).toBe("string");
+          expect(typeof first.totalHoldings).toBe("number");
+          expect(first.lastUpdated).toBeDefined();
         }
       });
     });
 
     describe("getPoliticianHoldingBySymbol", () => {
-      it("should fetch holdings for a specific symbol", async () => {
-        const symbol = "AAPL";
-        const holdings = await politicianClient.getPoliticianHoldingBySymbol(symbol);
-        expect(Array.isArray(holdings)).toBe(true);
-        if (holdings.length > 0) {
-          expect(holdings[0]).toHaveProperty("politicianName");
-          expect(holdings[0]).toHaveProperty("symbol", symbol);
-          expect(holdings[0]).toHaveProperty("company");
-          expect(holdings[0]).toHaveProperty("holding");
-          expect(holdings[0]).toHaveProperty("allocation");
+      test("should return holdings for a specific symbol", async () => {
+        const resp = await client.getPoliticianHoldingBySymbol("AAPL");
+
+        expect(Array.isArray(resp)).toBe(true);
+
+        if (resp.length > 0) {
+          const first = resp[0];
+          expect(typeof first.politicianName).toBe("string");
+          expect(typeof first.symbol).toBe("string");
+          expect(typeof first.company).toBe("string");
+          expect(typeof first.holding).toBe("string");
+          expect(typeof first.allocation).toBe("string");
         }
       });
     });
 
     describe("getAllTopHoldings", () => {
-      it("should fetch all top holdings", async () => {
-        const topHoldings = await politicianClient.getAllTopHoldings();
-        expect(Array.isArray(topHoldings)).toBe(true);
-        if (topHoldings.length > 0) {
-          expect(topHoldings[0]).toHaveProperty("symbol");
-          expect(topHoldings[0]).toHaveProperty("company");
-          expect(topHoldings[0]).toHaveProperty("politicians");
-          expect(topHoldings[0]).toHaveProperty("count");
-          if (topHoldings[0].politicians.length > 0) {
-            expect(topHoldings[0].politicians[0]).toHaveProperty("name");
-            expect(topHoldings[0].politicians[0]).toHaveProperty("holding");
-            expect(topHoldings[0].politicians[0]).toHaveProperty("allocation");
+      test("should return all top holdings", async () => {
+        const resp = await client.getAllTopHoldings();
+
+        expect(Array.isArray(resp)).toBe(true);
+
+        if (resp.length > 0) {
+          const first = resp[0];
+          expect(typeof first.symbol).toBe("string");
+          expect(typeof first.company).toBe("string");
+          expect(typeof first.count).toBe("number");
+          expect(Array.isArray(first.politicians)).toBe(true);
+
+          if (first.politicians.length > 0) {
+            const politician = first.politicians[0];
+            expect(typeof politician.name).toBe("string");
+            expect(typeof politician.holding).toBe("string");
+            expect(typeof politician.allocation).toBe("string");
           }
         }
       });
     });
 
-    describe("getPoliticianById", () => {
-      it("should fetch politician detail by ID", async () => {
-        const portfolio = await politicianClient.getPoliticianDetail(1);
-        expect(portfolio).toHaveProperty("id");
-        expect(portfolio).toHaveProperty("name");
-        expect(portfolio).toHaveProperty("holdings");
-        expect(portfolio).toHaveProperty("totalHoldings");
-        expect(portfolio).toHaveProperty("lastUpdated");
-        if (portfolio.holdings.length > 0) {
-          expect(portfolio.holdings[0]).toHaveProperty("symbol");
-          expect(portfolio.holdings[0]).toHaveProperty("company");
-          expect(portfolio.holdings[0]).toHaveProperty("holding");
-          expect(portfolio.holdings[0]).toHaveProperty("allocation");
+    describe("getPoliticianDetail", () => {
+      test("should return politician detail by ID", async () => {
+        const resp = await client.getPoliticianDetail(1);
+
+        expect(resp).toBeDefined();
+        expect(typeof resp.id).toBe("number");
+        expect(typeof resp.name).toBe("string");
+        expect(typeof resp.totalHoldings).toBe("number");
+        expect(resp.lastUpdated).toBeDefined();
+        expect(Array.isArray(resp.holdings)).toBe(true);
+
+        if (resp.holdings.length > 0) {
+          const first = resp.holdings[0];
+          expect(typeof first.symbol).toBe("string");
+          expect(typeof first.company).toBe("string");
+          expect(typeof first.holding).toBe("string");
+          expect(typeof first.allocation).toBe("string");
         }
       });
     });
   });
 
-  describe("Mock Tests", () => {
+  describe("Mock Tests (Data Injection)", () => {
+    let client: PoliticianClient;
+    let cli: { request: jest.Mock };
+
     beforeEach(() => {
-      jest.clearAllMocks();
+      cli = { request: jest.fn() };
+
+      const config = (global as any).testSuite.config as LaplaceConfiguration;
+      const logger: Logger = {
+        info: jest.fn(),
+        error: jest.fn(),
+        warn: jest.fn(),
+        debug: jest.fn(),
+      } as unknown as Logger;
+
+      client = new PoliticianClient(config, logger, cli as any);
     });
 
-    describe("getAllPolitician", () => {
-      it("should return all politicians successfully", async () => {
-        jest.spyOn(politicianClient, "getAllPolitician").mockResolvedValue(mockPoliticians);
+    test("getAllPolitician: calls correct endpoint and matches raw response", async () => {
+      cli.request.mockResolvedValueOnce({ data: mockPoliticians });
 
-        const result = await politicianClient.getAllPolitician();
+      const resp = await client.getAllPolitician();
 
-        expect(result).toEqual(mockPoliticians);
-        expect(result).toHaveLength(2);
-        expect(result[0].politicianName).toBe("John Doe");
-        expect(result[1].politicianName).toBe("Jane Smith");
-      });
+      expect(cli.request).toHaveBeenCalledTimes(1);
+      const call = cli.request.mock.calls[0][0];
 
-      it("should handle errors when fetching politicians", async () => {
-        jest.spyOn(politicianClient, "getAllPolitician").mockRejectedValue(new Error("Failed to fetch politicians"));
+      expect(call.method).toBe("GET");
+      expect(call.url).toBe("/api/v1/politician");
+      expect(call.params).toBeUndefined();
 
-        await expect(politicianClient.getAllPolitician()).rejects.toThrow("Failed to fetch politicians");
-      });
+      expect(resp).toEqual(mockPoliticians);
     });
 
-    describe("getPoliticianHoldingBySymbol", () => {
-      it("should return holdings for a symbol successfully", async () => {
-        jest.spyOn(politicianClient, "getPoliticianHoldingBySymbol").mockResolvedValue(mockHoldings);
+    test("getPoliticianHoldingBySymbol: calls correct endpoint and matches raw response", async () => {
+      cli.request.mockResolvedValueOnce({ data: mockHoldings });
 
-        const result = await politicianClient.getPoliticianHoldingBySymbol("AAPL");
+      const resp = await client.getPoliticianHoldingBySymbol("AAPL");
 
-        expect(result).toEqual(mockHoldings);
-        expect(result).toHaveLength(2);
-        expect(result[0].symbol).toBe("AAPL");
-        expect(result[1].symbol).toBe("GOOGL");
-      });
+      expect(cli.request).toHaveBeenCalledTimes(1);
+      const call = cli.request.mock.calls[0][0];
 
-      it("should handle errors when fetching holdings", async () => {
-        jest.spyOn(politicianClient, "getPoliticianHoldingBySymbol").mockRejectedValue(new Error("Failed to fetch holdings"));
+      expect(call.method).toBe("GET");
+      expect(call.url).toBe("/api/v1/holding/AAPL");
+      expect(call.params).toBeUndefined();
 
-        await expect(politicianClient.getPoliticianHoldingBySymbol("INVALID")).rejects.toThrow("Failed to fetch holdings");
-      });
-
-      it("should handle empty holdings", async () => {
-        jest.spyOn(politicianClient, "getPoliticianHoldingBySymbol").mockResolvedValue([]);
-
-        const result = await politicianClient.getPoliticianHoldingBySymbol("NONEXISTENT");
-
-        expect(result).toEqual([]);
-        expect(result).toHaveLength(0);
-      });
+      expect(resp).toEqual(mockHoldings);
     });
 
-    describe("getAllTopHoldings", () => {
-      it("should return top holdings successfully", async () => {
-        jest.spyOn(politicianClient, "getAllTopHoldings").mockResolvedValue(mockTopHoldings);
+    test("getAllTopHoldings: calls correct endpoint and matches raw response", async () => {
+      cli.request.mockResolvedValueOnce({ data: mockTopHoldings });
 
-        const result = await politicianClient.getAllTopHoldings();
+      const resp = await client.getAllTopHoldings();
 
-        expect(result).toEqual(mockTopHoldings);
-        expect(result).toHaveLength(1);
-        expect(result[0].symbol).toBe("AAPL");
-        expect(result[0].politicians).toHaveLength(2);
-        expect(result[0].count).toBe(2);
-      });
+      expect(cli.request).toHaveBeenCalledTimes(1);
+      const call = cli.request.mock.calls[0][0];
 
-      it("should handle errors when fetching top holdings", async () => {
-        jest.spyOn(politicianClient, "getAllTopHoldings").mockRejectedValue(new Error("Failed to fetch top holdings"));
+      expect(call.method).toBe("GET");
+      expect(call.url).toBe("/api/v1/top-holding");
+      expect(call.params).toBeUndefined();
 
-        await expect(politicianClient.getAllTopHoldings()).rejects.toThrow("Failed to fetch top holdings");
-      });
+      expect(resp).toEqual(mockTopHoldings);
     });
 
-    describe("getPoliticianDetail", () => {
-      it("should return politician by ID successfully", async () => {
-        jest.spyOn(politicianClient, "getPoliticianDetail").mockResolvedValue(mockPoliticianPortfolio);
+    test("getPoliticianDetail: calls correct endpoint and matches raw response", async () => {
+      cli.request.mockResolvedValueOnce({ data: mockPoliticianDetail });
 
-        const result = await politicianClient.getPoliticianDetail(1);
+      const resp = await client.getPoliticianDetail(1);
 
-        expect(result).toEqual(mockPoliticianPortfolio);
-        expect(result.id).toBe(1);
-        expect(result.name).toBe("John Doe");
-        expect(result.holdings).toHaveLength(2);
-        expect(result.totalHoldings).toBe(1000000);
-      });
+      expect(cli.request).toHaveBeenCalledTimes(1);
+      const call = cli.request.mock.calls[0][0];
 
-      it("should handle errors when fetching politician by ID", async () => {
-        jest.spyOn(politicianClient, "getPoliticianDetail").mockRejectedValue(new Error("Failed to fetch politician"));
+      expect(call.method).toBe("GET");
+      expect(call.url).toBe("/api/v1/politician/1");
+      expect(call.params).toBeUndefined();
 
-        await expect(politicianClient.getPoliticianDetail(999)).rejects.toThrow("Failed to fetch politician");
-      });
+      expect(resp).toEqual(mockPoliticianDetail);
+    });
+
+    test("bubbles up request error", async () => {
+      cli.request.mockRejectedValueOnce(new Error("API Error"));
+
+      await expect(client.getAllPolitician()).rejects.toThrow("API Error");
+      expect(cli.request).toHaveBeenCalledTimes(1);
     });
   });
 });
