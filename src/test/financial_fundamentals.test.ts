@@ -2,77 +2,59 @@ import { Logger } from 'winston';
 import { LaplaceConfiguration } from '../utilities/configuration';
 import { 
   FinancialFundamentalsClient, 
-  TopMoverDirection,
-  StockDividend,
-  StockStats,
-  TopMover
+  TopMoverDirection
 } from '../client/financial_fundamentals';
 import './client_test_suite';
 import { Region } from '../client/collections';
 import { AssetType, AssetClass } from '../client/stocks';
 
-const mockDividendsResponse: StockDividend[] = [
+const mockDividendsResponse = [
   {
-    date: "2024-03-14T10:00:00Z",
-    netAmount: 8.75,
-    netRatio: 0.0875,
-    grossAmount: 10.0,
-    grossRatio: 0.10,
-    priceThen: 425.5,
-    stoppageRatio: 0.15,
-    stoppageAmount: 1.25
-  },
-  {
-    date: "2023-03-15T10:00:00Z",
-    netAmount: 7.0,
-    netRatio: 0.07,
-    grossAmount: 8.0,
-    grossRatio: 0.08,
-    priceThen: 380.0,
-    stoppageRatio: 0.15,
-    stoppageAmount: 1.0
+    "date": "2019-12-18T06:16:00Z",
+    "currency": "TRY",
+    "netAmount": 0.00007635,
+    "netRatio": 0.000396200399251687,
+    "grossAmount": 0.000509,
+    "grossRatio": 0.00264133599501125,
+    "priceThen": 19.399,
+    "stoppageRatio": 0.85,
+    "stoppageAmount": 0.00043265
   }
 ];
 
-const mockStockStatsResponse: StockStats[] = [
+const mockStockStatsResponse = [
   {
-    symbol: "TUPRS",
-    previousClose: 425.5,
-    marketCap: 106375000000,
-    peRatio: 5.8,
-    pbRatio: 2.1,
-    yearLow: 320.5,
-    yearHigh: 450.2,
-    weeklyReturn: 0.025,
-    monthlyReturn: 0.058,
-    "3MonthReturn": 0.125,
-    ytdReturn: 0.15,
-    yearlyReturn: 0.45,
-    "3YearReturn": 1.25,
-    "5YearReturn": 2.85,
-    latestPrice: 428.5,
-    dailyChange: 0.007,
-    dayLow: 424.0,
-    dayHigh: 429.5,
-    upperPriceLimit: 468.05,
-    lowerPriceLimit: 382.95,
-    dayOpen: 426.0,
-    eps: 73.45
+    "previousClose": 307,
+    "ytdReturn": 0.339439655172414,
+    "yearlyReturn": 2.6855575955102,
+    "marketCap": 1425000000000,
+    "peRatio": 60.2794409292471,
+    "pbRatio": 7.32754994352451,
+    "yearLow": 80.56935,
+    "yearHigh": 339.25,
+    "3YearReturn": 4.65564820832651,
+    "5YearReturn": 17.2118318670087,
+    "3MonthReturn": 0.682320503304819,
+    "monthlyReturn": -0.0792592592592593,
+    "weeklyReturn": 0.0375626043405676,
+    "symbol": "ASELS",
+    "latestPrice": 310.75,
+    "dailyChange": 0.012214983713355,
+    "dayHigh": 314.75,
+    "dayLow": 306,
+    "lowerPriceLimit": 276.5,
+    "upperPriceLimit": 337.5,
+    "dayOpen": 307.25,
+    "eps": 4.89223038095817
   }
 ];
 
-const mockTopMoversResponse: TopMover[] = [
+const mockTopMoversResponse = [
   {
-    symbol: "TUPRS",
-    change: 5.8,
-    assetClass: AssetClass.Equity,
-    assetType: AssetType.Stock
-  },
-  {
-    symbol: "SASA",
-    change: 4.2,
-    assetClass: AssetClass.Equity,
-    assetType: AssetType.Stock
+    "symbol": "ISKPL",
+    "assetClass": "equity",
+    "assetType": "stock",
+    "change": 10
   }
 ];
 
@@ -100,7 +82,8 @@ describe('FinancialFundamentals', () => {
       expect(typeof firstDividend.date).toBe("string");
       expect(() => new Date(firstDividend.date)).not.toThrow();
       expect(new Date(firstDividend.date).getTime()).not.toBeNaN();
-      
+
+      expect(typeof firstDividend.currency).toBe("string");
       expect(typeof firstDividend.netAmount).toBe("number");
       expect(typeof firstDividend.netRatio).toBe("number");
       expect(typeof firstDividend.grossAmount).toBe("number");
@@ -147,7 +130,7 @@ describe('FinancialFundamentals', () => {
       const pageSize = 20;
       
       async function testTopMovers(direction: TopMoverDirection, shouldBePositive: boolean) {
-        const result = await stockClient.getTopMovers(region, page, pageSize, direction, AssetType.Stock, AssetClass.Equity);
+        const result = await stockClient.getTopMovers(region, pageSize, direction, page, AssetType.Stock, AssetClass.Equity);
         
         expect(Array.isArray(result)).toBe(true);
         expect(result.length).toBeGreaterThan(0);
@@ -184,173 +167,160 @@ describe('FinancialFundamentals', () => {
   });
 
   describe("Mock Tests", () => {
+    let client: FinancialFundamentalsClient;
+    let cli: { request: jest.Mock };
+  
     beforeEach(() => {
-      jest.clearAllMocks();
+      cli = { request: jest.fn() };
+  
+      const config = (global as any).testSuite.config as LaplaceConfiguration;
+      const logger: Logger = {
+        info: jest.fn(),
+        error: jest.fn(),
+        warn: jest.fn(),
+        debug: jest.fn(),
+      } as unknown as Logger;
+  
+      client = new FinancialFundamentalsClient(config, logger, cli as any);
     });
-
+  
     describe("getStockDividends", () => {
-      test("should return dividends with mock data", async () => {
-        jest.spyOn(stockClient, 'getStockDividends').mockResolvedValue(mockDividendsResponse);
-
-        const resp = await stockClient.getStockDividends("TUPRS", Region.Tr);
-
-        expect(resp).toHaveLength(2);
-        
-        const firstDividend = resp[0];
-        expect(firstDividend.date).toBe("2024-03-14T10:00:00Z");
-        expect(firstDividend.netAmount).toBe(8.75);
-        expect(firstDividend.netRatio).toBe(0.0875);
-        expect(firstDividend.grossAmount).toBe(10.0);
-        expect(firstDividend.grossRatio).toBe(0.10);
-        expect(firstDividend.priceThen).toBe(425.5);
-        expect(firstDividend.stoppageRatio).toBe(0.15);
-        expect(firstDividend.stoppageAmount).toBe(1.25);
-
-        expect(stockClient.getStockDividends).toHaveBeenCalledWith("TUPRS", Region.Tr);
+      test("calls correct endpoint/params and matches raw response", async () => {
+        cli.request.mockResolvedValueOnce({ data: mockDividendsResponse });
+  
+        const resp = await client.getStockDividends("TUPRS", Region.Tr);
+  
+        expect(cli.request).toHaveBeenCalledTimes(1);
+        const call = cli.request.mock.calls[0][0];
+  
+        expect(call.method).toBe("GET");
+        expect(call.url).toBe("/api/v2/stock/dividends");
+        expect(call.params).toEqual({ symbol: "TUPRS", region: Region.Tr });
+  
+        expect(resp).toHaveLength(1);
+        const d = resp[0];
+  
+        expect(d.date).toBe("2019-12-18T06:16:00Z");
+        expect(d.currency).toBe("TRY");
+        expect(d.netAmount).toBe(0.00007635);
+        expect(d.netRatio).toBe(0.000396200399251687);
+        expect(d.grossAmount).toBe(0.000509);
+        expect(d.grossRatio).toBe(0.00264133599501125);
+        expect(d.priceThen).toBe(19.399);
+        expect(d.stoppageRatio).toBe(0.85);
+        expect(d.stoppageAmount).toBe(0.00043265);
       });
-
-      test("should handle empty dividends", async () => {
-        jest.spyOn(stockClient, 'getStockDividends').mockResolvedValue([]);
-
-        const resp = await stockClient.getStockDividends("NO_DIVIDEND_STOCK", Region.Tr);
-        expect(resp).toHaveLength(0);
+  
+      test("bubbles up request error", async () => {
+        cli.request.mockRejectedValueOnce(new Error("Invalid symbol"));
+  
+        await expect(client.getStockDividends("INVALID", Region.Tr)).rejects.toThrow(
+          "Invalid symbol"
+        );
       });
     });
-
+  
     describe("getStockStats", () => {
-      test("should return stock stats with mock data", async () => {
-        jest.spyOn(stockClient, 'getStockStats').mockResolvedValue(mockStockStatsResponse);
-
-        const resp = await stockClient.getStockStats(["TUPRS"], Region.Tr);
-
+      test("calls correct endpoint (URLSearchParams) and matches raw response", async () => {
+        cli.request.mockResolvedValueOnce({ data: mockStockStatsResponse });
+  
+        const resp = await client.getStockStats(["ASELS"], Region.Tr);
+  
+        expect(cli.request).toHaveBeenCalledTimes(1);
+        const call = cli.request.mock.calls[0][0];
+  
+        expect(call.method).toBe("GET");
+        expect(typeof call.url).toBe("string");
+        expect(call.url).toContain("/api/v2/stock/stats");
+        expect(call.url).toContain("symbols=ASELS");
+        expect(call.url).toContain("region=tr");
+  
         expect(resp).toHaveLength(1);
-        
-        const stats = resp[0];
-        expect(stats.symbol).toBe("TUPRS");
-        expect(stats.previousClose).toBe(425.5);
-        expect(stats.marketCap).toBe(106375000000);
-        expect(stats.peRatio).toBe(5.8);
-        expect(stats.pbRatio).toBe(2.1);
-        expect(stats.yearLow).toBe(320.5);
-        expect(stats.yearHigh).toBe(450.2);
-        expect(stats.weeklyReturn).toBe(0.025);
-        expect(stats.monthlyReturn).toBe(0.058);
-        expect(stats["3MonthReturn"]).toBe(0.125);
-        expect(stats.ytdReturn).toBe(0.15);
-        expect(stats.yearlyReturn).toBe(0.45);
-        expect(stats["3YearReturn"]).toBe(1.25);
-        expect(stats["5YearReturn"]).toBe(2.85);
-        expect(stats.latestPrice).toBe(428.5);
-        expect(stats.dailyChange).toBe(0.007);
-        expect(stats.dayLow).toBe(424.0);
-        expect(stats.dayHigh).toBe(429.5);
-        expect(stats.upperPriceLimit).toBe(468.05);
-        expect(stats.lowerPriceLimit).toBe(382.95);
-        expect(stats.dayOpen).toBe(426.0);
-        expect(stats.eps).toBe(73.45);
-
-        expect(stockClient.getStockStats).toHaveBeenCalledWith(["TUPRS"], Region.Tr);
+        const s = resp[0];
+  
+        expect(s.symbol).toBe("ASELS");
+  
+        expect(s.previousClose).toBe(307);
+        expect(s.ytdReturn).toBe(0.339439655172414);
+        expect(s.yearlyReturn).toBe(2.6855575955102);
+  
+        expect(s.marketCap).toBe(1425000000000);
+        expect(s.peRatio).toBe(60.2794409292471);
+        expect(s.pbRatio).toBe(7.32754994352451);
+  
+        expect(s.yearLow).toBe(80.56935);
+        expect(s.yearHigh).toBe(339.25);
+  
+        expect(s["3YearReturn"]).toBe(4.65564820832651);
+        expect(s["5YearReturn"]).toBe(17.2118318670087);
+        expect(s["3MonthReturn"]).toBe(0.682320503304819);
+  
+        expect(s.monthlyReturn).toBe(-0.0792592592592593);
+        expect(s.weeklyReturn).toBe(0.0375626043405676);
+  
+        expect(s.latestPrice).toBe(310.75);
+        expect(s.dailyChange).toBe(0.012214983713355);
+  
+        expect(s.dayHigh).toBe(314.75);
+        expect(s.dayLow).toBe(306);
+        expect(s.dayOpen).toBe(307.25);
+  
+        expect(s.lowerPriceLimit).toBe(276.5);
+        expect(s.upperPriceLimit).toBe(337.5);
+  
+        expect(s.eps).toBe(4.89223038095817);
       });
-
-      test("should handle multiple symbols", async () => {
-        const multipleStatsResponse = [
-          mockStockStatsResponse[0],
-          { ...mockStockStatsResponse[0], symbol: "SASA", marketCap: 52000000000 }
-        ];
-        jest.spyOn(stockClient, 'getStockStats').mockResolvedValue(multipleStatsResponse);
-
-        const resp = await stockClient.getStockStats(["TUPRS", "SASA"], Region.Tr);
-        expect(resp).toHaveLength(2);
-        expect(resp[0].symbol).toBe("TUPRS");
-        expect(resp[1].symbol).toBe("SASA");
+  
+      test("bubbles up request error", async () => {
+        cli.request.mockRejectedValueOnce(new Error("Invalid symbols"));
+  
+        await expect(client.getStockStats([""], Region.Tr)).rejects.toThrow("Invalid symbols");
       });
     });
-
+  
     describe("getTopMovers", () => {
-      test("should return gainers with mock data", async () => {
-        jest.spyOn(stockClient, 'getTopMovers').mockResolvedValue(mockTopMoversResponse);
-
-        const resp = await stockClient.getTopMovers(
+      test("calls correct endpoint (URLSearchParams) and matches raw response", async () => {
+        cli.request.mockResolvedValueOnce({ data: mockTopMoversResponse });
+  
+        const resp = await client.getTopMovers(
           Region.Tr,
-          0,
           10,
           TopMoverDirection.Gainers,
-          AssetType.Stock,
-          AssetClass.Equity
-        );
-
-        expect(resp).toHaveLength(2);
-        
-        const firstMover = resp[0];
-        expect(firstMover.symbol).toBe("TUPRS");
-        expect(firstMover.change).toBe(5.8);
-        expect(firstMover.assetClass).toBe(AssetClass.Equity);
-        expect(firstMover.assetType).toBe(AssetType.Stock);
-
-        expect(resp.every(mover => mover.change > 0)).toBe(true);
-
-        expect(stockClient.getTopMovers).toHaveBeenCalledWith(
-          Region.Tr,
           0,
-          10,
-          TopMoverDirection.Gainers,
           AssetType.Stock,
           AssetClass.Equity
         );
-      });
-
-      test("should return losers with mock data", async () => {
-        const losersResponse = mockTopMoversResponse.map(mover => ({
-          ...mover,
-          change: -Math.abs(mover.change)
-        }));
-        jest.spyOn(stockClient, 'getTopMovers').mockResolvedValue(losersResponse);
-
-        const resp = await stockClient.getTopMovers(
-          Region.Tr,
-          0,
-          10,
-          TopMoverDirection.Losers,
-          AssetType.Stock,
-          AssetClass.Equity
-        );
-
-        expect(resp.every(mover => mover.change < 0)).toBe(true);
-
-        expect(stockClient.getTopMovers).toHaveBeenCalledWith(
-          Region.Tr,
-          0,
-          10,
-          TopMoverDirection.Losers,
-          AssetType.Stock,
-          AssetClass.Equity
-        );
-      });
-
-      test("should handle pagination", async () => {
-        jest.spyOn(stockClient, 'getTopMovers').mockResolvedValue([mockTopMoversResponse[0]]);
-
-        const resp = await stockClient.getTopMovers(
-          Region.Tr,
-          1,
-          1,
-          TopMoverDirection.Gainers,
-          AssetType.Stock,
-          AssetClass.Equity
-        );
-
+  
+        expect(cli.request).toHaveBeenCalledTimes(1);
+        const call = cli.request.mock.calls[0][0];
+  
+        expect(call.method).toBe("GET");
+        expect(typeof call.url).toBe("string");
+        expect(call.url).toContain("/api/v2/stock/top-movers");
+        expect(call.url).toContain("region=tr");
+        expect(call.url).toContain("pageSize=10");
+        expect(call.url).toContain("direction=gainers");
+        expect(call.url).toContain("assetType=stock");
+        expect(call.url).toContain("assetClass=equity");
+        expect(call.url).toContain("page=0");
+  
         expect(resp).toHaveLength(1);
-        expect(resp[0].symbol).toBe("TUPRS");
-
-        expect(stockClient.getTopMovers).toHaveBeenCalledWith(
-          Region.Tr,
-          1,
-          1,
-          TopMoverDirection.Gainers,
-          AssetType.Stock,
-          AssetClass.Equity
-        );
+        const m = resp[0];
+  
+        expect(m.symbol).toBe("ISKPL");
+        expect(m.change).toBe(10);
+        expect(m.assetType).toBe("stock");
+        expect(m.assetClass).toBe("equity");
+      });
+  
+      test("bubbles up request error", async () => {
+        cli.request.mockRejectedValueOnce(new Error("Bad request"));
+  
+        await expect(
+          client.getTopMovers(Region.Tr, 10, TopMoverDirection.Gainers)
+        ).rejects.toThrow("Bad request");
       });
     });
   });
+  
 });
