@@ -101,11 +101,16 @@ export interface FundHistoricalPrice {
 }
 
 export class FundsClient extends Client {
-  async getFunds(region: Region, page: number, pageSize: number) {
+  async getFunds(region: Region, pageSize: number, page?: number) {
+    const params = {
+      region,
+      pageSize,
+      ...(page != null && { page })
+    }
     return this.sendRequest<Fund[]>({
       method: "GET",
       url: `/api/v1/fund`,
-      params: { region, page, pageSize },
+      params: params,
     });
   }
 
