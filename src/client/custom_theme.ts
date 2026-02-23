@@ -35,21 +35,25 @@ export interface UpdateCustomThemeParams {
 }
 
 export class CustomThemeClient extends Client {
-  private async getAllCollectionsPrivate(collectionType: CollectionType, locale: Locale): Promise<Collection[]> {
+  private async getAllCollectionsPrivate(collectionType: CollectionType, locale: Locale, region?: Region): Promise<Collection[]> {
+    const params = {
+      locale,
+      ...(region && { region }),
+    };
+
     return this.sendRequest<Collection[]>({
       method: 'GET',
       url: `/api/v1/${collectionType}`,
-      params: { locale },
+      params: params,
     });
   }
 
   private async getCollectionDetailPrivate(id: string, collectionType: CollectionType, locale: Locale, sortBy: SortBy | null): Promise<CollectionDetail> {
-    var params = {}
-    if (sortBy) {
-      params = { locale, sortBy };
-    } else {  
-      params = { locale };
-    }
+    const params = {
+      locale,
+      ...(sortBy && { sortBy }),
+    };
+    
     return this.sendRequest<CollectionDetail>({
       method: 'GET',
       url: `/api/v1/${collectionType}/${id}`,
