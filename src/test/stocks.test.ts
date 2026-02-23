@@ -17,7 +17,7 @@ import "./client_test_suite";
 import { Region, Locale } from "../client/collections";
 import { PaginatedResponse } from "../client/capital_increase";
 
-const mockStocksResponse: Stock[] = [
+const mockStocksResponse = [
   {
     id: "61dd0d6f0ec2114146342fd0",
     assetType: AssetType.Stock,
@@ -26,18 +26,6 @@ const mockStocksResponse: Stock[] = [
     sectorId: "sector123",
     industryId: "industry456",
     updatedDate: "2024-03-14T10:00:00Z",
-    dailyChange: 2.5,
-    active: true
-  },
-  {
-    id: "61dd0d6f0ec2114146342fd1",
-    assetType: AssetType.Stock,
-    name: "Garanti Bankası",
-    symbol: "GARAN",
-    sectorId: "sector789",
-    industryId: "industry101",
-    updatedDate: "2024-03-14T10:00:00Z",
-    dailyChange: -1.2,
     active: true
   }
 ];
@@ -98,15 +86,6 @@ const mockStockRestrictionsResponse = [
     symbol: "TUPRS",
     startDate: "2024-03-15T00:00:00Z",
     endDate: "2024-03-20T00:00:00Z",
-    market: Market.Yildiz
-  },
-  {
-    id: 2,
-    title: "Temettü Ödemesi",
-    description: "Şirket temettü ödemesi yapacaktır",
-    symbol: "TUPRS",
-    startDate: "2024-04-01T00:00:00Z",
-    endDate: "2024-04-01T00:00:00Z",
     market: Market.Yildiz
   }
 ];
@@ -179,8 +158,6 @@ const mockSingleMarketState: MarketState = {
   lastTimestamp: "2024-03-14T10:00:00Z",
   stockSymbol: "TUPRS"
 };
-
-const mockChartImageBlob = new Blob(['mock chart image data'], { type: 'image/png' });
 
 describe("Stocks Client", () => {
   let client: StockClient;
@@ -260,9 +237,13 @@ describe("Stocks Client", () => {
 
         expect(resp).toBeDefined();
         expect(resp.symbol).toBe("TUPRS");
+        expect(typeof resp.id).toBe("string");
         expect(typeof resp.assetClass).toBe("string");
         expect(typeof resp.description).toBe("string");
+        expect(typeof resp.shortDescription).toBe("string");
         expect(typeof resp.region).toBe("string");
+        expect(typeof resp.localized_description).toBe("object");
+        expect(typeof resp.localizedShortDescription).toBe("object");
       });
     });
 
@@ -329,6 +310,18 @@ describe("Stocks Client", () => {
         );
 
         expect(resp).not.toBeEmpty();
+        const firstDataPoint = resp[0];
+        expect(typeof firstDataPoint.d).toBe("number");
+        expect(typeof firstDataPoint.c).toBe("number");
+        expect(typeof firstDataPoint.h).toBe("number");
+        expect(typeof firstDataPoint.l).toBe("number");
+        expect(typeof firstDataPoint.o).toBe("number");
+        expect(typeof firstDataPoint.uc).toBe("number");
+        expect(typeof firstDataPoint.uh).toBe("number");
+        expect(typeof firstDataPoint.ul).toBe("number");
+        expect(typeof firstDataPoint.uo).toBe("number");
+        expect(typeof firstDataPoint.uv).toBe("number");
+        expect(typeof firstDataPoint.v).toBe("number");
       });
     });
 
@@ -356,7 +349,7 @@ describe("Stocks Client", () => {
 
     describe("getAllStockRestrictions", () => {
       test("should return all stock restrictions for region", async () => {
-        const resp = await client.getAllStockRestrictions(Region.Tr);
+        const resp = await client.getAllStockRestrictions();
 
         expect(Array.isArray(resp)).toBe(true);
 
@@ -383,6 +376,13 @@ describe("Stocks Client", () => {
 
         if (resp.rules !== null) {
           expect(Array.isArray(resp.rules)).toBe(true);
+          if (resp.rules.length > 0) {
+            const firstRule = resp.rules[0]
+            expect(firstRule).toBeDefined();
+            expect(typeof firstRule.priceFrom).toBe("number");
+            expect(typeof firstRule.priceTo).toBe("number");
+            expect(typeof firstRule.tickSize).toBe("number");
+          }
         }
       });
     });
@@ -488,7 +488,6 @@ describe("Stocks Client", () => {
         }
       });
     });
-
     describe("getStockChartImage", () => {
       test("should return chart image blob", async () => {
         const resp = await client.getStockChartImage({
@@ -498,377 +497,313 @@ describe("Stocks Client", () => {
         expect(resp).toBeDefined();
         expect(resp).toBeInstanceOf(Blob);
         expect(resp.size).toBeGreaterThan(0);
-      }, 10000);
+      }, 30000);
     });
   });
 
-  describe("Mock Tests", () => {
+  describe("Mock Tests (Data Injection)", () => {
+    let client: StockClient;
+    let cli: { request: jest.Mock };
+  
     beforeEach(() => {
-      jest.clearAllMocks();
+      cli = { request: jest.fn() };
+  
+      const config = (global as any).testSuite.config as LaplaceConfiguration;
+      const logger: Logger = {
+        info: jest.fn(),
+        error: jest.fn(),
+        warn: jest.fn(),
+        debug: jest.fn(),
+      } as unknown as Logger;
+  
+      client = new StockClient(config, logger, cli as any);
+    });
+  
+    test("getAllStocks: calls correct endpoint/params and matches raw response", async () => {
+      cli.request.mockResolvedValueOnce({ data: mockStocksResponse });
+  
+      const resp = await client.getAllStocks(Region.Tr);
+  
+      expect(cli.request).toHaveBeenCalledTimes(1);
+      const call = cli.request.mock.calls[0][0];
+  
+      expect(call.method).toBe("GET");
+      expect(call.url).toBe("/api/v2/stock/all");
+      expect(call.params).toEqual({ region: Region.Tr });
+  
+      // raw match
+      expect(resp).toEqual(mockStocksResponse);
+    });
+  
+    test("getAllStocks: includes page/pageSize when provided (including 0)", async () => {
+      cli.request.mockResolvedValueOnce({ data: mockStocksResponse });
+  
+      await client.getAllStocks(Region.Tr, 0, 0);
+  
+      const call = cli.request.mock.calls[0][0];
+      expect(call.params).toEqual({ region: Region.Tr, page: 0, pageSize: 0 });
+    });
+  
+    test("getStockDetailById: calls correct endpoint/params and matches raw response", async () => {
+      cli.request.mockResolvedValueOnce({ data: mockStockDetailResponse });
+  
+      const resp = await client.getStockDetailById("61dd0d6f0ec2114146342fd0", Locale.Tr);
+  
+      const call = cli.request.mock.calls[0][0];
+      expect(call.method).toBe("GET");
+      expect(call.url).toBe("/api/v1/stock/61dd0d6f0ec2114146342fd0");
+      expect(call.params).toEqual({ locale: Locale.Tr });
+  
+      expect(resp).toEqual(mockStockDetailResponse);
+    });
+  
+    test("getStockDetailBySymbol: calls correct endpoint/params and matches raw response", async () => {
+      cli.request.mockResolvedValueOnce({ data: mockStockDetailResponse });
+  
+      const resp = await client.getStockDetailBySymbol("TUPRS", AssetClass.Equity, Region.Tr, Locale.Tr);
+  
+      const call = cli.request.mock.calls[0][0];
+      expect(call.method).toBe("GET");
+      expect(call.url).toBe("/api/v1/stock/detail");
+      expect(call.params).toEqual({
+        symbol: "TUPRS",
+        asset_class: AssetClass.Equity,
+        region: Region.Tr,
+        locale: Locale.Tr,
+      });
+  
+      expect(resp).toEqual(mockStockDetailResponse);
+    });
+  
+    test("getHistoricalPrices: calls correct endpoint/params and matches raw response", async () => {
+      cli.request.mockResolvedValueOnce({ data: mockHistoricalPricesResponse });
+  
+      const resp = await client.getHistoricalPrices(
+        ["TUPRS"],
+        Region.Tr,
+        [HistoricalPricePeriod.OneDay, HistoricalPricePeriod.OneWeek, HistoricalPricePeriod.OneMonth]
+      );
+  
+      const call = cli.request.mock.calls[0][0];
+      expect(call.method).toBe("GET");
+      expect(call.url).toBe("/api/v1/stock/price");
+      expect(call.params).toEqual({
+        symbols: "TUPRS",
+        region: Region.Tr,
+        keys: "1D,1W,1M",
+      });
+  
+      expect(resp).toEqual(mockHistoricalPricesResponse);
+    });
+  
+    test("getCustomHistoricalPrices: calls correct endpoint/params and matches raw response", async () => {
+      const mockCustom = [{ d: 1, o: 1, h: 1, l: 1, c: 1 }];
+      cli.request.mockResolvedValueOnce({ data: mockCustom });
+  
+      const resp = await client.getCustomHistoricalPrices(
+        "TUPRS",
+        Region.Tr,
+        "2024-01-01",
+        "2024-03-01",
+        HistoricalPriceInterval.OneDay,
+        false,
+        10
+      );
+  
+      const call = cli.request.mock.calls[0][0];
+      expect(call.method).toBe("GET");
+      expect(call.url).toBe("/api/v1/stock/price/interval");
+      expect(call.params).toEqual({
+        stock: "TUPRS",
+        region: Region.Tr,
+        fromDate: "2024-01-01",
+        toDate: "2024-03-01",
+        interval: HistoricalPriceInterval.OneDay,
+        detail: false,
+        numIntervals: 10,
+      });
+  
+      expect(resp).toEqual(mockCustom);
+    });
+  
+    test("getStockRestrictions: calls correct endpoint/params and matches raw response", async () => {
+      cli.request.mockResolvedValueOnce({ data: mockStockRestrictionsResponse });
+  
+      const resp = await client.getStockRestrictions("TUPRS", Region.Tr);
+  
+      const call = cli.request.mock.calls[0][0];
+      expect(call.method).toBe("GET");
+      expect(call.url).toBe("/api/v1/stock/restrictions");
+      expect(call.params).toEqual({ symbol: "TUPRS", region: Region.Tr });
+  
+      expect(resp).toEqual(mockStockRestrictionsResponse);
+    });
+  
+    test("getAllStockRestrictions: calls correct endpoint and matches raw response", async () => {
+      cli.request.mockResolvedValueOnce({ data: mockStockRestrictionsResponse });
+  
+      const resp = await client.getAllStockRestrictions();
+  
+      const call = cli.request.mock.calls[0][0];
+      expect(call.method).toBe("GET");
+      expect(call.url).toBe("/api/v1/stock/restrictions/all");
+      expect(call.params).toBeUndefined();
+  
+      expect(resp).toEqual(mockStockRestrictionsResponse);
+    });
+  
+    test("getTickRules: calls correct endpoint/params and matches raw response", async () => {
+      cli.request.mockResolvedValueOnce({ data: mockTickRulesResponse });
+  
+      const resp = await client.getTickRules("TUPRS", Region.Tr);
+  
+      const call = cli.request.mock.calls[0][0];
+      expect(call.method).toBe("GET");
+      expect(call.url).toBe("/api/v1/stock/rules");
+      expect(call.params).toEqual({ symbol: "TUPRS", region: Region.Tr });
+  
+      expect(resp).toEqual(mockTickRulesResponse);
+    });
+  
+    test("getEarningsTranscripts: calls correct endpoint/params and matches raw response", async () => {
+      cli.request.mockResolvedValueOnce({ data: mockEarningsTranscriptList });
+  
+      const resp = await client.getEarningsTranscripts("AAPL", Region.Us);
+  
+      const call = cli.request.mock.calls[0][0];
+      expect(call.method).toBe("GET");
+      expect(call.url).toBe("/api/v1/earnings/transcripts");
+      expect(call.params).toEqual({ symbol: "AAPL", region: Region.Us });
+  
+      expect(resp).toEqual(mockEarningsTranscriptList);
+    });
+  
+    test("getEarningsTranscript: calls correct endpoint/params and matches raw response", async () => {
+      cli.request.mockResolvedValueOnce({ data: mockEarningsTranscriptDetail });
+  
+      const resp = await client.getEarningsTranscript("AAPL", 2024, 1);
+  
+      const call = cli.request.mock.calls[0][0];
+      expect(call.method).toBe("GET");
+      expect(call.url).toBe("/api/v1/earnings/transcript");
+      expect(call.params).toEqual({ symbol: "AAPL", year: 2024, quarter: 1 });
+  
+      expect(resp).toEqual(mockEarningsTranscriptDetail);
+    });
+  
+    test("getStockStateAll: calls correct endpoint/params and matches raw response", async () => {
+      cli.request.mockResolvedValueOnce({ data: mockPaginatedMarketStates });
+  
+      const resp = await client.getStockStateAll(0, 10, Region.Tr);
+  
+      const call = cli.request.mock.calls[0][0];
+      expect(call.method).toBe("GET");
+      expect(call.url).toBe("/api/v1/state/stock/all");
+      expect(call.params).toEqual({ page: 0, size: 10, region: Region.Tr });
+  
+      expect(resp).toEqual(mockPaginatedMarketStates);
+    });
+  
+    test("getStockState: calls correct endpoint and matches raw response", async () => {
+      cli.request.mockResolvedValueOnce({ data: mockSingleMarketState });
+  
+      const resp = await client.getStockState("TUPRS");
+  
+      const call = cli.request.mock.calls[0][0];
+      expect(call.method).toBe("GET");
+      expect(call.url).toBe("/api/v1/state/stock/TUPRS");
+      expect(call.params).toBeUndefined();
+  
+      expect(resp).toEqual(mockSingleMarketState);
+    });
+  
+    test("getStateAll: calls correct endpoint/params and matches raw response", async () => {
+      cli.request.mockResolvedValueOnce({ data: mockPaginatedMarketStates });
+  
+      const resp = await client.getStateAll(0, 10, Region.Tr);
+  
+      const call = cli.request.mock.calls[0][0];
+      expect(call.method).toBe("GET");
+      expect(call.url).toBe("/api/v1/state/all");
+      expect(call.params).toEqual({ page: 0, size: 10, region: Region.Tr });
+  
+      expect(resp).toEqual(mockPaginatedMarketStates);
+    });
+  
+    test("getState: calls correct endpoint and matches raw response", async () => {
+      cli.request.mockResolvedValueOnce({ data: mockSingleMarketState });
+  
+      const resp = await client.getState("BIST");
+  
+      const call = cli.request.mock.calls[0][0];
+      expect(call.method).toBe("GET");
+      expect(call.url).toBe("/api/v1/state/BIST");
+      expect(call.params).toBeUndefined();
+  
+      expect(resp).toEqual(mockSingleMarketState);
+    });
+  
+    test("bubbles up request error", async () => {
+      cli.request.mockRejectedValueOnce(new Error("API Error"));
+  
+      await expect(client.getAllStocks(Region.Tr)).rejects.toThrow("API Error");
+      expect(cli.request).toHaveBeenCalledTimes(1);
     });
 
-    describe("getAllStocks", () => {
-      test("should handle getAllStocks response correctly with mock data", async () => {
-        jest.spyOn(client, 'getAllStocks').mockResolvedValue(mockStocksResponse);
+    test("getStockChartImage: calls correct endpoint/params and returns Blob", async () => {
+      const mockArrayBuffer = new ArrayBuffer(8);
+      cli.request.mockResolvedValueOnce({ data: mockArrayBuffer });
 
-        const resp = await client.getAllStocks(Region.Tr);
-
-        expect(resp).toHaveLength(2);
-        
-        const firstStock = resp[0];
-        expect(firstStock.id).toBe("61dd0d6f0ec2114146342fd0");
-        expect(firstStock.assetType).toBe(AssetType.Stock);
-        expect(firstStock.name).toBe("Tüpraş");
-        expect(firstStock.symbol).toBe("TUPRS");
-        expect(firstStock.sectorId).toBe("sector123");
-        expect(firstStock.industryId).toBe("industry456");
-        expect(firstStock.updatedDate).toBe("2024-03-14T10:00:00Z");
-        expect(firstStock.dailyChange).toBe(2.5);
-        expect(firstStock.active).toBe(true);
-
-        const secondStock = resp[1];
-        expect(secondStock.id).toBe("61dd0d6f0ec2114146342fd1");
-        expect(secondStock.symbol).toBe("GARAN");
-        expect(secondStock.dailyChange).toBe(-1.2);
-        
-        expect(client.getAllStocks).toHaveBeenCalledWith(Region.Tr);
+      const resp = await client.getStockChartImage({
+        symbol: "TUPRS",
+        region: Region.Tr,
       });
 
-      test("should handle pagination correctly with mock data", async () => {
-        jest.spyOn(client, 'getAllStocks').mockResolvedValue([mockStocksResponse[0]]);
+      expect(cli.request).toHaveBeenCalledTimes(1);
+      const call = cli.request.mock.calls[0][0];
 
-        const resp = await client.getAllStocks(Region.Tr, 1, 0);
+      expect(call.method).toBe("GET");
+      expect(call.url).toBe("/api/v1/stock/chart");
+      expect(call.params).toEqual({ symbol: "TUPRS", region: Region.Tr });
+      expect(call.responseType).toBe("arraybuffer");
 
-        expect(resp).toHaveLength(1);
-        expect(resp[0].symbol).toBe("TUPRS");
-        
-        expect(client.getAllStocks).toHaveBeenCalledWith(Region.Tr, 1, 0);
-      });
-
-      test("should handle API errors correctly", async () => {
-        jest.spyOn(client, 'getAllStocks').mockRejectedValue(new Error("API Error"));
-
-        await expect(client.getAllStocks(Region.Tr)).rejects.toThrow("API Error");
-      });
+      expect(resp).toBeInstanceOf(Blob);
+      expect(resp.type).toBe("image/png");
     });
 
-    describe("getStockDetailById", () => {
-      test("should return stock detail by ID with mock data", async () => {
-        jest.spyOn(client, 'getStockDetailById').mockResolvedValue(mockStockDetailResponse);
+    test("getStockChartImage: includes optional params when provided", async () => {
+      const mockArrayBuffer = new ArrayBuffer(8);
+      cli.request.mockResolvedValueOnce({ data: mockArrayBuffer });
 
-        const resp = await client.getStockDetailById("61dd0d6f0ec2114146342fd0", Locale.Tr);
-
-        expect(resp).toBeDefined();
-        expect(resp.id).toBe("61dd0d6f0ec2114146342fd0");
-        expect(resp.assetType).toBe(AssetType.Stock);
-        expect(resp.assetClass).toBe(AssetClass.Equity);
-        expect(resp.description).toBe("Türkiye'nin en büyük rafineri şirketi");
-        expect(resp.shortDescription).toBe("Rafineri şirketi");
-        expect(resp.region).toBe(Region.Tr);
-        expect(resp.localized_description).toEqual({
-          tr: "Türkiye'nin en büyük rafineri şirketi",
-          en: "Turkey's largest refinery company"
-        });
-        expect(resp.localizedShortDescription).toEqual({
-          tr: "Rafineri şirketi",
-          en: "Refinery company"
-        });
-        expect(resp.markets).toEqual([Market.Yildiz]);
-
-        expect(client.getStockDetailById).toHaveBeenCalledWith("61dd0d6f0ec2114146342fd0", Locale.Tr);
+      await client.getStockChartImage({
+        symbol: "TUPRS",
+        region: Region.Tr,
+        period: HistoricalPricePeriod.OneMonth,
+        resolution: HistoricalPriceInterval.OneDay,
+        indicators: ["RSI", "MACD"],
+        chartType: 1,
       });
 
-      test("should handle API errors for stock detail", async () => {
-        jest.spyOn(client, 'getStockDetailById').mockRejectedValue(new Error("Stock not found"));
-
-        await expect(client.getStockDetailById("invalid_id", Locale.Tr))
-          .rejects.toThrow("Stock not found");
-      });
-    });
-
-    describe("getHistoricalPrices", () => {
-      test("should return historical prices for multiple symbols with mock data", async () => {
-        jest.spyOn(client, 'getHistoricalPrices').mockResolvedValue(mockHistoricalPricesResponse);
-
-        const symbols = ["TUPRS"];
-        const periods = [
-          HistoricalPricePeriod.OneDay,
-          HistoricalPricePeriod.OneWeek,
-          HistoricalPricePeriod.OneMonth
-        ];
-
-        const resp = await client.getHistoricalPrices(symbols, Region.Tr, periods);
-
-        expect(resp).toHaveLength(1);
-        
-        const firstPriceGraph = resp[0];
-        expect(firstPriceGraph.symbol).toBe("TUPRS");
-
-        expect(firstPriceGraph["1D"]).toHaveLength(2);
-        const firstDayPoint = firstPriceGraph["1D"][0];
-        expect(firstDayPoint.d).toBe(1710374400000);
-        expect(firstDayPoint.c).toBe(425.5);
-        expect(firstDayPoint.h).toBe(428.0);
-        expect(firstDayPoint.l).toBe(422.0);
-        expect(firstDayPoint.o).toBe(423.0);
-        expect(firstPriceGraph["1W"]).toHaveLength(2);
-        expect(firstPriceGraph["1M"]).toHaveLength(2);
-
-        expect(client.getHistoricalPrices).toHaveBeenCalledWith(
-          symbols,
-          Region.Tr,
-          periods
-        );
-      });
-
-      test("should handle API errors for historical prices", async () => {
-        jest.spyOn(client, 'getHistoricalPrices').mockRejectedValue(new Error("Failed to fetch historical prices"));
-
-        await expect(client.getHistoricalPrices(
-          ["TUPRS"],
-          Region.Tr,
-          [HistoricalPricePeriod.OneDay]
-        )).rejects.toThrow("Failed to fetch historical prices");
-      });
-    });
-
-    describe("getStockRestrictions", () => {
-      test("should return stock restrictions with mock data", async () => {
-        jest.spyOn(client, 'getStockRestrictions').mockResolvedValue(mockStockRestrictionsResponse);
-
-        const resp = await client.getStockRestrictions("TUPRS", Region.Tr);
-
-        expect(resp).toHaveLength(2);
-        
-        const firstRestriction = resp[0];
-        expect(firstRestriction.id).toBe(1);
-        expect(firstRestriction.title).toBe("Bedelli Sermaye Artırımı");
-        expect(firstRestriction.description).toBe("Şirket bedelli sermaye artırımı yapacaktır");
-        expect(firstRestriction.symbol).toBe("TUPRS");
-        expect(firstRestriction.startDate).toBe("2024-03-15T00:00:00Z");
-        expect(firstRestriction.endDate).toBe("2024-03-20T00:00:00Z");
-        expect(firstRestriction.market).toBe(Market.Yildiz);
-
-        expect(client.getStockRestrictions).toHaveBeenCalledWith("TUPRS", Region.Tr);
-      });
-
-      test("should handle API errors for stock restrictions", async () => {
-        jest.spyOn(client, 'getStockRestrictions').mockRejectedValue(new Error("Failed to fetch restrictions"));
-
-        await expect(client.getStockRestrictions("TUPRS", Region.Tr))
-          .rejects.toThrow("Failed to fetch restrictions");
-      });
-    });
-
-    describe("getTickRules", () => {
-      test("should return tick rules with mock data", async () => {
-        jest.spyOn(client, 'getTickRules').mockResolvedValue(mockTickRulesResponse);
-
-        const resp = await client.getTickRules("TUPRS", Region.Tr);
-
-        expect(resp.basePrice).toBe(425.5);
-        expect(resp.additionalPrice).toBe(0.1);
-        expect(resp.lowerPriceLimit).toBe(382.95);
-        expect(resp.upperPriceLimit).toBe(468.05);
-        expect(resp.rules).toHaveLength(3);
-        
-        const firstRule = resp.rules![0];
-        expect(firstRule.priceFrom).toBe(0);
-        expect(firstRule.priceTo).toBe(20);
-        expect(firstRule.tickSize).toBe(0.01);
-
-        expect(client.getTickRules).toHaveBeenCalledWith("TUPRS", Region.Tr);
-      });
-
-      test("should handle API errors for tick rules", async () => {
-        jest.spyOn(client, 'getTickRules').mockRejectedValue(new Error("Failed to fetch tick rules"));
-
-        await expect(client.getTickRules("TUPRS", Region.Tr))
-          .rejects.toThrow("Failed to fetch tick rules");
-      });
-    });
-
-    describe("getEarningsTranscripts", () => {
-      test("should return earnings transcript list with mock data", async () => {
-        jest.spyOn(client, 'getEarningsTranscripts').mockResolvedValue(mockEarningsTranscriptList);
-
-        const resp = await client.getEarningsTranscripts("AAPL", Region.Us);
-
-        expect(resp).toHaveLength(2);
-        
-        const firstTranscript = resp[0];
-        expect(firstTranscript.symbol).toBe("AAPL");
-        expect(firstTranscript.year).toBe(2024);
-        expect(firstTranscript.quarter).toBe(1);
-        expect(firstTranscript.date).toBe("2024-05-15");
-        expect(firstTranscript.fiscal_year).toBe(2024);
-
-        const secondTranscript = resp[1];
-        expect(secondTranscript.year).toBe(2023);
-        expect(secondTranscript.quarter).toBe(4);
-
-        expect(client.getEarningsTranscripts).toHaveBeenCalledWith(
-          "AAPL",
-          Region.Us
-        );
-      });
-
-      test("should handle API errors for earnings transcripts", async () => {
-        jest.spyOn(client, 'getEarningsTranscripts').mockRejectedValue(new Error("Transcripts not found"));
-
-        await expect(
-          client.getEarningsTranscripts("INVALID", Region.Us)
-        ).rejects.toThrow("Transcripts not found");
-      });
-    });
-
-    describe("getEarningsTranscript", () => {
-      test("should return earnings transcript detail with mock data", async () => {
-        jest.spyOn(client, 'getEarningsTranscript').mockResolvedValue(mockEarningsTranscriptDetail);
-
-        const resp = await client.getEarningsTranscript("AAPL", 2024, 1);
-
-        expect(resp.symbol).toBe("AAPL");
-        expect(resp.year).toBe(2024);
-        expect(resp.quarter).toBe(1);
-        expect(resp.date).toBe("2024-05-15");
-        expect(resp.content).toBe("Q1 2024 earnings call transcript content...");
-        expect(resp.summary).toBe("Strong Q1 performance with 15% revenue growth");
-        expect(resp.has_summary).toBe(true);
-
-        expect(client.getEarningsTranscript).toHaveBeenCalledWith(
-          "AAPL",
-          2024,
-          1
-        );
-      });
-
-      test("should handle API errors for earnings transcript detail", async () => {
-        jest.spyOn(client, 'getEarningsTranscript').mockRejectedValue(new Error("Transcript not found"));
-
-        await expect(
-          client.getEarningsTranscript("AAPL", 2020, 1)
-        ).rejects.toThrow("Transcript not found");
-      });
-    });
-
-    describe("getStockStateAll", () => {
-      test("should return paginated stock states with mock data", async () => {
-        jest.spyOn(client, 'getStockStateAll').mockResolvedValue(mockPaginatedMarketStates);
-
-        const resp = await client.getStockStateAll(0, 10, Region.Tr);
-
-        expect(resp.items).toHaveLength(2);
-        expect(resp.recordCount).toBe(2);
-
-        const firstState = resp.items[0];
-        expect(firstState.id).toBe(1);
-        expect(firstState.marketSymbol).toBe("BIST");
-        expect(firstState.state).toBe("OPEN");
-        expect(firstState.stockSymbol).toBe("TUPRS");
-
-        expect(client.getStockStateAll).toHaveBeenCalledWith(0, 10, Region.Tr);
-      });
-
-      test("should handle API errors for stock state all", async () => {
-        jest.spyOn(client, 'getStockStateAll').mockRejectedValue(new Error("Failed to fetch stock states"));
-
-        await expect(client.getStockStateAll(0, 10, Region.Tr))
-          .rejects.toThrow("Failed to fetch stock states");
-      });
-    });
-
-    describe("getStockState", () => {
-      test("should return single stock state with mock data", async () => {
-        jest.spyOn(client, 'getStockState').mockResolvedValue(mockSingleMarketState);
-
-        const resp = await client.getStockState("TUPRS");
-
-        expect(resp.id).toBe(1);
-        expect(resp.marketSymbol).toBe("BIST");
-        expect(resp.state).toBe("OPEN");
-        expect(resp.lastTimestamp).toBe("2024-03-14T10:00:00Z");
-        expect(resp.stockSymbol).toBe("TUPRS");
-
-        expect(client.getStockState).toHaveBeenCalledWith("TUPRS");
-      });
-
-      test("should handle API errors for single stock state", async () => {
-        jest.spyOn(client, 'getStockState').mockRejectedValue(new Error("Stock state not found"));
-
-        await expect(client.getStockState("INVALID"))
-          .rejects.toThrow("Stock state not found");
+      const call = cli.request.mock.calls[0][0];
+      expect(call.params).toEqual({
+        symbol: "TUPRS",
+        region: Region.Tr,
+        period: HistoricalPricePeriod.OneMonth,
+        resolution: HistoricalPriceInterval.OneDay,
+        indicators: ["RSI", "MACD"],
+        chartType: 1,
       });
     });
 
-    describe("getStateAll", () => {
-      test("should return paginated market states with mock data", async () => {
-        jest.spyOn(client, 'getStateAll').mockResolvedValue(mockPaginatedMarketStates);
+    test("getStockChartImage: bubbles up request error", async () => {
+      cli.request.mockRejectedValueOnce(new Error("Failed to generate chart"));
 
-        const resp = await client.getStateAll(0, 10, Region.Tr);
+      await expect(client.getStockChartImage({
+        symbol: "INVALID",
+        region: Region.Tr,
+      })).rejects.toThrow("Failed to generate chart");
 
-        expect(resp.items).toHaveLength(2);
-        expect(resp.recordCount).toBe(2);
-
-        const firstState = resp.items[0];
-        expect(firstState.state).toBe("OPEN");
-        expect(firstState.lastTimestamp).toBe("2024-03-14T10:00:00Z");
-
-        expect(client.getStateAll).toHaveBeenCalledWith(0, 10, Region.Tr);
-      });
-
-      test("should handle API errors for state all", async () => {
-        jest.spyOn(client, 'getStateAll').mockRejectedValue(new Error("Failed to fetch states"));
-
-        await expect(client.getStateAll(0, 10, Region.Tr))
-          .rejects.toThrow("Failed to fetch states");
-      });
+      expect(cli.request).toHaveBeenCalledTimes(1);
     });
-
-    describe("getState", () => {
-      test("should return single market state with mock data", async () => {
-        jest.spyOn(client, 'getState').mockResolvedValue(mockSingleMarketState);
-
-        const resp = await client.getState("BIST");
-
-        expect(resp.id).toBe(1);
-        expect(resp.marketSymbol).toBe("BIST");
-        expect(resp.state).toBe("OPEN");
-        expect(resp.lastTimestamp).toBe("2024-03-14T10:00:00Z");
-
-        expect(client.getState).toHaveBeenCalledWith("BIST");
-      });
-
-      test("should handle API errors for single state", async () => {
-        jest.spyOn(client, 'getState').mockRejectedValue(new Error("Market state not found"));
-
-        await expect(client.getState("INVALID"))
-          .rejects.toThrow("Market state not found");
-      });
-    });
-
-    describe("getStockChartImage", () => {
-      test("should return chart image with mock data", async () => {
-        jest.spyOn(client, 'getStockChartImage').mockResolvedValue(mockChartImageBlob);
-    
-        const resp = await client.getStockChartImage({
-          symbol: "TUPRS",
-          region: Region.Tr,
-        });
-    
-        expect(resp).toBeDefined();
-        expect(resp).toBeInstanceOf(Blob);
-        expect(resp.type).toBe('image/png');
-      });
-    
-      test("should handle API errors for chart image", async () => {
-        jest.spyOn(client, 'getStockChartImage').mockRejectedValue(new Error("Failed to generate chart"));
-    
-        await expect(client.getStockChartImage({
-          symbol: "INVALID",
-          region: Region.Tr
-        })).rejects.toThrow("Failed to generate chart");
-      });
-    });
-  });
+  });  
 });

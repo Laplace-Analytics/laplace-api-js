@@ -81,10 +81,16 @@ export enum Market {
 
 export interface PriceDataPoint {
   d: number;
-  c: number;
-  h: number;
-  l: number;
   o: number;
+  uo?: number;
+  h: number;
+  uh?: number;
+  l: number;
+  ul?: number;
+  c: number;
+  uc?: number;
+  v?: number;
+  uv?: number;
 }
 
 export interface StockPriceGraph {
@@ -114,7 +120,7 @@ export interface TickRule {
   additionalPrice: number;
   lowerPriceLimit: number;
   upperPriceLimit: number;
-  rules: TickSizeRule[] | null;
+  rules: TickSizeRule[];
 }
 
 export interface TickSizeRule {
@@ -159,14 +165,14 @@ export interface GenerateChartImageRequest {
 }
 
 export class StockClient extends Client {
-  async getAllStocks(region: Region, page: number|null = null, pageSize: number|null = null): Promise<Stock[]> {
+  async getAllStocks(region: Region, page?: number, pageSize?: number): Promise<Stock[]> {
     return this.sendRequest<Stock[]>({
       method: 'GET',
       url: '/api/v2/stock/all',
       params: { 
         region, 
-        ...(page !== null ? { page } : {}),
-        ...(pageSize !== null ? { pageSize } : {}),
+        ...(page != null ? { page } : {}),
+        ...(pageSize != null ? { pageSize } : {}),
       },
     });
   }
@@ -199,14 +205,24 @@ export class StockClient extends Client {
     });
   }
 
-  async getCustomHistoricalPrices(stock: string, region: Region, fromDate: string, toDate: string, interval: HistoricalPriceInterval, detail: boolean): Promise<PriceDataPoint[]> {
+  async getCustomHistoricalPrices(stock: string, region: Region, fromDate: string, toDate: string, interval: HistoricalPriceInterval, detail: boolean, numIntervals?: number): Promise<PriceDataPoint[]> {
     this.validateCustomHistoricalPriceDate(fromDate);
     this.validateCustomHistoricalPriceDate(toDate);
+
+    const params = {
+      stock,
+      region,
+      fromDate,
+      toDate,
+      interval,
+      detail,
+      ...(numIntervals != null && { numIntervals })
+    }
 
     return this.sendRequest<PriceDataPoint[]>({
       method: 'GET',
       url: '/api/v1/stock/price/interval',
-      params: { stock, region, fromDate, toDate, interval, detail },
+      params: params,
     });
   }
 
@@ -226,11 +242,10 @@ export class StockClient extends Client {
     });
   }
 
-  async getAllStockRestrictions(region: Region): Promise<StockRestriction[]> {
+  async getAllStockRestrictions(): Promise<StockRestriction[]> {
     return this.sendRequest<StockRestriction[]>({
       method: 'GET',
-      url: '/api/v1/stock/restrictions/all',
-      params: { region },
+      url: '/api/v1/stock/restrictions/all'
     });
   }
 
