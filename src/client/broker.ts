@@ -33,6 +33,8 @@ export interface BrokerStock {
   id: string;
   assetType: AssetType;
   assetClass: AssetClass;
+  logoUrl?: string;
+  exchange?: string;
 }
 
 export interface BrokerStats {
@@ -137,7 +139,6 @@ export class BrokerClient extends Client {
       method: "GET",
       url: `/api/v1/brokers/${symbol}`,
       params: {
-        symbol,
         region,
         sortBy,
         sortDirection,
@@ -163,7 +164,6 @@ export class BrokerClient extends Client {
       method: "GET",
       url: `/api/v1/brokers/stock/${symbol}`,
       params: {
-        symbol,
         region,
         sortBy,
         sortDirection,

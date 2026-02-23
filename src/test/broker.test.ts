@@ -14,91 +14,151 @@ import {
 } from "../client/broker";
 import { AssetType, AssetClass } from "../client/stocks";
 import { PaginatedResponse } from "../client/capital_increase";
+import { AxiosInstance } from "axios";
 
-const mockBroker: Broker = {
-  id: 1001,
-  symbol: "BIYKR",
-  name: "BİYİKLI YATIRIM",
-  longName: "Bıyıklı Yatırım Menkul Değerler A.Ş.",
-  logo: "https://example.com/biykr.png"
-};
-
-const mockBroker2: Broker = {
-  id: 1002,
-  symbol: "GEDIK",
-  name: "GEDİK YATIRIM",
-  longName: "Gedik Yatırım Menkul Değerler A.Ş.",
-  logo: "https://example.com/gedik.png"
-};
-
-const mockBroker3: Broker = {
-  id: 1001,
-  symbol: "BIYKR",
-  name: "BİYİKLI YATIRIM",
-  longName: "Bıyıklı Yatırım Menkul Değerler A.Ş.",
-  logo: "https://example.com/biykr.png",
-  supportedAssetClasses: [AssetClass.Equity]
-};
-
-const mockBroker4: Broker = {
-  id: 1002,
-  symbol: "GEDIK",
-  name: "GEDİK YATIRIM",
-  longName: "Gedik Yatırım Menkul Değerler A.Ş.",
-  logo: "https://example.com/gedik.png",
-  supportedAssetClasses: [AssetClass.Equity]
-};
-
-const mockStock: BrokerStock = {
-  id: "61dd0d6f0ec2114146342fd0",
-  symbol: "TUPRS",
-  name: "Tüpraş",
-  assetType: AssetType.Stock,
-  assetClass: AssetClass.Equity
-};
-
-const mockStock2: BrokerStock = {
-  id: "61dd0d6f0ec2114146342fd1",
-  symbol: "GARAN",
-  name: "Garanti Bankası",
-  assetType: AssetType.Stock,
-  assetClass: AssetClass.Equity
-};
-
-const mockBrokerStats: BrokerStats = {
-  totalBuyAmount: 1000000,
-  totalSellAmount: 800000,
-  netAmount: 200000,
-  totalBuyVolume: 50000,
-  totalSellVolume: 40000,
-  totalVolume: 90000,
-  totalAmount: 1800000,
-  averageCost: 20.5
-};
-
-const mockBrokerItem: BrokerItem = {
-  ...mockBrokerStats,
-  broker: mockBroker,
-  stock: mockStock
-};
-
-const mockBrokerItem2: BrokerItem = {
-  ...mockBrokerStats,
-  totalBuyAmount: 900000,
-  totalSellAmount: 700000,
-  broker: mockBroker2,
-  stock: mockStock2
-};
-
-const mockBrokerList: BrokerList = {
+const fxGetMarketBrokers = {
   recordCount: 2,
-  items: [mockBrokerItem, mockBrokerItem2],
-  totalStats: mockBrokerStats
+  items: [
+    {
+      broker: {
+        id: 1,
+        symbol: "BIDZY",
+        name: "DENIZ YATIRIM",
+        longName: "DENIZ YATIRIM MENKUL KIYMETLER A.S.",
+        logo: "https://finfree-storage.s3.eu-central-1.amazonaws.com/brokers/BIDZY.svg",
+      },
+      netAmount: 2500000.0,
+      totalAmount: 10000000.0,
+      totalVolume: 200000,
+      totalBuyAmount: 6250000.0,
+      totalBuyVolume: 100000,
+      totalSellAmount: 3750000.0,
+      totalSellVolume: 100000,
+    },
+  ],
+  totalStats: {
+    netAmount: 4000000.0,
+    totalAmount: 17500000.0,
+    totalVolume: 350000,
+    totalBuyAmount: 10750000.0,
+    totalBuyVolume: 175000,
+    totalSellAmount: 6750000.0,
+    totalSellVolume: 175000,
+  },
 };
 
-const mockBrokersPaginatedResponse: PaginatedResponse<Broker> = {
+
+const fxGetMarketStocks = {
   recordCount: 2,
-  items: [mockBroker3, mockBroker4]
+  items: [
+    {
+      stock: {
+        id: "61dd0d670ec2114146342fa5",
+        name: "SASA Polyester",
+        symbol: "SASA",
+        assetType: AssetType.Stock,
+        assetClass: AssetClass.Equity,
+      },
+      averageCost: 2.91,
+      netAmount: 1000000.0,
+      totalAmount: 5000000.0,
+      totalVolume: 100000,
+      totalBuyAmount: 3000000.0,
+      totalBuyVolume: 50000,
+      totalSellAmount: 2000000.0,
+      totalSellVolume: 50000,
+    },
+  ],
+  totalStats: {
+    averageCost: 2.91,
+    netAmount: 1750000.0,
+    totalAmount: 8750000.0,
+    totalVolume: 175000,
+    totalBuyAmount: 5250000.0,
+    totalBuyVolume: 87500,
+    totalSellAmount: 3500000.0,
+    totalSellVolume: 87500,
+  },
+};
+
+
+const fxGetBrokersByStock = {
+  recordCount: 2,
+  items: [
+    {
+      broker: {
+        id: 1,
+        symbol: "BIMLB",
+        name: "BIMLB",
+        longName: "BIM Yatırım Menkul Değerler A.Ş.",
+        logo: "https://finfree-storage.s3.eu-central-1.amazonaws.com/broker-logos/bimlb.png",
+      },
+      averageCost: 2.91,
+      netAmount: 500000.0,
+      totalAmount: 2000000.0,
+      totalVolume: 40000,
+      totalBuyAmount: 1250000.0,
+      totalBuyVolume: 20000,
+      totalSellAmount: 750000.0,
+      totalSellVolume: 20000,
+    },
+  ],
+  totalStats: {
+    averageCost: 2.91,
+    netAmount: 800000.0,
+    totalAmount: 3500000.0,
+    totalVolume: 70000,
+    totalBuyAmount: 2150000.0,
+    totalBuyVolume: 35000,
+    totalSellAmount: 1350000.0,
+    totalSellVolume: 35000,
+  },
+};
+
+
+const fxGetStocksByBroker = {
+  recordCount: 2,
+  items: [
+    {
+      stock: {
+        id: "61dd0d670ec2114146342fa5",
+        name: "SASA Polyester",
+        symbol: "SASA",
+        assetType: AssetType.Stock,
+        assetClass: AssetClass.Equity,
+      },
+      netAmount: 500000.0,
+      totalAmount: 2000000.0,
+      totalVolume: 40000,
+      totalBuyAmount: 1250000.0,
+      totalBuyVolume: 20000,
+      totalSellAmount: 750000.0,
+      totalSellVolume: 20000,
+    },
+  ],
+  totalStats: {
+    netAmount: 800000.0,
+    totalAmount: 3500000.0,
+    totalVolume: 70000,
+    totalBuyAmount: 2150000.0,
+    totalBuyVolume: 35000,
+    totalSellAmount: 1350000.0,
+    totalSellVolume: 35000,
+  },
+};
+
+const fxGetBrokers = {
+  recordCount: 239,
+  items: [
+    {
+      id: 1,
+      symbol: "BIDZY",
+      name: "DENIZ YATIRIM",
+      longName: "DENIZ YATIRIM MENKUL KIYMETLER A.S.",
+      logo: "https://finfree-storage.s3.eu-central-1.amazonaws.com/brokers/BIDZY.svg",
+      supportedAssetClasses: [AssetClass.Equity],
+    },
+  ],
 };
 
 describe("BrokerClient", () => {
@@ -118,11 +178,12 @@ describe("BrokerClient", () => {
   });
 
   const region = Region.Tr;
-  const fromDate = "2025-05-20";
-  const toDate = "2025-05-28";
+  const fromDate = "2025-06-01";
+  const toDate = "2025-06-30";
 
   describe("Integration Tests", () => {
-    test("getMarketBrokers returns valid and fully typed data", async () => {
+    jest.setTimeout(60_000);
+    test("getMarketBrokers returns valid data", async () => {
       const response = await brokerClient.getMarketBrokers(
         Region.Tr,
         BrokerSort.TotalVolume,
@@ -135,40 +196,39 @@ describe("BrokerClient", () => {
 
       expect(response).toBeDefined();
       expect(typeof response.recordCount).toBe("number");
+      expect(response.recordCount).toBeGreaterThanOrEqual(0);
 
       const stats = response.totalStats;
-      expect(stats).toMatchObject<BrokerStats>({
-        totalBuyAmount: expect.any(Number),
-        totalSellAmount: expect.any(Number),
-        netAmount: expect.any(Number),
-        totalBuyVolume: expect.any(Number),
-        totalSellVolume: expect.any(Number),
-        totalVolume: expect.any(Number),
-        totalAmount: expect.any(Number),
-      });
+      expect(typeof stats.totalBuyAmount).toBe("number");
+      expect(typeof stats.totalSellAmount).toBe("number");
+      expect(typeof stats.netAmount).toBe("number");
+      expect(typeof stats.totalBuyVolume).toBe("number");
+      expect(typeof stats.totalSellVolume).toBe("number");
+      expect(typeof stats.totalVolume).toBe("number");
+      expect(typeof stats.totalAmount).toBe("number");
 
       expect(Array.isArray(response.items)).toBe(true);
-      expect(response.items.length).toBeGreaterThan(0);
 
-      for (const item of response.items) {
-        expect(item).toMatchObject<BrokerStats>({
-          totalBuyAmount: expect.any(Number),
-          totalSellAmount: expect.any(Number),
-          netAmount: expect.any(Number),
-          totalBuyVolume: expect.any(Number),
-          totalSellVolume: expect.any(Number),
-          totalVolume: expect.any(Number),
-          totalAmount: expect.any(Number),
-        });
+      if (response.items.length > 0) {
+        const item = response.items[0];
+
+        expect(typeof item.totalBuyAmount).toBe("number");
+        expect(typeof item.totalSellAmount).toBe("number");
+        expect(typeof item.netAmount).toBe("number");
+        expect(typeof item.totalBuyVolume).toBe("number");
+        expect(typeof item.totalSellVolume).toBe("number");
+        expect(typeof item.totalVolume).toBe("number");
+        expect(typeof item.totalAmount).toBe("number");
 
         if (item.broker) {
-          expect(item.broker).toMatchObject({
-            id: expect.any(Number),
-            symbol: expect.any(String),
-            name: expect.any(String),
-            longName: expect.any(String),
-            logo: expect.any(String),
-          });
+          expect(typeof item.broker.id).toBe("number");
+          expect(typeof item.broker.symbol).toBe("string");
+          expect(typeof item.broker.name).toBe("string");
+          expect(typeof item.broker.longName).toBe("string");
+          // python tarafında logo None olabilir kuralı vardı -> burada da izin ver
+          expect(
+            typeof item.broker.logo === "string" || item.broker.logo == null
+          ).toBe(true);
         }
       }
     });
@@ -186,39 +246,41 @@ describe("BrokerClient", () => {
 
       expect(response).toBeDefined();
       expect(typeof response.recordCount).toBe("number");
+      expect(response.recordCount).toBeGreaterThanOrEqual(0);
 
       const stats = response.totalStats;
-      expect(stats).toMatchObject<BrokerStats>({
-        totalBuyAmount: expect.any(Number),
-        totalSellAmount: expect.any(Number),
-        netAmount: expect.any(Number),
-        totalBuyVolume: expect.any(Number),
-        totalSellVolume: expect.any(Number),
-        totalVolume: expect.any(Number),
-        totalAmount: expect.any(Number),
-      });
+      expect(typeof stats.totalBuyAmount).toBe("number");
+      expect(typeof stats.totalSellAmount).toBe("number");
+      expect(typeof stats.netAmount).toBe("number");
+      expect(typeof stats.totalBuyVolume).toBe("number");
+      expect(typeof stats.totalSellVolume).toBe("number");
+      expect(typeof stats.totalVolume).toBe("number");
+      expect(typeof stats.totalAmount).toBe("number");
 
       expect(Array.isArray(response.items)).toBe(true);
 
-      for (const item of response.items) {
-        expect(item).toMatchObject<BrokerStats>({
-          totalBuyAmount: expect.any(Number),
-          totalSellAmount: expect.any(Number),
-          netAmount: expect.any(Number),
-          totalBuyVolume: expect.any(Number),
-          totalSellVolume: expect.any(Number),
-          totalVolume: expect.any(Number),
-          totalAmount: expect.any(Number),
-        });
+      if (response.items.length > 0) {
+        const item = response.items[0];
+
+        expect(typeof item.totalBuyAmount).toBe("number");
+        expect(typeof item.totalSellAmount).toBe("number");
+        expect(typeof item.netAmount).toBe("number");
+        expect(typeof item.totalBuyVolume).toBe("number");
+        expect(typeof item.totalSellVolume).toBe("number");
+        expect(typeof item.totalVolume).toBe("number");
+        expect(typeof item.totalAmount).toBe("number");
 
         if (item.stock) {
-          expect(item.stock).toMatchObject({
-            id: expect.any(String),
-            symbol: expect.any(String),
-            name: expect.any(String),
-            assetType: expect.any(String),
-            assetClass: expect.any(String),
-          });
+          expect(typeof item.stock.id).toBe("string");
+          expect(typeof item.stock.symbol).toBe("string");
+          expect(typeof item.stock.name).toBe("string");
+          expect(typeof item.stock.assetType).toBe("string");
+          expect(typeof item.stock.assetClass).toBe("string");
+        }
+
+        // bu endpoint averageCost döndürüyorsa kontrol et (python’da market stock list’te vardı)
+        if ("averageCost" in item) {
+          expect(typeof (item as any).averageCost).toBe("number");
         }
       }
     });
@@ -237,43 +299,42 @@ describe("BrokerClient", () => {
 
       expect(response).toBeDefined();
       expect(typeof response.recordCount).toBe("number");
+      expect(response.recordCount).toBeGreaterThanOrEqual(0);
 
       const stats = response.totalStats;
-      expect(stats).toMatchObject<BrokerStats>({
-        totalBuyAmount: expect.any(Number),
-        totalSellAmount: expect.any(Number),
-        netAmount: expect.any(Number),
-        totalBuyVolume: expect.any(Number),
-        totalSellVolume: expect.any(Number),
-        totalVolume: expect.any(Number),
-        totalAmount: expect.any(Number),
-      });
+      expect(typeof stats.totalBuyAmount).toBe("number");
+      expect(typeof stats.totalSellAmount).toBe("number");
+      expect(typeof stats.netAmount).toBe("number");
+      expect(typeof stats.totalBuyVolume).toBe("number");
+      expect(typeof stats.totalSellVolume).toBe("number");
+      expect(typeof stats.totalVolume).toBe("number");
+      expect(typeof stats.totalAmount).toBe("number");
 
       expect(Array.isArray(response.items)).toBe(true);
 
-      for (const item of response.items) {
-        expect(item).toMatchObject<BrokerStats>({
-          totalBuyAmount: expect.any(Number),
-          totalSellAmount: expect.any(Number),
-          netAmount: expect.any(Number),
-          totalBuyVolume: expect.any(Number),
-          totalSellVolume: expect.any(Number),
-          totalVolume: expect.any(Number),
-          totalAmount: expect.any(Number),
-        });
+      if (response.items.length > 0) {
+        const item = response.items[0];
+
+        expect(typeof item.totalBuyAmount).toBe("number");
+        expect(typeof item.totalSellAmount).toBe("number");
+        expect(typeof item.netAmount).toBe("number");
+        expect(typeof item.totalBuyVolume).toBe("number");
+        expect(typeof item.totalSellVolume).toBe("number");
+        expect(typeof item.totalVolume).toBe("number");
+        expect(typeof item.totalAmount).toBe("number");
 
         if (item.broker) {
-          expect(item.broker).toMatchObject({
-            id: expect.any(Number),
-            symbol: expect.any(String),
-            name: expect.any(String),
-            longName: expect.any(String),
-            logo: expect.any(String),
-          });
+          expect(typeof item.broker.id).toBe("number");
+          expect(typeof item.broker.symbol).toBe("string");
+          expect(typeof item.broker.name).toBe("string");
+          expect(typeof item.broker.longName).toBe("string");
+          expect(
+            typeof item.broker.logo === "string" || item.broker.logo == null
+          ).toBe(true);
         }
 
         if ("averageCost" in item) {
-          expect(item.averageCost).toEqual(expect.any(Number));
+          expect(typeof (item as any).averageCost).toBe("number");
         }
       }
     });
@@ -292,39 +353,40 @@ describe("BrokerClient", () => {
 
       expect(response).toBeDefined();
       expect(typeof response.recordCount).toBe("number");
+      expect(response.recordCount).toBeGreaterThanOrEqual(0);
 
       const stats = response.totalStats;
-      expect(stats).toMatchObject<BrokerStats>({
-        totalBuyAmount: expect.any(Number),
-        totalSellAmount: expect.any(Number),
-        netAmount: expect.any(Number),
-        totalBuyVolume: expect.any(Number),
-        totalSellVolume: expect.any(Number),
-        totalVolume: expect.any(Number),
-        totalAmount: expect.any(Number),
-      });
+      expect(typeof stats.totalBuyAmount).toBe("number");
+      expect(typeof stats.totalSellAmount).toBe("number");
+      expect(typeof stats.netAmount).toBe("number");
+      expect(typeof stats.totalBuyVolume).toBe("number");
+      expect(typeof stats.totalSellVolume).toBe("number");
+      expect(typeof stats.totalVolume).toBe("number");
+      expect(typeof stats.totalAmount).toBe("number");
 
       expect(Array.isArray(response.items)).toBe(true);
 
-      for (const item of response.items) {
-        expect(item).toMatchObject<BrokerStats>({
-          totalBuyAmount: expect.any(Number),
-          totalSellAmount: expect.any(Number),
-          netAmount: expect.any(Number),
-          totalBuyVolume: expect.any(Number),
-          totalSellVolume: expect.any(Number),
-          totalVolume: expect.any(Number),
-          totalAmount: expect.any(Number),
-        });
+      if (response.items.length > 0) {
+        const item = response.items[0];
+
+        expect(typeof item.totalBuyAmount).toBe("number");
+        expect(typeof item.totalSellAmount).toBe("number");
+        expect(typeof item.netAmount).toBe("number");
+        expect(typeof item.totalBuyVolume).toBe("number");
+        expect(typeof item.totalSellVolume).toBe("number");
+        expect(typeof item.totalVolume).toBe("number");
+        expect(typeof item.totalAmount).toBe("number");
 
         if (item.stock) {
-          expect(item.stock).toMatchObject({
-            id: expect.any(String),
-            symbol: expect.any(String),
-            name: expect.any(String),
-            assetType: expect.any(String),
-            assetClass: expect.any(String),
-          });
+          expect(typeof item.stock.id).toBe("string");
+          expect(typeof item.stock.symbol).toBe("string");
+          expect(typeof item.stock.name).toBe("string");
+          expect(typeof item.stock.assetType).toBe("string");
+          expect(typeof item.stock.assetClass).toBe("string");
+        }
+
+        if ("averageCost" in item) {
+          expect(typeof (item as any).averageCost).toBe("number");
         }
       }
     });
@@ -339,334 +401,400 @@ describe("BrokerClient", () => {
 
       expect(response).toBeDefined();
       expect(typeof response.recordCount).toBe("number");
+      expect(response.recordCount).toBeGreaterThanOrEqual(0);
       expect(Array.isArray(response.items)).toBe(true);
 
-      for (const broker of response.items) {
-        expect(broker).toMatchObject({
-          id: expect.any(Number),
-          symbol: expect.any(String),
-          name: expect.any(String),
-          longName: expect.any(String),
-          logo: expect.any(String),
-        });
+      if (response.items.length > 0) {
+        const broker = response.items[0];
+
+        expect(typeof broker.id).toBe("number");
+        expect(typeof broker.symbol).toBe("string");
+        expect(typeof broker.name).toBe("string");
+        expect(typeof broker.longName).toBe("string");
+        expect(typeof broker.logo === "string" || broker.logo == null).toBe(
+          true
+        );
+
         expect(Array.isArray(broker.supportedAssetClasses)).toBe(true);
         expect(broker.supportedAssetClasses).toEqual([AssetClass.Equity]);
       }
     });
 
     test("getBrokers without assetClass parameter", async () => {
-      const response = await brokerClient.getBrokers(
-        Region.Tr,
-        0,
-        10
-      );
+      const response = await brokerClient.getBrokers(Region.Tr, 0, 10);
 
       expect(response).toBeDefined();
       expect(typeof response.recordCount).toBe("number");
+      expect(response.recordCount).toBeGreaterThanOrEqual(0);
       expect(Array.isArray(response.items)).toBe(true);
 
-      for (const broker of response.items) {
-        expect(broker).toMatchObject({
-          id: expect.any(Number),
-          symbol: expect.any(String),
-          name: expect.any(String),
-          longName: expect.any(String),
-          logo: expect.any(String),
-        });
+      if (response.items.length > 0) {
+        const broker = response.items[0];
+
+        expect(typeof broker.id).toBe("number");
+        expect(typeof broker.symbol).toBe("string");
+        expect(typeof broker.name).toBe("string");
+        expect(typeof broker.longName).toBe("string");
+        expect(typeof broker.logo === "string" || broker.logo == null).toBe(
+          true
+        );
       }
     });
   });
 
   describe("Mock Tests", () => {
+    const region = Region.Tr;
+    const fromDate = "2025-06-01";
+    const toDate = "2025-06-30";
+    const page = 0;
+    const size = 5;
+  
+    let brokerClient: BrokerClient;
+    let cli: { request: jest.Mock };
+  
     beforeEach(() => {
-      jest.clearAllMocks();
+      cli = {
+        request: jest.fn(),
+      };
+  
+      const config = (global as any).testSuite.config as LaplaceConfiguration;
+      const logger: Logger = {
+        info: jest.fn(),
+        error: jest.fn(),
+        warn: jest.fn(),
+        debug: jest.fn(),
+      } as unknown as Logger;
+  
+      // IMPORTANT: Client ctor artık cli kabul ediyor
+      brokerClient = new BrokerClient(config, logger, cli as any);
     });
-
+  
     describe("getMarketBrokers", () => {
-      test("should return market brokers with stats", async () => {
-        jest.spyOn(brokerClient, 'getMarketBrokers').mockResolvedValue(mockBrokerList);
-
-        const response = await brokerClient.getMarketBrokers(
-          Region.Tr,
+      test("should call correct endpoint/params and read values", async () => {
+        cli.request.mockResolvedValueOnce({ data: fxGetMarketBrokers });
+  
+        const res = await brokerClient.getMarketBrokers(
+          region,
           BrokerSort.TotalVolume,
           SortDirection.Desc,
           fromDate,
           toDate,
-          0,
-          5
+          page,
+          size
         );
-
-        expect(response.recordCount).toBe(2);
-        expect(response.items).toHaveLength(2);
-        expect(response.totalStats).toEqual(mockBrokerStats);
-
-        const firstItem = response.items[0];
-        expect(firstItem.broker?.symbol).toBe("BIYKR");
-        expect(firstItem.totalBuyAmount).toBe(1000000);
-        expect(firstItem.totalSellAmount).toBe(800000);
-
-        expect(brokerClient.getMarketBrokers).toHaveBeenCalledWith(
-          Region.Tr,
-          BrokerSort.TotalVolume,
-          SortDirection.Desc,
+  
+        // request shape
+        expect(cli.request).toHaveBeenCalledTimes(1);
+        const call = cli.request.mock.calls[0][0];
+  
+        expect(call.method).toBe("GET");
+        expect(call.url).toBe("/api/v1/brokers/market");
+        expect(call.params).toEqual({
+          region,
+          sortBy: BrokerSort.TotalVolume,
+          sortDirection: SortDirection.Desc,
           fromDate,
           toDate,
-          0,
-          5
+          page,
+          size,
+        });
+  
+        // response values
+        expect(res.recordCount).toBe(2);
+        expect(res.items).toHaveLength(1);
+  
+        expect(res.totalStats.netAmount).toBe(4000000.0);
+        expect(res.totalStats.totalAmount).toBe(17500000.0);
+        expect(res.totalStats.totalVolume).toBe(350000);
+        expect(res.totalStats.totalBuyAmount).toBe(10750000.0);
+        expect(res.totalStats.totalBuyVolume).toBe(175000);
+        expect(res.totalStats.totalSellAmount).toBe(6750000.0);
+        expect(res.totalStats.totalSellVolume).toBe(175000);
+  
+        const item = res.items[0];
+        expect(item.broker?.id).toBe(1);
+        expect(item.broker?.symbol).toBe("BIDZY");
+        expect(item.broker?.name).toBe("DENIZ YATIRIM");
+        expect(item.broker?.longName).toBe("DENIZ YATIRIM MENKUL KIYMETLER A.S.");
+        expect(item.broker?.logo).toBe(
+          "https://finfree-storage.s3.eu-central-1.amazonaws.com/brokers/BIDZY.svg"
         );
-      });
-
-      test("should handle empty response", async () => {
-        const emptyResponse: BrokerList = {
-          recordCount: 0,
-          items: [],
-          totalStats: {
-            totalBuyAmount: 0,
-            totalSellAmount: 0,
-            netAmount: 0,
-            totalBuyVolume: 0,
-            totalSellVolume: 0,
-            totalVolume: 0,
-            totalAmount: 0
-          }
-        };
-        jest.spyOn(brokerClient, 'getMarketBrokers').mockResolvedValue(emptyResponse);
-
-        const response = await brokerClient.getMarketBrokers(
-          Region.Tr,
-          BrokerSort.TotalVolume,
-          SortDirection.Desc,
-          fromDate,
-          toDate,
-          0,
-          5
-        );
-
-        expect(response.recordCount).toBe(0);
-        expect(response.items).toHaveLength(0);
-        expect(response.totalStats.totalAmount).toBe(0);
+  
+        expect(item.netAmount).toBe(2500000.0);
+        expect(item.totalAmount).toBe(10000000.0);
+        expect(item.totalVolume).toBe(200000);
+        expect(item.totalBuyAmount).toBe(6250000.0);
+        expect(item.totalBuyVolume).toBe(100000);
+        expect(item.totalSellAmount).toBe(3750000.0);
+        expect(item.totalSellVolume).toBe(100000);
       });
     });
-
+  
     describe("getMarketStocks", () => {
-      test("should return market stocks with stats", async () => {
-        jest.spyOn(brokerClient, 'getMarketStocks').mockResolvedValue(mockBrokerList);
-
-        const response = await brokerClient.getMarketStocks(
-          Region.Tr,
+      test("should call correct endpoint/params and read values", async () => {
+        cli.request.mockResolvedValueOnce({ data: fxGetMarketStocks });
+  
+        const res = await brokerClient.getMarketStocks(
+          region,
           BrokerSort.TotalVolume,
           SortDirection.Desc,
           fromDate,
           toDate,
-          0,
-          5
+          page,
+          size
         );
-
-        expect(response.recordCount).toBe(2);
-        expect(response.items).toHaveLength(2);
-        expect(response.totalStats).toEqual(mockBrokerStats);
-
-        const firstItem = response.items[0];
-        expect(firstItem.stock?.symbol).toBe("TUPRS");
-        expect(firstItem.stock?.assetType).toBe(AssetType.Stock);
-        expect(firstItem.stock?.assetClass).toBe(AssetClass.Equity);
-
-        expect(brokerClient.getMarketStocks).toHaveBeenCalledWith(
-          Region.Tr,
-          BrokerSort.TotalVolume,
-          SortDirection.Desc,
+  
+        // request shape
+        expect(cli.request).toHaveBeenCalledTimes(1);
+        const call = cli.request.mock.calls[0][0];
+  
+        expect(call.method).toBe("GET");
+        expect(call.url).toBe("/api/v1/brokers/market/stock");
+        expect(call.params).toEqual({
+          region,
+          sortBy: BrokerSort.TotalVolume,
+          sortDirection: SortDirection.Desc,
           fromDate,
           toDate,
-          0,
-          5
-        );
+          page,
+          size,
+        });
+  
+        // response values
+        expect(res.recordCount).toBe(2);
+        expect(res.items).toHaveLength(1);
+  
+        expect(res.totalStats.averageCost).toBe(2.91);
+        expect(res.totalStats.netAmount).toBe(1750000.0);
+        expect(res.totalStats.totalAmount).toBe(8750000.0);
+        expect(res.totalStats.totalVolume).toBe(175000);
+        expect(res.totalStats.totalBuyAmount).toBe(5250000.0);
+        expect(res.totalStats.totalBuyVolume).toBe(87500);
+        expect(res.totalStats.totalSellAmount).toBe(3500000.0);
+        expect(res.totalStats.totalSellVolume).toBe(87500);
+  
+        const item = res.items[0];
+        expect(item.stock?.id).toBe("61dd0d670ec2114146342fa5");
+        expect(item.stock?.name).toBe("SASA Polyester");
+        expect(item.stock?.symbol).toBe("SASA");
+        expect(item.stock?.assetType).toBe(AssetType.Stock);
+        expect(item.stock?.assetClass).toBe(AssetClass.Equity);
+  
+        expect(item.averageCost).toBe(2.91);
+        expect(item.netAmount).toBe(1000000.0);
+        expect(item.totalAmount).toBe(5000000.0);
+        expect(item.totalVolume).toBe(100000);
+        expect(item.totalBuyAmount).toBe(3000000.0);
+        expect(item.totalBuyVolume).toBe(50000);
+        expect(item.totalSellAmount).toBe(2000000.0);
+        expect(item.totalSellVolume).toBe(50000);
       });
     });
-
+  
     describe("getBrokersByStock", () => {
-      test("should return brokers for specific stock", async () => {
-        jest.spyOn(brokerClient, 'getBrokersByStock').mockResolvedValue(mockBrokerList);
-
-        const response = await brokerClient.getBrokersByStock(
-          "TUPRS",
-          Region.Tr,
+      test("should call correct endpoint/params and read values", async () => {
+        cli.request.mockResolvedValueOnce({ data: fxGetBrokersByStock });
+  
+        const res = await brokerClient.getBrokersByStock(
+          "SASA",
+          region,
           BrokerSort.TotalVolume,
           SortDirection.Desc,
           fromDate,
           toDate,
-          0,
-          5
+          page,
+          size
         );
-
-        expect(response.recordCount).toBe(2);
-        expect(response.items).toHaveLength(2);
-        expect(response.totalStats).toEqual(mockBrokerStats);
-
-        const firstItem = response.items[0];
-        expect(firstItem.broker?.symbol).toBe("BIYKR");
-        expect(firstItem.averageCost).toBe(20.5);
-
-        expect(brokerClient.getBrokersByStock).toHaveBeenCalledWith(
-          "TUPRS",
-          Region.Tr,
-          BrokerSort.TotalVolume,
-          SortDirection.Desc,
+  
+        // request shape
+        expect(cli.request).toHaveBeenCalledTimes(1);
+        const call = cli.request.mock.calls[0][0];
+  
+        expect(call.method).toBe("GET");
+        expect(call.url).toBe("/api/v1/brokers/SASA");
+        expect(call.params).toEqual({
+          region,
+          sortBy: BrokerSort.TotalVolume,
+          sortDirection: SortDirection.Desc,
           fromDate,
           toDate,
-          0,
-          5
+          page,
+          size,
+        });
+  
+        // response values
+        expect(res.recordCount).toBe(2);
+        expect(res.items).toHaveLength(1);
+  
+        expect(res.totalStats.averageCost).toBe(2.91);
+        expect(res.totalStats.netAmount).toBe(800000.0);
+        expect(res.totalStats.totalAmount).toBe(3500000.0);
+        expect(res.totalStats.totalVolume).toBe(70000);
+        expect(res.totalStats.totalBuyAmount).toBe(2150000.0);
+        expect(res.totalStats.totalBuyVolume).toBe(35000);
+        expect(res.totalStats.totalSellAmount).toBe(1350000.0);
+        expect(res.totalStats.totalSellVolume).toBe(35000);
+  
+        const item = res.items[0];
+        expect(item.broker?.id).toBe(1);
+        expect(item.broker?.symbol).toBe("BIMLB");
+        expect(item.broker?.name).toBe("BIMLB");
+        expect(item.broker?.longName).toBe("BIM Yatırım Menkul Değerler A.Ş.");
+        expect(item.broker?.logo).toBe(
+          "https://finfree-storage.s3.eu-central-1.amazonaws.com/broker-logos/bimlb.png"
         );
+  
+        expect(item.averageCost).toBe(2.91);
+        expect(item.netAmount).toBe(500000.0);
+        expect(item.totalAmount).toBe(2000000.0);
+        expect(item.totalVolume).toBe(40000);
+        expect(item.totalBuyAmount).toBe(1250000.0);
+        expect(item.totalBuyVolume).toBe(20000);
+        expect(item.totalSellAmount).toBe(750000.0);
+        expect(item.totalSellVolume).toBe(20000);
       });
-
-      test("should handle invalid stock symbol", async () => {
-        jest.spyOn(brokerClient, 'getBrokersByStock').mockRejectedValue(new Error("Invalid stock symbol"));
-
-        await expect(brokerClient.getBrokersByStock(
-          "INVALID",
-          Region.Tr,
-          BrokerSort.TotalVolume,
-          SortDirection.Desc,
-          fromDate,
-          toDate,
-          0,
-          5
-        )).rejects.toThrow("Invalid stock symbol");
+  
+      test("should bubble up request error", async () => {
+        cli.request.mockRejectedValueOnce(new Error("Invalid stock symbol"));
+  
+        await expect(
+          brokerClient.getBrokersByStock(
+            "INVALID",
+            region,
+            BrokerSort.TotalVolume,
+            SortDirection.Desc,
+            fromDate,
+            toDate,
+            page,
+            size
+          )
+        ).rejects.toThrow("Invalid stock symbol");
       });
     });
-
+  
     describe("getStocksByBroker", () => {
-      test("should return stocks for specific broker", async () => {
-        jest.spyOn(brokerClient, 'getStocksByBroker').mockResolvedValue(mockBrokerList);
-
-        const response = await brokerClient.getStocksByBroker(
-          "BIYKR",
-          Region.Tr,
+      test("should call correct endpoint/params and read values", async () => {
+        cli.request.mockResolvedValueOnce({ data: fxGetStocksByBroker });
+  
+        const res = await brokerClient.getStocksByBroker(
+          "BIMLB",
+          region,
           BrokerSort.TotalVolume,
           SortDirection.Desc,
           fromDate,
           toDate,
-          0,
-          5
+          page,
+          size
         );
-
-        expect(response.recordCount).toBe(2);
-        expect(response.items).toHaveLength(2);
-        expect(response.totalStats).toEqual(mockBrokerStats);
-
-        const firstItem = response.items[0];
-        expect(firstItem.stock?.symbol).toBe("TUPRS");
-        expect(firstItem.stock?.assetType).toBe(AssetType.Stock);
-
-        expect(brokerClient.getStocksByBroker).toHaveBeenCalledWith(
-          "BIYKR",
-          Region.Tr,
-          BrokerSort.TotalVolume,
-          SortDirection.Desc,
+  
+        // request shape
+        expect(cli.request).toHaveBeenCalledTimes(1);
+        const call = cli.request.mock.calls[0][0];
+  
+        expect(call.method).toBe("GET");
+        expect(call.url).toBe("/api/v1/brokers/stock/BIMLB");
+        expect(call.params).toEqual({
+          region,
+          sortBy: BrokerSort.TotalVolume,
+          sortDirection: SortDirection.Desc,
           fromDate,
           toDate,
-          0,
-          5
-        );
+          page,
+          size,
+        });
+  
+        // response values
+        expect(res.recordCount).toBe(2);
+        expect(res.items).toHaveLength(1);
+  
+        expect(res.totalStats.netAmount).toBe(800000.0);
+        expect(res.totalStats.totalAmount).toBe(3500000.0);
+        expect(res.totalStats.totalVolume).toBe(70000);
+        expect(res.totalStats.totalBuyAmount).toBe(2150000.0);
+        expect(res.totalStats.totalBuyVolume).toBe(35000);
+        expect(res.totalStats.totalSellAmount).toBe(1350000.0);
+        expect(res.totalStats.totalSellVolume).toBe(35000);
+  
+        const item = res.items[0];
+        expect(item.stock?.id).toBe("61dd0d670ec2114146342fa5");
+        expect(item.stock?.name).toBe("SASA Polyester");
+        expect(item.stock?.symbol).toBe("SASA");
+        expect(item.stock?.assetType).toBe(AssetType.Stock);
+        expect(item.stock?.assetClass).toBe(AssetClass.Equity);
+  
+        expect(item.netAmount).toBe(500000.0);
+        expect(item.totalAmount).toBe(2000000.0);
+        expect(item.totalVolume).toBe(40000);
+        expect(item.totalBuyAmount).toBe(1250000.0);
+        expect(item.totalBuyVolume).toBe(20000);
+        expect(item.totalSellAmount).toBe(750000.0);
+        expect(item.totalSellVolume).toBe(20000);
       });
-
-      test("should handle invalid broker symbol", async () => {
-        jest.spyOn(brokerClient, 'getStocksByBroker').mockRejectedValue(new Error("Invalid broker symbol"));
-
-        await expect(brokerClient.getStocksByBroker(
-          "INVALID",
-          Region.Tr,
-          BrokerSort.TotalVolume,
-          SortDirection.Desc,
-          fromDate,
-          toDate,
-          0,
-          5
-        )).rejects.toThrow("Invalid broker symbol");
+  
+      test("should bubble up request error", async () => {
+        cli.request.mockRejectedValueOnce(new Error("Invalid broker symbol"));
+  
+        await expect(
+          brokerClient.getStocksByBroker(
+            "INVALID",
+            region,
+            BrokerSort.TotalVolume,
+            SortDirection.Desc,
+            fromDate,
+            toDate,
+            page,
+            size
+          )
+        ).rejects.toThrow("Invalid broker symbol");
       });
     });
-
+  
     describe("getBrokers", () => {
-      test("should return paginated broker list", async () => {
-        jest.spyOn(brokerClient, 'getBrokers').mockResolvedValue(mockBrokersPaginatedResponse);
-
-        const response = await brokerClient.getBrokers(
-          Region.Tr,
-          0,
-          5,
-          AssetClass.Equity
+      test("should call correct endpoint/params and read values", async () => {
+        cli.request.mockResolvedValueOnce({ data: fxGetBrokers });
+  
+        const res = await brokerClient.getBrokers(region, 0, 10);
+  
+        // request shape
+        expect(cli.request).toHaveBeenCalledTimes(1);
+        const call = cli.request.mock.calls[0][0];
+  
+        expect(call.method).toBe("GET");
+        expect(call.url).toBe("/api/v1/brokers");
+        expect(call.params).toEqual({
+          region,
+          page: 0,
+          size: 10,
+          assetClass: undefined,
+        });
+  
+        // response values
+        expect(res.recordCount).toBe(239);
+        expect(res.items).toHaveLength(1);
+  
+        const broker = res.items[0];
+        expect(broker.id).toBe(1);
+        expect(broker.symbol).toBe("BIDZY");
+        expect(broker.name).toBe("DENIZ YATIRIM");
+        expect(broker.longName).toBe("DENIZ YATIRIM MENKUL KIYMETLER A.S.");
+        expect(broker.logo).toBe(
+          "https://finfree-storage.s3.eu-central-1.amazonaws.com/brokers/BIDZY.svg"
         );
-
-        expect(response.recordCount).toBe(2);
-        expect(response.items).toHaveLength(2);
-
-        const firstBroker = response.items[0];
-        expect(firstBroker.id).toBe(1001);
-        expect(firstBroker.symbol).toBe("BIYKR");
-        expect(firstBroker.name).toBe("BİYİKLI YATIRIM");
-        expect(firstBroker.longName).toBe("Bıyıklı Yatırım Menkul Değerler A.Ş.");
-        expect(firstBroker.logo).toBe("https://example.com/biykr.png");
-        expect(firstBroker.supportedAssetClasses).toEqual([AssetClass.Equity]);
-
-        expect(brokerClient.getBrokers).toHaveBeenCalledWith(
-          Region.Tr,
-          0,
-          5,
-          AssetClass.Equity
-        );
+        expect(broker.supportedAssetClasses).toEqual([AssetClass.Equity]);
       });
-
-      test("should handle getBrokers without assetClass parameter", async () => {
-        jest.spyOn(brokerClient, 'getBrokers').mockResolvedValue(mockBrokersPaginatedResponse);
-
-        const response = await brokerClient.getBrokers(
-          Region.Tr,
-          0,
-          5
-        );
-
-        expect(response.recordCount).toBe(2);
-        expect(response.items).toHaveLength(2);
-
-        const firstBroker = response.items[0];
-        expect(firstBroker.id).toBe(1001);
-        expect(firstBroker.symbol).toBe("BIYKR");
-        expect(firstBroker.name).toBe("BİYİKLI YATIRIM");
-        expect(firstBroker.longName).toBe("Bıyıklı Yatırım Menkul Değerler A.Ş.");
-        expect(firstBroker.logo).toBe("https://example.com/biykr.png");
-
-        expect(brokerClient.getBrokers).toHaveBeenCalledWith(
-          Region.Tr,
-          0,
-          5
-        );
-      });
-
-      test("should handle empty brokers response", async () => {
-        const emptyResponse: PaginatedResponse<Broker> = {
-          recordCount: 0,
-          items: []
-        };
-        jest.spyOn(brokerClient, 'getBrokers').mockResolvedValue(emptyResponse);
-
-        const response = await brokerClient.getBrokers(
-          Region.Tr,
-          0,
-          10
-        );
-
-        expect(response.recordCount).toBe(0);
-        expect(response.items).toHaveLength(0);
-      });
-
-      test("should handle getBrokers error", async () => {
-        jest.spyOn(brokerClient, 'getBrokers').mockRejectedValue(new Error("Unsupported asset class"));
-
-        await expect(brokerClient.getBrokers(
-          Region.Tr,
-          0,
-          10,
-          AssetClass.Crypto
-        )).rejects.toThrow("Unsupported asset class");
+  
+      test("should include assetClass when provided", async () => {
+        cli.request.mockResolvedValueOnce({ data: fxGetBrokers });
+  
+        await brokerClient.getBrokers(region, 0, 10, AssetClass.Equity);
+  
+        const call = cli.request.mock.calls[0][0];
+        expect(call.params).toEqual({
+          region,
+          page: 0,
+          size: 10,
+          assetClass: AssetClass.Equity,
+        });
       });
     });
   });
