@@ -10,8 +10,8 @@ export class Client {
   private apiKey: string;
   private logger: Logger;
 
-  constructor(cfg: LaplaceConfiguration, logger: Logger) {
-    this.cli = axios.create();
+  constructor(cfg: LaplaceConfiguration, logger: Logger, cli?: AxiosInstance) {
+    this.cli = cli ?? axios.create();
     this.baseUrl = cfg.baseURL;
     this.apiKey = cfg.apiKey;
     this.logger = logger;
