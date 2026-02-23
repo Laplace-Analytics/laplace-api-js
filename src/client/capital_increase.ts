@@ -8,7 +8,7 @@ export interface PaginatedResponse<T> {
 
 export interface CapitalIncrease {
   id: number;
-  boardDecisionDate: string;
+  boardDecisionDate: string | null;
   registeredCapitalCeiling: string;
   currentCapital: string;
   targetCapital: string;
