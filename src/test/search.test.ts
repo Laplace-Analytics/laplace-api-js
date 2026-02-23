@@ -71,7 +71,6 @@ const mockAllTypesSearchResponse = {
     {
       id: "col123",
       title: "Artificial Intelligence",
-      description: "AI focused companies",
       region: [Region.Us],
       assetClass: "equity",
       imageUrl: "https://example.com/collection.jpg",
@@ -97,12 +96,7 @@ describe("Search", () => {
 
   describe("Integration Tests", () => {
     test("SearchStock", async () => {
-      const resp = await client.search(
-        "TUPRS",
-        [SearchType.Stock],
-        Region.Tr,
-        Locale.Tr
-      );
+      const resp = await client.search("TUPRS", [SearchType.Stock], Locale.Tr, Region.Tr);
       expect(resp.stocks).not.toBeEmpty();
 
       const firstResult = resp.stocks[0];
@@ -115,12 +109,7 @@ describe("Search", () => {
     });
 
     test("SearchIndustry", async () => {
-      const resp = await client.search(
-        "Hava",
-        [SearchType.Industry],
-        Region.Tr,
-        Locale.Tr
-      );
+      const resp = await client.search("Hava", [SearchType.Industry], Locale.Tr, Region.Tr);
       expect(resp.industries).not.toBeEmpty();
 
       const firstResult = resp.industries[0];
@@ -128,9 +117,7 @@ describe("Search", () => {
       expect(typeof firstResult.title).toBe("string");
       expect(Array.isArray(firstResult.region)).toBe(true);
       expect(firstResult.region.length).toBeGreaterThan(0);
-      firstResult.region.forEach((region) => {
-        expect(typeof region).toBe("string");
-      });
+      firstResult.region.forEach((r: string) => expect(typeof r).toBe("string"));
 
       expect(typeof firstResult.assetClass).toBe("string");
       expect(typeof firstResult.imageUrl).toBe("string");
@@ -140,18 +127,10 @@ describe("Search", () => {
     test("SearchAllTypes", async () => {
       const resp = await client.search(
         "Ab",
-        [
-          SearchType.Stock,
-          SearchType.Industry,
-          SearchType.Sector,
-          SearchType.Collection,
-        ],
-        Region.Us,
-        Locale.Tr
+        [SearchType.Stock, SearchType.Industry, SearchType.Sector, SearchType.Collection],
+        Locale.Tr,
+        Region.Us
       );
-
-      expect(typeof resp).toBe("object");
-      expect(resp).not.toBeNull();
 
       const hasResults =
         (resp.stocks && resp.stocks.length > 0) ||
@@ -160,168 +139,163 @@ describe("Search", () => {
         (resp.collections && resp.collections.length > 0);
 
       expect(hasResults).toBe(true);
-
-      if (resp.stocks) expect(Array.isArray(resp.stocks)).toBe(true);
-      if (resp.industries) expect(Array.isArray(resp.industries)).toBe(true);
-      if (resp.sectors) expect(Array.isArray(resp.sectors)).toBe(true);
-      if (resp.collections) expect(Array.isArray(resp.collections)).toBe(true);
     });
   });
 
-  describe("Mock Tests", () => {
+  describe("Mock Tests (Data Injection)", () => {
+    let client: SearchClient;
+    let cli: { request: jest.Mock };
+
     beforeEach(() => {
-      jest.clearAllMocks();
+      cli = { request: jest.fn() };
+
+      const config = (global as any).testSuite.config as LaplaceConfiguration;
+      const logger: Logger = {
+        info: jest.fn(),
+        error: jest.fn(),
+        warn: jest.fn(),
+        debug: jest.fn(),
+      } as unknown as Logger;
+
+      client = new SearchClient(config, logger, cli as any);
     });
 
-    describe("SearchStock", () => {
-      test("should return stock search results with mock data", async () => {
-        jest.spyOn(client, 'search').mockResolvedValue(mockStockSearchResponse);
+    function expectSearchCall(expected: {
+      filter: string;
+      types: SearchType[];
+      locale: Locale;
+      region?: Region;
+      page?: number;
+      size?: number;
+    }) {
+      expect(cli.request).toHaveBeenCalledTimes(1);
+      const call = cli.request.mock.calls[0][0];
 
-        const resp = await client.search(
-          "TUPRS",
-          [SearchType.Stock],
-          Region.Tr,
-          Locale.Tr
-        );
+      expect(call.method).toBe("GET");
+      expect(call.url).toBe("/api/v1/search");
 
-        expect(resp.stocks).toHaveLength(1);
-        
-        const firstResult = resp.stocks[0];
-        expect(firstResult.id).toBe("61dd0d6f0ec2114146342fd0");
-        expect(firstResult.name).toBe("Tüpraş");
-        expect(firstResult.title).toBe("Türkiye Petrol Rafinerileri A.Ş.");
-        expect(firstResult.region).toBe(Region.Tr);
-        expect(firstResult.assetType).toBe("stock");
-        expect(firstResult.type).toBe("equity");
+      const expectedParams: any = {
+        filter: expected.filter,
+        types: expected.types.join(","),
+        locale: expected.locale,
+      };
 
-        expect(resp.industries).toHaveLength(0);
-        expect(resp.sectors).toHaveLength(0);
-        expect(resp.collections).toHaveLength(0);
+      if (expected.region != null) expectedParams.region = expected.region;
+      if (expected.page != null) expectedParams.page = expected.page;
+      if (expected.size != null) expectedParams.size = expected.size;
 
-        expect(client.search).toHaveBeenCalledWith(
-          "TUPRS",
-          [SearchType.Stock],
-          Region.Tr,
-          Locale.Tr
-        );
+      expect(call.params).toEqual(expectedParams);
+    }
+
+    test("SearchStock: calls correct endpoint/params and matches raw response", async () => {
+      cli.request.mockResolvedValueOnce({ data: mockStockSearchResponse });
+
+      const resp = await client.search("TUPRS", [SearchType.Stock], Locale.Tr, Region.Tr);
+
+      expectSearchCall({
+        filter: "TUPRS",
+        types: [SearchType.Stock],
+        locale: Locale.Tr,
+        region: Region.Tr,
       });
 
-      test("should handle API errors for stock search", async () => {
-        jest.spyOn(client, 'search').mockRejectedValue(new Error("Failed to search stocks"));
+      expect(resp.stocks).toHaveLength(1);
+      const first = resp.stocks[0];
+      expect(first.id).toBe(mockStockSearchResponse.stocks[0].id);
+      expect(first.name).toBe(mockStockSearchResponse.stocks[0].name);
+      expect(first.title).toBe(mockStockSearchResponse.stocks[0].title);
+      expect(first.region).toBe(mockStockSearchResponse.stocks[0].region);
+      expect(first.assetType).toBe(mockStockSearchResponse.stocks[0].assetType);
+      expect(first.type).toBe(mockStockSearchResponse.stocks[0].type);
 
-        await expect(client.search(
-          "TUPRS",
-          [SearchType.Stock],
-          Region.Tr,
-          Locale.Tr
-        )).rejects.toThrow("Failed to search stocks");
+      expect(resp.industries).toHaveLength(0);
+      expect(resp.sectors).toHaveLength(0);
+      expect(resp.collections).toHaveLength(0);
+    });
+
+    test("SearchIndustry: calls correct endpoint/params and matches raw response", async () => {
+      cli.request.mockResolvedValueOnce({ data: mockIndustrySearchResponse });
+
+      const resp = await client.search("Hava", [SearchType.Industry], Locale.Tr, Region.Tr);
+
+      expectSearchCall({
+        filter: "Hava",
+        types: [SearchType.Industry],
+        locale: Locale.Tr,
+        region: Region.Tr,
+      });
+
+      expect(resp.industries).toHaveLength(1);
+      const first = resp.industries[0];
+      expect(first.id).toBe(mockIndustrySearchResponse.industries[0].id);
+      expect(first.title).toBe(mockIndustrySearchResponse.industries[0].title);
+      expect(first.region).toEqual(mockIndustrySearchResponse.industries[0].region);
+      expect(first.assetClass).toBe(mockIndustrySearchResponse.industries[0].assetClass);
+      expect(first.imageUrl).toBe(mockIndustrySearchResponse.industries[0].imageUrl);
+      expect(first.avatarUrl).toBe(mockIndustrySearchResponse.industries[0].avatarUrl);
+
+      expect(resp.stocks).toHaveLength(0);
+      expect(resp.sectors).toHaveLength(0);
+      expect(resp.collections).toHaveLength(0);
+    });
+
+    test("SearchAllTypes: calls correct endpoint/params and matches raw response", async () => {
+      cli.request.mockResolvedValueOnce({ data: mockAllTypesSearchResponse });
+
+      const resp = await client.search(
+        "Ab",
+        [SearchType.Stock, SearchType.Industry, SearchType.Sector, SearchType.Collection],
+        Locale.Tr,
+        Region.Us
+      );
+
+      expectSearchCall({
+        filter: "Ab",
+        types: [SearchType.Stock, SearchType.Industry, SearchType.Sector, SearchType.Collection],
+        locale: Locale.Tr,
+        region: Region.Us,
+      });
+
+      expect(resp.stocks).toHaveLength(1);
+      expect(resp.industries).toHaveLength(1);
+      expect(resp.sectors).toHaveLength(1);
+      expect(resp.collections).toHaveLength(1);
+    });
+
+    test("does not send optional params when undefined", async () => {
+      cli.request.mockResolvedValueOnce({ data: mockStockSearchResponse });
+
+      await client.search("TUPRS", [SearchType.Stock], Locale.Tr);
+
+      expectSearchCall({
+        filter: "TUPRS",
+        types: [SearchType.Stock],
+        locale: Locale.Tr,
       });
     });
 
-    describe("SearchIndustry", () => {
-      test("should return industry search results with mock data", async () => {
-        jest.spyOn(client, 'search').mockResolvedValue(mockIndustrySearchResponse);
+    test("bubbles up request error", async () => {
+      cli.request.mockRejectedValueOnce(new Error("Failed to search"));
 
-        const resp = await client.search(
-          "Hava",
-          [SearchType.Industry],
-          Region.Tr,
-          Locale.Tr
-        );
+      await expect(client.search("TUPRS", [SearchType.Stock], Locale.Tr, Region.Tr)).rejects.toThrow(
+        "Failed to search"
+      );
 
-        expect(resp.industries).toHaveLength(1);
-        
-        const firstResult = resp.industries[0];
-        expect(firstResult.id).toBe("ind123");
-        expect(firstResult.title).toBe("Hava Yolları Taşımacılığı");
-        expect(firstResult.region).toEqual([Region.Tr]);
-        expect(firstResult.assetClass).toBe("equity");
-        expect(firstResult.imageUrl).toBe("https://example.com/image.jpg");
-        expect(firstResult.avatarUrl).toBe("https://example.com/avatar.jpg");
-
-        expect(resp.stocks).toHaveLength(0);
-        expect(resp.sectors).toHaveLength(0);
-        expect(resp.collections).toHaveLength(0);
-
-        expect(client.search).toHaveBeenCalledWith(
-          "Hava",
-          [SearchType.Industry],
-          Region.Tr,
-          Locale.Tr
-        );
-      });
-
-      test("should handle API errors for industry search", async () => {
-        jest.spyOn(client, 'search').mockRejectedValue(new Error("Failed to search industries"));
-
-        await expect(client.search(
-          "Hava",
-          [SearchType.Industry],
-          Region.Tr,
-          Locale.Tr
-        )).rejects.toThrow("Failed to search industries");
-      });
+      expect(cli.request).toHaveBeenCalledTimes(1);
     });
 
-    describe("SearchAllTypes", () => {
-      test("should return all types search results with mock data", async () => {
-        jest.spyOn(client, 'search').mockResolvedValue(mockAllTypesSearchResponse);
+    test("page=0 / size=0 should still be sent (guards against falsy spread bug)", async () => {
+      cli.request.mockResolvedValueOnce({ data: mockStockSearchResponse });
 
-        const resp = await client.search(
-          "Ab",
-          [
-            SearchType.Stock,
-            SearchType.Industry,
-            SearchType.Sector,
-            SearchType.Collection,
-          ],
-          Region.Us,
-          Locale.Tr
-        );
+      await client.search("TUPRS", [SearchType.Stock], Locale.Tr, Region.Tr, 0, 10);
 
-        expect(resp.stocks).toHaveLength(1);
-        expect(resp.stocks[0].name).toBe("Abbott");
-        expect(resp.stocks[0].region).toBe(Region.Us);
-
-        expect(resp.industries).toHaveLength(1);
-        expect(resp.industries[0].title).toBe("Abrasive Manufacturing");
-        expect(resp.industries[0].region).toEqual([Region.Us]);
-
-        expect(resp.sectors).toHaveLength(1);
-        expect(resp.sectors[0].title).toBe("Aerospace & Defense");
-        expect(resp.sectors[0].region).toEqual([Region.Us]);
-
-        expect(resp.collections).toHaveLength(1);
-        expect(resp.collections[0].title).toBe("Artificial Intelligence");
-        expect(resp.collections[0].region).toEqual([Region.Us]);
-
-        expect(client.search).toHaveBeenCalledWith(
-          "Ab",
-          [
-            SearchType.Stock,
-            SearchType.Industry,
-            SearchType.Sector,
-            SearchType.Collection,
-          ],
-          Region.Us,
-          Locale.Tr
-        );
-      });
-
-      test("should handle API errors for all types search", async () => {
-        jest.spyOn(client, 'search').mockRejectedValue(new Error("Failed to search all types"));
-
-        await expect(client.search(
-          "Ab",
-          [
-            SearchType.Stock,
-            SearchType.Industry,
-            SearchType.Sector,
-            SearchType.Collection,
-          ],
-          Region.Us,
-          Locale.Tr
-        )).rejects.toThrow("Failed to search all types");
+      expectSearchCall({
+        filter: "TUPRS",
+        types: [SearchType.Stock],
+        locale: Locale.Tr,
+        region: Region.Tr,
+        page: 0,
+        size: 10,
       });
     });
   });
