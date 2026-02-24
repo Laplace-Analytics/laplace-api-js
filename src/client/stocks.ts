@@ -13,8 +13,10 @@ export enum AssetType {
 }
 
 export enum AssetClass {
+  Adr = 'adr',
   Equity = 'equity',
   Crypto = 'crypto',
+  Etn = 'etn',
 }
 
 export enum HistoricalPricePeriod {
@@ -155,9 +157,22 @@ export interface MarketState {
 	stockSymbol?: string | null;
 }
 
+export enum ChartImagePeriod {
+  OneDay = '1D',
+  OneWeek = '1W',
+  OneMonth = '1M',
+  ThreeMonth = '3M',
+  SixMonth = '6M',
+  OneYear = '1Y',
+  TwoYear = '2Y',
+  ThreeYear = '3Y',
+  FiveYear = '5Y',
+  All = 'All',
+}
+
 export interface GenerateChartImageRequest {
   symbol: string;
-  period?: HistoricalPricePeriod;
+  period?: ChartImagePeriod;
   region: Region;
   resolution?: HistoricalPriceInterval;
   indicators?: string[];

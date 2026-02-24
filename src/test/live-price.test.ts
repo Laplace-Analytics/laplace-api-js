@@ -2,6 +2,7 @@ import { Logger } from "winston";
 import { LaplaceConfiguration } from "../utilities/configuration";
 import "./client_test_suite";
 import { BISTBidAskStreamData, BISTStockStreamData, LivePriceClient, OrderbookLiveData } from "../client/live-price";
+import { LivePriceFeed } from "../client/live-price-web-socket";
 
 describe("LivePrice", () => {
   let client: LivePriceClient;
@@ -475,6 +476,99 @@ describe("LivePrice", () => {
     );
   });
 
+  describe("GetClientWebsocketUrl", () => {
+    it(
+      "should return a websocket url string",
+      async () => {
+        const resp = await client.getClientWebsocketUrl("test-integration-user", [LivePriceFeed.LiveBist]);
+        expect(typeof resp).toBe("string");
+        expect(resp.length).toBeGreaterThan(0);
+      },
+      TEST_CONSTANTS.JEST_TIMEOUT
+    );
+  });
+
+  describe("GetWebsocketUsageForMonth", () => {
+    it(
+      "should return an array of usage data",
+      async () => {
+        const resp = await client.getWebsocketUsageForMonth(1, 2025, LivePriceFeed.LiveBist);
+        expect(Array.isArray(resp)).toBe(true);
+        if (resp.length > 0) {
+          expect(typeof resp[0].externalUserID).toBe("string");
+          expect(typeof resp[0].uniqueDeviceCount).toBe("number");
+        }
+      },
+      TEST_CONSTANTS.JEST_TIMEOUT
+    );
+  });
+
+  describe("Mock Tests (Data Injection)", () => {
+    let mockClient: LivePriceClient;
+    let cli: { request: jest.Mock };
+
+    beforeEach(() => {
+      cli = { request: jest.fn() };
+      const config = (global as any).testSuite.config as LaplaceConfiguration;
+      const mockLogger: Logger = {
+        info: jest.fn(),
+        error: jest.fn(),
+        warn: jest.fn(),
+        debug: jest.fn(),
+      } as unknown as Logger;
+      mockClient = new LivePriceClient(config, mockLogger, cli as any);
+    });
+
+    describe("getClientWebsocketUrl", () => {
+      test("calls correct endpoint, sends correct body, and returns url string", async () => {
+        cli.request.mockResolvedValueOnce({ data: { url: "wss://example.com/ws" } });
+
+        const resp = await mockClient.getClientWebsocketUrl("user123", [LivePriceFeed.LiveBist, LivePriceFeed.LiveUs]);
+
+        expect(cli.request).toHaveBeenCalledTimes(1);
+        const call = cli.request.mock.calls[0][0];
+        expect(call.method).toBe("POST");
+        expect(call.url).toContain("/api/v2/ws/url");
+        expect(call.data).toEqual({ externalUserId: "user123", feeds: [LivePriceFeed.LiveBist, LivePriceFeed.LiveUs] });
+        expect(resp).toBe("wss://example.com/ws");
+      });
+
+      test("bubbles up request error", async () => {
+        cli.request.mockRejectedValueOnce(new Error("Unauthorized"));
+
+        await expect(mockClient.getClientWebsocketUrl("user123", [LivePriceFeed.LiveBist])).rejects.toThrow("Unauthorized");
+        expect(cli.request).toHaveBeenCalledTimes(1);
+      });
+    });
+
+    describe("getWebsocketUsageForMonth", () => {
+      test("calls correct endpoint with correct query params and returns usage data", async () => {
+        const mockUsage = [
+          { externalUserID: "user123", firstConnectionTime: new Date("2024-01-15"), uniqueDeviceCount: 3 },
+        ];
+        cli.request.mockResolvedValueOnce({ data: mockUsage });
+
+        const resp = await mockClient.getWebsocketUsageForMonth(1, 2024, LivePriceFeed.LiveBist);
+
+        expect(cli.request).toHaveBeenCalledTimes(1);
+        const call = cli.request.mock.calls[0][0];
+        expect(call.method).toBe("GET");
+        expect(call.url).toContain("/api/v1/ws/report");
+        expect(call.url).toContain("month=1");
+        expect(call.url).toContain("year=2024");
+        expect(call.url).toContain(`feedType=${LivePriceFeed.LiveBist}`);
+        expect(resp).toEqual(mockUsage);
+      });
+
+      test("bubbles up request error", async () => {
+        cli.request.mockRejectedValueOnce(new Error("Forbidden"));
+
+        await expect(mockClient.getWebsocketUsageForMonth(1, 2024, LivePriceFeed.LiveBist)).rejects.toThrow("Forbidden");
+        expect(cli.request).toHaveBeenCalledTimes(1);
+      });
+    });
+  });
+
   describe("GetBidAskForBIST", () => {
     it(
       "should receive BIST bid/ask data",
@@ -515,7 +609,7 @@ describe("LivePrice", () => {
             console.log("Received BIST bid/ask data:", tempReceivedData);
             expect(tempReceivedData.s).toBeDefined();
             expect(typeof tempReceivedData.s).toBe("string");
-            expect(typeof tempReceivedData.d).toBe("string");
+            expect(typeof tempReceivedData.d).toBe("number");
             expect(typeof tempReceivedData.ask).toBe("number");
             expect(typeof tempReceivedData.bid).toBe("number");
           } else {

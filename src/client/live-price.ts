@@ -21,6 +21,8 @@ export interface BISTStockPriceData {
 export interface USStockPriceData {
   s: string; // Symbol
   p: number; // Price
+  pc: number; // PercentChange
+  ac: number; // AmountChange
   d: number; // Date
 }
 
@@ -42,7 +44,7 @@ export interface OrderbookLevel {
 }
 
 export interface BISTBidAskData {
-  d: string;
+  d: number;
   s: string;
   ask: number;
   bid: number;
@@ -340,13 +342,13 @@ export class LivePriceClient extends Client {
   }
 
   async getWebsocketUsageForMonth(
-    month: string,
-    year: string,
+    month: number,
+    year: number,
     feedType: LivePriceFeed,
   ): Promise<WebSocketUsageResponse[]> {
     const url = new URL(`${this["baseUrl"]}/api/v1/ws/report`);
-    url.searchParams.append("month", month);
-    url.searchParams.append("year", year);
+    url.searchParams.append("month", month.toString());
+    url.searchParams.append("year", year.toString());
     url.searchParams.append("feedType", feedType);
 
     const response = await this.sendRequest<WebSocketUsageResponse[]>({

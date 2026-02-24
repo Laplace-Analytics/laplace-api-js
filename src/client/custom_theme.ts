@@ -62,8 +62,8 @@ export class CustomThemeClient extends Client {
   }
 
 
-  async getAllCustomThemes(locale: Locale): Promise<Collection[]> {
-    return this.getAllCollectionsPrivate(CollectionType.CustomTheme, locale);
+  async getAllCustomThemes(locale: Locale, region?: Region): Promise<Collection[]> {
+    return this.getAllCollectionsPrivate(CollectionType.CustomTheme, locale, region);
   }
 
   async getCustomThemeDetail(id: string, locale: Locale, sortBy: SortBy | null): Promise<CollectionDetail> {

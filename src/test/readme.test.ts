@@ -282,9 +282,9 @@ describe("README Examples - Comprehensive Tests", () => {
     test("getTopMovers", async () => {
       const movers = await financialFundamentalsClient.getTopMovers(
         Region.Tr,
-        1,
         10,
         TopMoverDirection.Gainers,
+        0,
         AssetType.Stock,
         AssetClass.Equity
       );
@@ -350,8 +350,8 @@ describe("README Examples - Comprehensive Tests", () => {
       const results = await searchClient.search(
         "technology",
         [SearchType.Stock, SearchType.Collection],
-        Region.Us,
-        Locale.En
+        Locale.En,
+        Region.Us
       );
       expect(results).toBeDefined();
     });

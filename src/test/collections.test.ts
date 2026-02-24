@@ -8,8 +8,8 @@ import {
 import "./client_test_suite";
 import { validateCollection, validateCollectionDetail } from "./helpers";
 import {
-  HistoricalPricePeriod,
-} from "../client/stocks";
+  AggregateGraphPeriod,
+} from "../client/collections";
 
 const mockCollectionList = [
   {
@@ -283,7 +283,7 @@ describe("Collections", () => {
 
     test("GetAggregateGraph", async () => {
       const resp = await client.getAggregateGraph(
-        HistoricalPricePeriod.OneYear,
+        AggregateGraphPeriod.OneYear,
         "65533e047844ee7afe9941b9",
         "65533e441fa5c7b58afa0944",
         "",
@@ -623,7 +623,7 @@ describe("Collections", () => {
         cli.request.mockResolvedValueOnce({ data: mockCollectionPriceGraph });
 
         const resp = await client.getAggregateGraph(
-          HistoricalPricePeriod.OneYear,
+          AggregateGraphPeriod.OneYear,
           "65533e047844ee7afe9941b9", // sectorId
           "65533e441fa5c7b58afa0944", // industryId
           "", // collectionId
@@ -636,7 +636,7 @@ describe("Collections", () => {
         expect(call.method).toBe("GET");
         expect(call.url).toBe("/api/v1/aggregate/graph");
         expect(call.params).toEqual({
-          period: HistoricalPricePeriod.OneYear,
+          period: AggregateGraphPeriod.OneYear,
           sectorId: "65533e047844ee7afe9941b9",
           industryId: "65533e441fa5c7b58afa0944",
           collectionId: "",
@@ -670,7 +670,7 @@ describe("Collections", () => {
 
         await expect(
           client.getAggregateGraph(
-            HistoricalPricePeriod.OneMonth,
+            AggregateGraphPeriod.OneMonth,
             "",
             "",
             "collection1",

@@ -4,6 +4,7 @@ import {
   StockClient,
   HistoricalPricePeriod,
   HistoricalPriceInterval,
+  ChartImagePeriod,
   AssetClass,
   Stock,
   AssetType,
@@ -778,7 +779,7 @@ describe("Stocks Client", () => {
       await client.getStockChartImage({
         symbol: "TUPRS",
         region: Region.Tr,
-        period: HistoricalPricePeriod.OneMonth,
+        period: ChartImagePeriod.OneMonth,
         resolution: HistoricalPriceInterval.OneDay,
         indicators: ["RSI", "MACD"],
         chartType: 1,
@@ -788,7 +789,7 @@ describe("Stocks Client", () => {
       expect(call.params).toEqual({
         symbol: "TUPRS",
         region: Region.Tr,
-        period: HistoricalPricePeriod.OneMonth,
+        period: ChartImagePeriod.OneMonth,
         resolution: HistoricalPriceInterval.OneDay,
         indicators: ["RSI", "MACD"],
         chartType: 1,

@@ -1,5 +1,5 @@
 import { Client } from './client';
-import { HistoricalPricePeriod, PriceDataPoint, Stock } from './stocks';
+import { PriceDataPoint, Stock } from './stocks';
 
 export enum CollectionType {
   Sector = 'sector',
@@ -21,6 +21,17 @@ export enum Locale {
 
 export enum SortBy {
   PriceChange = "price_change"
+}
+
+export enum AggregateGraphPeriod {
+  OneDay = '1G',
+  OneWeek = '1H',
+  OneMonth = '1A',
+  ThreeMonth = '3A',
+  OneYear = '1Y',
+  TwoYear = '2Y',
+  ThreeYear = '3Y',
+  FiveYear = '5Y',
 }
 
 export interface Collection {
@@ -81,39 +92,39 @@ export class CollectionClient extends Client {
     });
   }
  
-  async getSectorDetail(id: string, region: Region, locale: Locale): Promise<CollectionDetail> {
+  async getSectorDetail(id: string, region: Region, locale: Locale, sortBy?: SortBy): Promise<CollectionDetail> {
     return this.sendRequest<CollectionDetail>({
       method: 'GET',
       url: `/api/v1/sector/${id}`,
-      params: { region, locale },
-    });
-  }
- 
-  async getIndustryDetail(id: string, region: Region, locale: Locale): Promise<CollectionDetail> {
-    return this.sendRequest<CollectionDetail>({
-      method: 'GET',
-      url: `/api/v1/industry/${id}`,
-      params: { region, locale },
-    });
-  }
- 
-  async getThemeDetail(id: string, region: Region, locale: Locale): Promise<CollectionDetail> {
-    return this.sendRequest<CollectionDetail>({
-      method: 'GET',
-      url: `/api/v1/theme/${id}`,
-      params: { region, locale },
-    });
-  }
- 
-  async getCollectionDetail(id: string, region: Region, locale: Locale): Promise<CollectionDetail> {
-    return this.sendRequest<CollectionDetail>({
-      method: 'GET',
-      url: `/api/v1/collection/${id}`,
-      params: { region, locale },
+      params: { region, locale, ...(sortBy && { sortBy }) },
     });
   }
 
-  async getAggregateGraph(period: HistoricalPricePeriod, sectorId: string, industryId: string, collectionId: string, region: Region): Promise<CollectionPriceGraph> {
+  async getIndustryDetail(id: string, region: Region, locale: Locale, sortBy?: SortBy): Promise<CollectionDetail> {
+    return this.sendRequest<CollectionDetail>({
+      method: 'GET',
+      url: `/api/v1/industry/${id}`,
+      params: { region, locale, ...(sortBy && { sortBy }) },
+    });
+  }
+
+  async getThemeDetail(id: string, region: Region, locale: Locale, sortBy?: SortBy): Promise<CollectionDetail> {
+    return this.sendRequest<CollectionDetail>({
+      method: 'GET',
+      url: `/api/v1/theme/${id}`,
+      params: { region, locale, ...(sortBy && { sortBy }) },
+    });
+  }
+
+  async getCollectionDetail(id: string, region: Region, locale: Locale, sortBy?: SortBy): Promise<CollectionDetail> {
+    return this.sendRequest<CollectionDetail>({
+      method: 'GET',
+      url: `/api/v1/collection/${id}`,
+      params: { region, locale, ...(sortBy && { sortBy }) },
+    });
+  }
+
+  async getAggregateGraph(period: AggregateGraphPeriod, sectorId: string, industryId: string, collectionId: string, region: Region): Promise<CollectionPriceGraph> {
     return this.sendRequest<CollectionPriceGraph>({
       method: 'GET',
       url: `/api/v1/aggregate/graph`,
