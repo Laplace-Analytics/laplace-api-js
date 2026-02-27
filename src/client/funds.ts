@@ -101,10 +101,10 @@ export interface FundHistoricalPrice {
 }
 
 export class FundsClient extends Client {
-  async getFunds(region: Region, pageSize: number, page?: number) {
+  async getFunds(region: Region, pageSize?: number, page?: number): Promise<Fund[]> {
     const params = {
       region,
-      pageSize,
+      ...(pageSize != null && { pageSize }),
       ...(page != null && { page })
     }
     return this.sendRequest<Fund[]>({
@@ -114,7 +114,7 @@ export class FundsClient extends Client {
     });
   }
 
-  async getFundStats(symbol: string, region: Region) {
+  async getFundStats(symbol: string, region: Region): Promise<FundStats> {
     return this.sendRequest<FundStats>({
       method: "GET",
       url: `/api/v1/fund/stats`,
@@ -122,7 +122,7 @@ export class FundsClient extends Client {
     });
   }
 
-  async getFundDistribution(symbol: string, region: Region) {
+  async getFundDistribution(symbol: string, region: Region): Promise<FundDistribution> {
     return this.sendRequest<FundDistribution>({
       method: "GET",
       url: `/api/v1/fund/distribution`,
@@ -134,7 +134,7 @@ export class FundsClient extends Client {
     symbol: string,
     region: Region,
     period: HistoricalFundPricePeriod
-  ) {
+  ): Promise<FundHistoricalPrice[]> {
     return this.sendRequest<FundHistoricalPrice[]>({
       method: "GET",
       url: `/api/v1/fund/price`,
