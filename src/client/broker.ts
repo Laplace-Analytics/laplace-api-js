@@ -61,8 +61,8 @@ export class BrokerClient extends Client {
 
   async getBrokers(
     region: Region,
-    page: number,
     size: number,
+    page?: number,
     assetClass?: AssetClass
   ): Promise<PaginatedResponse<Broker>> {
     return this.sendRequest<PaginatedResponse<Broker>>({
@@ -70,9 +70,9 @@ export class BrokerClient extends Client {
       url: "/api/v1/brokers",
       params: {
         region,
-        page,
         size,
-        assetClass
+        ...(page != null && { page }),
+        ...(assetClass != null && { assetClass }),
       },
     });
   }
@@ -83,8 +83,8 @@ export class BrokerClient extends Client {
     sortDirection: SortDirection,
     fromDate: string,
     toDate: string,
-    page: number,
-    size: number
+    size: number,
+    page?: number,
   ): Promise<BrokerList> {
     return this.sendRequest<BrokerList>({
       method: "GET",
@@ -95,8 +95,8 @@ export class BrokerClient extends Client {
         sortDirection,
         fromDate,
         toDate,
-        page,
         size,
+        ...(page != null && { page }),
       },
     });
   }
@@ -107,8 +107,8 @@ export class BrokerClient extends Client {
     sortDirection: SortDirection,
     fromDate: string,
     toDate: string,
-    page: number,
-    size: number
+    size: number,
+    page?: number,
   ): Promise<BrokerList> {
     return this.sendRequest<BrokerList>({
       method: "GET",
@@ -119,8 +119,8 @@ export class BrokerClient extends Client {
         sortDirection,
         fromDate,
         toDate,
-        page,
         size,
+        ...(page != null && { page }),
       },
     });
   }
@@ -132,8 +132,8 @@ export class BrokerClient extends Client {
     sortDirection: SortDirection,
     fromDate: string,
     toDate: string,
-    page: number,
-    size: number
+    size: number,
+    page?: number,
   ): Promise<BrokerList> {
     return this.sendRequest<BrokerList>({
       method: "GET",
@@ -144,8 +144,8 @@ export class BrokerClient extends Client {
         sortDirection,
         fromDate,
         toDate,
-        page,
         size,
+        ...(page != null && { page }),
       },
     });
   }
@@ -157,8 +157,8 @@ export class BrokerClient extends Client {
     sortDirection: SortDirection,
     fromDate: string,
     toDate: string,
-    page: number,
-    size: number
+    size: number,
+    page?: number,
   ): Promise<BrokerList> {
     return this.sendRequest<BrokerList>({
       method: "GET",
@@ -169,8 +169,8 @@ export class BrokerClient extends Client {
         sortDirection,
         fromDate,
         toDate,
-        page,
         size,
+        ...(page != null && { page }),
       },
     });
   }

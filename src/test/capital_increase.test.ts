@@ -62,7 +62,7 @@ describe("Capital Increase", () => {
 
   describe("Integration Tests", () => {
     test("GetAllCapitalIncreases", async () => {
-      const resp = await client.getAllCapitalIncreases(1, 10, Region.Tr);
+      const resp = await client.getAllCapitalIncreases(10, Region.Tr, 1);
 
       expect(resp).toBeDefined();
       expect(typeof resp.recordCount).toBe("number");
@@ -77,9 +77,9 @@ describe("Capital Increase", () => {
     test("GetCapitalIncreasesForInstrument", async () => {
       const resp = await client.getCapitalIncreasesForInstrument(
         "TUPRS",
-        1,
         10,
-        Region.Tr
+        Region.Tr,
+        1
       );
 
       expect(resp).toBeDefined();
@@ -137,11 +137,11 @@ describe("Capital Increase", () => {
       test("should call correct endpoint/params and map all fields", async () => {
         cli.request.mockResolvedValueOnce({ data: mockPaginatedResponse });
   
-        const resp = await client.getAllCapitalIncreases(page, size, region);
-  
+        const resp = await client.getAllCapitalIncreases(size, region, page);
+
         expect(cli.request).toHaveBeenCalledTimes(1);
         const call = cli.request.mock.calls[0][0];
-  
+
         expect(call.method).toBe("GET");
         expect(call.url).toBe("/api/v1/capital-increase/all");
         expect(call.params).toEqual({ page, size, region });
@@ -155,8 +155,8 @@ describe("Capital Increase", () => {
       test("should handle empty response", async () => {
         cli.request.mockResolvedValueOnce({ data: { recordCount: 0, items: [] } });
   
-        const resp = await client.getAllCapitalIncreases(page, size, region);
-  
+        const resp = await client.getAllCapitalIncreases(size, region, page);
+
         expect(resp.recordCount).toBe(0);
         expect(resp.items).toEqual([]);
       });
@@ -166,11 +166,11 @@ describe("Capital Increase", () => {
       test("should call correct endpoint/params and map all fields", async () => {
         cli.request.mockResolvedValueOnce({ data: { recordCount: 1, items: [mockCapitalIncrease] } });
   
-        const resp = await client.getCapitalIncreasesForInstrument(symbol, page, size, region);
-  
+        const resp = await client.getCapitalIncreasesForInstrument(symbol, size, region, page);
+
         expect(cli.request).toHaveBeenCalledTimes(1);
         const call = cli.request.mock.calls[0][0];
-  
+
         expect(call.method).toBe("GET");
         expect(call.url).toBe(`/api/v1/capital-increase/${symbol}`);
         expect(call.params).toEqual({ page, size, region });
@@ -185,7 +185,7 @@ describe("Capital Increase", () => {
         cli.request.mockRejectedValueOnce(new Error("Invalid symbol"));
   
         await expect(
-          client.getCapitalIncreasesForInstrument("INVALID", page, size, region)
+          client.getCapitalIncreasesForInstrument("INVALID", size, region, page)
         ).rejects.toThrow("Invalid symbol");
       });
     });

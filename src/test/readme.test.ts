@@ -313,7 +313,7 @@ describe("README Examples - Comprehensive Tests", () => {
 
   describe("Brokers Client", () => {
     test("getBrokers", async () => {
-      const brokers = await brokerClient.getBrokers(Region.Tr, 1, 10);
+      const brokers = await brokerClient.getBrokers(Region.Tr, 10, 1);
       expect(Array.isArray(brokers.items)).toBe(true);
     });
 
@@ -324,8 +324,8 @@ describe("README Examples - Comprehensive Tests", () => {
         SortDirection.Desc,
         "2024-01-01",
         "2024-01-31",
-        1,
-        10
+        10,
+        1
       );
       expect(Array.isArray(marketStocks.items)).toBe(true);
     });
@@ -338,8 +338,8 @@ describe("README Examples - Comprehensive Tests", () => {
         SortDirection.Desc,
         "2024-01-01",
         "2024-01-31",
-        1,
-        10
+        10,
+        1
       );
       expect(Array.isArray(brokersByStock.items)).toBe(true);
     });
@@ -368,9 +368,9 @@ describe("README Examples - Comprehensive Tests", () => {
   describe("Capital Increase Client", () => {
     test("getAllCapitalIncreases", async () => {
       const increases = await capitalIncreaseClient.getAllCapitalIncreases(
-        1,
         10,
-        Region.Tr
+        Region.Tr,
+        1
       );
       expect(Array.isArray(increases.items)).toBe(true);
     });
@@ -379,9 +379,9 @@ describe("README Examples - Comprehensive Tests", () => {
       const instrumentIncreases =
         await capitalIncreaseClient.getCapitalIncreasesForInstrument(
           "THYAO",
-          1,
           10,
-          Region.Tr
+          Region.Tr,
+          1
         );
       expect(Array.isArray(instrumentIncreases.items)).toBe(true);
     });

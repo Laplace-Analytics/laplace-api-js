@@ -190,8 +190,8 @@ describe("BrokerClient", () => {
         SortDirection.Desc,
         "2025-05-27",
         "2025-05-28",
-        0,
-        5
+        5,
+        0
       );
 
       expect(response).toBeDefined();
@@ -240,8 +240,8 @@ describe("BrokerClient", () => {
         SortDirection.Desc,
         fromDate,
         toDate,
-        0,
-        5
+        5,
+        0
       );
 
       expect(response).toBeDefined();
@@ -293,8 +293,8 @@ describe("BrokerClient", () => {
         SortDirection.Desc,
         fromDate,
         toDate,
-        0,
-        5
+        5,
+        0
       );
 
       expect(response).toBeDefined();
@@ -347,8 +347,8 @@ describe("BrokerClient", () => {
         SortDirection.Desc,
         fromDate,
         toDate,
-        0,
-        5
+        5,
+        0
       );
 
       expect(response).toBeDefined();
@@ -394,8 +394,8 @@ describe("BrokerClient", () => {
     test("getBrokers with assetClass parameter", async () => {
       const response = await brokerClient.getBrokers(
         Region.Tr,
-        0,
         10,
+        0,
         AssetClass.Equity
       );
 
@@ -421,7 +421,7 @@ describe("BrokerClient", () => {
     });
 
     test("getBrokers without assetClass parameter", async () => {
-      const response = await brokerClient.getBrokers(Region.Tr, 0, 10);
+      const response = await brokerClient.getBrokers(Region.Tr, 10, 0);
 
       expect(response).toBeDefined();
       expect(typeof response.recordCount).toBe("number");
@@ -479,8 +479,8 @@ describe("BrokerClient", () => {
           SortDirection.Desc,
           fromDate,
           toDate,
-          page,
-          size
+          size,
+          page
         );
   
         // request shape
@@ -540,8 +540,8 @@ describe("BrokerClient", () => {
           SortDirection.Desc,
           fromDate,
           toDate,
-          page,
-          size
+          size,
+          page
         );
   
         // request shape
@@ -602,8 +602,8 @@ describe("BrokerClient", () => {
           SortDirection.Desc,
           fromDate,
           toDate,
-          page,
-          size
+          size,
+          page
         );
   
         // request shape
@@ -665,8 +665,8 @@ describe("BrokerClient", () => {
             SortDirection.Desc,
             fromDate,
             toDate,
-            page,
-            size
+            size,
+            page
           )
         ).rejects.toThrow("Invalid stock symbol");
       });
@@ -683,8 +683,8 @@ describe("BrokerClient", () => {
           SortDirection.Desc,
           fromDate,
           toDate,
-          page,
-          size
+          size,
+          page
         );
   
         // request shape
@@ -742,8 +742,8 @@ describe("BrokerClient", () => {
             SortDirection.Desc,
             fromDate,
             toDate,
-            page,
-            size
+            size,
+            page
           )
         ).rejects.toThrow("Invalid broker symbol");
       });
@@ -753,19 +753,18 @@ describe("BrokerClient", () => {
       test("should call correct endpoint/params and read values", async () => {
         cli.request.mockResolvedValueOnce({ data: fxGetBrokers });
   
-        const res = await brokerClient.getBrokers(region, 0, 10);
-  
+        const res = await brokerClient.getBrokers(region, 10, 0);
+
         // request shape
         expect(cli.request).toHaveBeenCalledTimes(1);
         const call = cli.request.mock.calls[0][0];
-  
+
         expect(call.method).toBe("GET");
         expect(call.url).toBe("/api/v1/brokers");
         expect(call.params).toEqual({
           region,
-          page: 0,
           size: 10,
-          assetClass: undefined,
+          page: 0,
         });
   
         // response values
@@ -786,13 +785,13 @@ describe("BrokerClient", () => {
       test("should include assetClass when provided", async () => {
         cli.request.mockResolvedValueOnce({ data: fxGetBrokers });
   
-        await brokerClient.getBrokers(region, 0, 10, AssetClass.Equity);
-  
+        await brokerClient.getBrokers(region, 10, 0, AssetClass.Equity);
+
         const call = cli.request.mock.calls[0][0];
         expect(call.params).toEqual({
           region,
-          page: 0,
           size: 10,
+          page: 0,
           assetClass: AssetClass.Equity,
         });
       });

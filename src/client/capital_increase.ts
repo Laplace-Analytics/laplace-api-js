@@ -38,27 +38,27 @@ export interface CapitalIncrease {
 
 export class CapitalIncreaseClient extends Client {
   async getAllCapitalIncreases(
-    page: number,
     size: number,
-    region: Region
+    region: Region,
+    page?: number,
   ): Promise<PaginatedResponse<CapitalIncrease>> {
     return this.sendRequest<PaginatedResponse<CapitalIncrease>>({
       method: "GET",
       url: "/api/v1/capital-increase/all",
-      params: { region, page, size },
+      params: { region, size, ...(page != null && { page }) },
     });
   }
 
   async getCapitalIncreasesForInstrument(
     symbol: string,
-    page: number,
     size: number,
-    region: Region
+    region: Region,
+    page?: number,
   ): Promise<PaginatedResponse<CapitalIncrease>> {
     return this.sendRequest<PaginatedResponse<CapitalIncrease>>({
       method: 'GET',
       url: `/api/v1/capital-increase/${symbol}`,
-      params: { region, page, size },
+      params: { region, size, ...(page != null && { page }) },
     });
   }
 
