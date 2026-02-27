@@ -568,6 +568,27 @@ describe("LivePrice", () => {
       });
     });
 
+    describe("sendWebsocketEvent", () => {
+      test("calls correct endpoint with request body", async () => {
+        cli.request.mockResolvedValueOnce({ data: undefined });
+
+        const request = { externalUserID: "user123", event: { type: "test" }, transient: true };
+        await mockClient.sendWebsocketEvent(request);
+
+        expect(cli.request).toHaveBeenCalledTimes(1);
+        const call = cli.request.mock.calls[0][0];
+        expect(call.method).toBe("POST");
+        expect(call.url).toBe("/api/v1/ws/event");
+        expect(call.data).toEqual(request);
+      });
+
+      test("bubbles up request error", async () => {
+        cli.request.mockRejectedValueOnce(new Error("Bad request"));
+
+        await expect(mockClient.sendWebsocketEvent({ event: { type: "test" } })).rejects.toThrow("Bad request");
+      });
+    });
+
     describe("revokeWebsocketConnection", () => {
       test("calls correct endpoint with id path param", async () => {
         cli.request.mockResolvedValueOnce({ data: {} });
