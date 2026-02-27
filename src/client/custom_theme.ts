@@ -35,7 +35,7 @@ export class CustomThemeClient extends Client {
   private async getAllCollectionsPrivate(collectionType: CollectionType, locale: Locale, region?: Region): Promise<Collection[]> {
     const params = {
       locale,
-      ...(region && { region }),
+      ...(region != null && { region }),
     };
 
     return this.sendRequest<Collection[]>({
@@ -48,7 +48,7 @@ export class CustomThemeClient extends Client {
   private async getCollectionDetailPrivate(id: string, collectionType: CollectionType, locale: Locale, sortBy: SortBy | null): Promise<CollectionDetail> {
     const params = {
       locale,
-      ...(sortBy && { sortBy }),
+      ...(sortBy != null && { sortBy }),
     };
     
     return this.sendRequest<CollectionDetail>({

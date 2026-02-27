@@ -96,7 +96,7 @@ export class CollectionClient extends Client {
     return this.sendRequest<CollectionDetail>({
       method: 'GET',
       url: `/api/v1/sector/${id}`,
-      params: { region, locale, ...(sortBy && { sortBy }) },
+      params: { region, locale, ...(sortBy != null && { sortBy }) },
     });
   }
 
@@ -104,7 +104,7 @@ export class CollectionClient extends Client {
     return this.sendRequest<CollectionDetail>({
       method: 'GET',
       url: `/api/v1/industry/${id}`,
-      params: { region, locale, ...(sortBy && { sortBy }) },
+      params: { region, locale, ...(sortBy != null && { sortBy }) },
     });
   }
 
@@ -112,7 +112,7 @@ export class CollectionClient extends Client {
     return this.sendRequest<CollectionDetail>({
       method: 'GET',
       url: `/api/v1/theme/${id}`,
-      params: { region, locale, ...(sortBy && { sortBy }) },
+      params: { region, locale, ...(sortBy != null && { sortBy }) },
     });
   }
 
@@ -120,7 +120,7 @@ export class CollectionClient extends Client {
     return this.sendRequest<CollectionDetail>({
       method: 'GET',
       url: `/api/v1/collection/${id}`,
-      params: { region, locale, ...(sortBy && { sortBy }) },
+      params: { region, locale, ...(sortBy != null && { sortBy }) },
     });
   }
 

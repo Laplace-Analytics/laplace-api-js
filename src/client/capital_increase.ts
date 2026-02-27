@@ -69,7 +69,7 @@ export class CapitalIncreaseClient extends Client {
     return this.sendRequest<CapitalIncrease[]>({
       method: 'GET',
       url: `/api/v1/rights/active/${symbol}`,
-      params: { ...(date && { date }) },
+      params: { ...(date != null && { date }) },
     });
   }
 }

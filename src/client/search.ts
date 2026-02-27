@@ -41,7 +41,7 @@ export class SearchClient extends Client {
       filter: query,
       types: typesStr,
       locale,
-      ...(region && { region }),
+      ...(region != null && { region }),
       ...(page != null && { page }),
       ...(size != null && { size })
     }
