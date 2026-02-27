@@ -1,13 +1,10 @@
 import { Client } from './client';
 import { Collection, CollectionDetail, CollectionType, Region, Locale, SortBy } from './collections';
+import { LocaleString } from './stocks';
 
 export enum CollectionStatus {
   Active = 'active',
   Inactive = 'inactive',
-}
-
-export interface LocaleString {
-  [key: string]: string;
 }
 
 export interface CreateCustomThemeParams {
