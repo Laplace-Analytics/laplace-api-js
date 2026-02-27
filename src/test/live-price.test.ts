@@ -160,6 +160,8 @@ describe("LivePrice", () => {
             expect(typeof receivedData.s).toBe("string");
             expect(typeof receivedData.p).toBe("number");
             expect(typeof receivedData.d).toBe("number");
+            expect(typeof receivedData.pc).toBe("number");
+            expect(typeof receivedData.ac).toBe("number");
           } else {
             console.log("Timeout waiting for US data");
           }
