@@ -83,21 +83,6 @@ interface WebSocketUrlParams {
   feeds: LivePriceFeed[];
 }
 
-export enum AccessorType {
-  User = "user",
-}
-
-interface UpdateUserDetailsParams {
-  externalUserID: string;
-  firstName?: string;
-  lastName?: string;
-  address?: string;
-  city?: string;
-  countryCode?: string;
-  accessorType?: AccessorType;
-  active: boolean;
-}
-
 export interface SendWebsocketEventRequest {
   externalUserID?: string;
   event: Record<string, any>;
