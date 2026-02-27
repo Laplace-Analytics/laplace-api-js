@@ -97,7 +97,6 @@ describe("Capital Increase", () => {
       const resp = await client.getActiveRightsForInstrument(
         "TUPRS",
         "2024-01-01",
-        Region.Tr
       );
 
       expect(Array.isArray(resp)).toBe(true);
@@ -195,14 +194,14 @@ describe("Capital Increase", () => {
       test("should call correct endpoint/params and map all fields", async () => {
         cli.request.mockResolvedValueOnce({ data: mockActiveRights });
   
-        const resp = await client.getActiveRightsForInstrument(symbol, date, region);
-  
+        const resp = await client.getActiveRightsForInstrument(symbol, date);
+
         expect(cli.request).toHaveBeenCalledTimes(1);
         const call = cli.request.mock.calls[0][0];
-  
+
         expect(call.method).toBe("GET");
         expect(call.url).toBe(`/api/v1/rights/active/${symbol}`);
-        expect(call.params).toEqual({ date, region });
+        expect(call.params).toEqual({ date });
   
         expect(Array.isArray(resp)).toBe(true);
         expect(resp).toHaveLength(1);
@@ -213,7 +212,7 @@ describe("Capital Increase", () => {
       test("should handle empty array", async () => {
         cli.request.mockResolvedValueOnce({ data: [] });
   
-        const resp = await client.getActiveRightsForInstrument("INVALID", date, region);
+        const resp = await client.getActiveRightsForInstrument("INVALID", date);
   
         expect(resp).toEqual([]);
       });
@@ -222,7 +221,7 @@ describe("Capital Increase", () => {
         cli.request.mockRejectedValueOnce(new Error("Invalid date format"));
   
         await expect(
-          client.getActiveRightsForInstrument(symbol, "invalid-date", region)
+          client.getActiveRightsForInstrument(symbol, "invalid-date")
         ).rejects.toThrow("Invalid date format");
       });
     });

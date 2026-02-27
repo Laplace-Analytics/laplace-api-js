@@ -390,7 +390,6 @@ describe("README Examples - Comprehensive Tests", () => {
       const rights = await capitalIncreaseClient.getActiveRightsForInstrument(
         "THYAO",
         "2024-01-15",
-        Region.Tr
       );
       expect(Array.isArray(rights)).toBe(true);
     });

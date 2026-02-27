@@ -64,13 +64,12 @@ export class CapitalIncreaseClient extends Client {
 
   async getActiveRightsForInstrument(
     symbol: string,
-    date: string,
-    region: Region
+    date?: string,
   ): Promise<CapitalIncrease[]> {
     return this.sendRequest<CapitalIncrease[]>({
       method: 'GET',
       url: `/api/v1/rights/active/${symbol}`,
-      params: { date, region },
+      params: { ...(date && { date }) },
     });
   }
 }
