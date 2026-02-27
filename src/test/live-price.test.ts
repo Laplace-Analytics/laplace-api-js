@@ -530,7 +530,7 @@ describe("LivePrice", () => {
         expect(cli.request).toHaveBeenCalledTimes(1);
         const call = cli.request.mock.calls[0][0];
         expect(call.method).toBe("POST");
-        expect(call.url).toContain("/api/v2/ws/url");
+        expect(call.url).toBe("/api/v2/ws/url");
         expect(call.data).toEqual({ externalUserId: "user123", feeds: [LivePriceFeed.LiveBist, LivePriceFeed.LiveUs] });
         expect(resp).toBe("wss://example.com/ws");
       });
@@ -555,10 +555,8 @@ describe("LivePrice", () => {
         expect(cli.request).toHaveBeenCalledTimes(1);
         const call = cli.request.mock.calls[0][0];
         expect(call.method).toBe("GET");
-        expect(call.url).toContain("/api/v1/ws/report");
-        expect(call.url).toContain("month=1");
-        expect(call.url).toContain("year=2024");
-        expect(call.url).toContain(`feedType=${LivePriceFeed.LiveBist}`);
+        expect(call.url).toBe("/api/v1/ws/report");
+        expect(call.params).toEqual({ month: 1, year: 2024, feedType: LivePriceFeed.LiveBist });
         expect(resp).toEqual(mockUsage);
       });
 

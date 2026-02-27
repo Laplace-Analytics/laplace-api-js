@@ -221,19 +221,17 @@ describe('FinancialFundamentals', () => {
     });
   
     describe("getStockStats", () => {
-      test("calls correct endpoint (URLSearchParams) and matches raw response", async () => {
+      test("calls correct endpoint/params and matches raw response", async () => {
         cli.request.mockResolvedValueOnce({ data: mockStockStatsResponse });
-  
+
         const resp = await client.getStockStats(["ASELS"], Region.Tr);
-  
+
         expect(cli.request).toHaveBeenCalledTimes(1);
         const call = cli.request.mock.calls[0][0];
-  
+
         expect(call.method).toBe("GET");
-        expect(typeof call.url).toBe("string");
-        expect(call.url).toContain("/api/v2/stock/stats");
-        expect(call.url).toContain("symbols=ASELS");
-        expect(call.url).toContain("region=tr");
+        expect(call.url).toBe("/api/v2/stock/stats");
+        expect(call.params).toEqual({ symbols: "ASELS", region: Region.Tr });
   
         expect(resp).toHaveLength(1);
         const s = resp[0];
@@ -279,9 +277,9 @@ describe('FinancialFundamentals', () => {
     });
   
     describe("getTopMovers", () => {
-      test("calls correct endpoint (URLSearchParams) and matches raw response", async () => {
+      test("calls correct endpoint/params and matches raw response", async () => {
         cli.request.mockResolvedValueOnce({ data: mockTopMoversResponse });
-  
+
         const resp = await client.getTopMovers(
           Region.Tr,
           10,
@@ -290,19 +288,20 @@ describe('FinancialFundamentals', () => {
           AssetType.Stock,
           AssetClass.Equity
         );
-  
+
         expect(cli.request).toHaveBeenCalledTimes(1);
         const call = cli.request.mock.calls[0][0];
-  
+
         expect(call.method).toBe("GET");
-        expect(typeof call.url).toBe("string");
-        expect(call.url).toContain("/api/v2/stock/top-movers");
-        expect(call.url).toContain("region=tr");
-        expect(call.url).toContain("pageSize=10");
-        expect(call.url).toContain("direction=gainers");
-        expect(call.url).toContain("assetType=stock");
-        expect(call.url).toContain("assetClass=equity");
-        expect(call.url).toContain("page=0");
+        expect(call.url).toBe("/api/v2/stock/top-movers");
+        expect(call.params).toEqual({
+          region: Region.Tr,
+          pageSize: 10,
+          direction: TopMoverDirection.Gainers,
+          page: 0,
+          assetType: AssetType.Stock,
+          assetClass: AssetClass.Equity,
+        });
   
         expect(resp).toHaveLength(1);
         const m = resp[0];

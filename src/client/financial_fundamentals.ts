@@ -85,30 +85,30 @@ export class FinancialFundamentalsClient extends Client {
   }
 
   async getStockStats(symbols: string[], region: Region): Promise<StockStats[]> {
-    const url = new URL(`${this['baseUrl']}/api/v2/stock/stats`);
-    url.searchParams.append('symbols', symbols.join(','));
-    url.searchParams.append('region', region);
-
     return this.sendRequest<StockStats[]>({
       method: 'GET',
-      url: url.toString(),
+      url: '/api/v2/stock/stats',
+      params: {
+        symbols: symbols.join(','),
+        region,
+      },
     });
   }
 
   async getTopMovers(region: Region, pageSize: number, direction: TopMoverDirection, page?: number, assetType?: AssetType,
     assetClass?: AssetClass
   ): Promise<TopMover[]> {
-    const url = new URL(`${this['baseUrl']}/api/v2/stock/top-movers`);
-    url.searchParams.append('region', region);
-    url.searchParams.append('pageSize', pageSize.toString());
-    url.searchParams.append('direction', direction);
-    if (assetType) url.searchParams.append('assetType', assetType);
-    if (assetClass) url.searchParams.append("assetClass", assetClass);
-    if (page != null) url.searchParams.append("page", page.toString());
-
     return this.sendRequest<TopMover[]>({
       method: 'GET',
-      url: url.toString(),
+      url: '/api/v2/stock/top-movers',
+      params: {
+        region,
+        pageSize,
+        direction,
+        ...(assetType != null && { assetType }),
+        ...(assetClass != null && { assetClass }),
+        ...(page != null && { page }),
+      },
     });
   }
 }

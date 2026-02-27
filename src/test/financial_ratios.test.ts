@@ -247,24 +247,21 @@ describe("FinancialRatios", () => {
     });
   
     describe("getFinancialRatioComparison", () => {
-      test("calls correct endpoint/query and matches raw response", async () => {
+      test("calls correct endpoint/params and matches raw response", async () => {
         cli.request.mockResolvedValueOnce({ data: mockRatioComparisonResponse });
-  
+
         const resp = await client.getFinancialRatioComparison(
           "TUPRS",
           Region.Tr,
           RatioComparisonPeerType.Sector
         );
-  
+
         expect(cli.request).toHaveBeenCalledTimes(1);
         const call = cli.request.mock.calls[0][0];
-  
+
         expect(call.method).toBe("GET");
-        expect(typeof call.url).toBe("string");
-        expect(call.url).toContain("/api/v2/stock/financial-ratio-comparison");
-        expect(call.url).toContain("symbol=TUPRS");
-        expect(call.url).toContain("region=tr");
-        expect(call.url).toContain("peerType=sector");
+        expect(call.url).toBe("/api/v2/stock/financial-ratio-comparison");
+        expect(call.params).toEqual({ symbol: "TUPRS", region: Region.Tr, peerType: RatioComparisonPeerType.Sector });
   
         expect(resp).toHaveLength(1);
   
@@ -288,26 +285,22 @@ describe("FinancialRatios", () => {
     });
   
     describe("getHistoricalRatios", () => {
-      test("calls correct endpoint/query (symbol, region, slugs, locale) and matches raw response", async () => {
+      test("calls correct endpoint/params and matches raw response", async () => {
         cli.request.mockResolvedValueOnce({ data: mockHistoricalRatiosResponse });
-  
+
         const resp = await client.getHistoricalRatios(
           "TUPRS",
           [HistoricalRatiosKey.ReturnOnEquity],
           Region.Tr,
           Locale.Tr
         );
-  
+
         expect(cli.request).toHaveBeenCalledTimes(1);
         const call = cli.request.mock.calls[0][0];
-  
+
         expect(call.method).toBe("GET");
-        expect(typeof call.url).toBe("string");
-        expect(call.url).toContain("/api/v2/stock/historical-ratios");
-        expect(call.url).toContain("symbol=TUPRS");
-        expect(call.url).toContain("region=tr");
-        expect(call.url).toContain("slugs=roe");
-        expect(call.url).toContain("locale=tr");
+        expect(call.url).toBe("/api/v2/stock/historical-ratios");
+        expect(call.params).toEqual({ symbol: "TUPRS", region: Region.Tr, slugs: "roe", locale: Locale.Tr });
   
         expect(resp).toHaveLength(1);
   
@@ -327,14 +320,15 @@ describe("FinancialRatios", () => {
         expect(r.items[0].sectorMean).toBe(0.080499759559051);
       });
   
-      test("omits locale query when locale is not provided", async () => {
+      test("omits locale param when locale is not provided", async () => {
         cli.request.mockResolvedValueOnce({ data: mockHistoricalRatiosResponse });
-  
+
         await client.getHistoricalRatios("TUPRS", [HistoricalRatiosKey.ReturnOnEquity], Region.Tr);
-  
+
         const call = cli.request.mock.calls[0][0];
-        expect(call.url).toContain("/api/v2/stock/historical-ratios");
-        expect(call.url).not.toContain("locale=");
+        expect(call.url).toBe("/api/v2/stock/historical-ratios");
+        expect(call.params).toEqual({ symbol: "TUPRS", region: Region.Tr, slugs: "roe" });
+        expect(call.params.locale).toBeUndefined();
       });
   
       test("bubbles up request error", async () => {
@@ -347,19 +341,17 @@ describe("FinancialRatios", () => {
     });
   
     describe("getHistoricalRatiosDescriptions", () => {
-      test("calls correct endpoint/query and matches raw response", async () => {
+      test("calls correct endpoint/params and matches raw response", async () => {
         cli.request.mockResolvedValueOnce({ data: mockRatiosDescriptionsResponse });
-  
+
         const resp = await client.getHistoricalRatiosDescriptions(Locale.Tr, Region.Tr);
-  
+
         expect(cli.request).toHaveBeenCalledTimes(1);
         const call = cli.request.mock.calls[0][0];
-  
+
         expect(call.method).toBe("GET");
-        expect(typeof call.url).toBe("string");
-        expect(call.url).toContain("/api/v2/stock/historical-ratios/descriptions");
-        expect(call.url).toContain("locale=tr");
-        expect(call.url).toContain("region=tr");
+        expect(call.url).toBe("/api/v2/stock/historical-ratios/descriptions");
+        expect(call.params).toEqual({ locale: Locale.Tr, region: Region.Tr });
   
         expect(resp).toHaveLength(1);
   
@@ -404,9 +396,9 @@ describe("FinancialRatios", () => {
         expect(cli.request).not.toHaveBeenCalled();
       });
   
-      test("calls correct endpoint/query and matches raw response", async () => {
+      test("calls correct endpoint/params and matches raw response", async () => {
         cli.request.mockResolvedValueOnce({ data: mockFinancialSheetsResponse });
-  
+
         const resp = await client.getHistoricalFinancialSheets(
           "TUPRS",
           { year: 2024, month: 1, day: 1 },
@@ -416,21 +408,21 @@ describe("FinancialRatios", () => {
           Currency.TRY,
           Region.Tr
         );
-  
+
         expect(cli.request).toHaveBeenCalledTimes(1);
         const call = cli.request.mock.calls[0][0];
-  
+
         expect(call.method).toBe("GET");
-        expect(typeof call.url).toBe("string");
-        expect(call.url).toContain("/api/v3/stock/historical-financial-sheets");
-  
-        expect(call.url).toContain("symbol=TUPRS");
-        expect(call.url).toContain("from=2024-01-01");
-        expect(call.url).toContain("to=2024-03-31");
-        expect(call.url).toContain("sheetType=cashFlowStatement");
-        expect(call.url).toContain("periodType=quarterly");
-        expect(call.url).toContain("currency=TRY");
-        expect(call.url).toContain("region=tr");
+        expect(call.url).toBe("/api/v3/stock/historical-financial-sheets");
+        expect(call.params).toEqual({
+          symbol: "TUPRS",
+          from: "2024-01-01",
+          to: "2024-03-31",
+          sheetType: FinancialSheetType.CashFlow,
+          periodType: FinancialSheetPeriod.Quarterly,
+          currency: Currency.TRY,
+          region: Region.Tr,
+        });
   
         expect(resp.sheets).toHaveLength(1);
         expect(resp.sheets[0].period).toBe("2024-1");

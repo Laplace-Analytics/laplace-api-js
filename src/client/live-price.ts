@@ -78,11 +78,6 @@ interface WebSocketUsageResponse {
   uniqueDeviceCount: number;
 }
 
-interface WebSocketUrlParams {
-  externalUserId: string;
-  feeds: LivePriceFeed[];
-}
-
 export interface SendWebsocketEventRequest {
   externalUserID?: string;
   event: Record<string, any>;
@@ -310,17 +305,10 @@ export class LivePriceClient extends Client {
     externalUserId: string,
     feeds: LivePriceFeed[]
   ): Promise<string> {
-    const url = new URL(`${this["baseUrl"]}/api/v2/ws/url`);
-
-    const params: WebSocketUrlParams = {
-      externalUserId,
-      feeds
-    };
-
     const response = await this.sendRequest<WebSocketUrlResponse>({
       method: "POST",
-      url: url.toString(),
-      data: params,
+      url: "/api/v2/ws/url",
+      data: { externalUserId, feeds },
     });
 
     return response.url;
@@ -331,27 +319,19 @@ export class LivePriceClient extends Client {
     year: number,
     feedType: LivePriceFeed,
   ): Promise<WebSocketUsageResponse[]> {
-    const url = new URL(`${this["baseUrl"]}/api/v1/ws/report`);
-    url.searchParams.append("month", month.toString());
-    url.searchParams.append("year", year.toString());
-    url.searchParams.append("feedType", feedType);
-
-    const response = await this.sendRequest<WebSocketUsageResponse[]>({
+    return this.sendRequest<WebSocketUsageResponse[]>({
       method: "GET",
-      url: url.toString(),
+      url: "/api/v1/ws/report",
+      params: { month, year, feedType },
     });
-
-    return response;
   }
 
   async sendWebsocketEvent(
     request: SendWebsocketEventRequest
   ): Promise<void> {
-    const url = new URL(`${this["baseUrl"]}/api/v1/ws/event`);
-
     await this.sendRequest<void>({
       method: "POST",
-      url: url.toString(),
+      url: "/api/v1/ws/event",
       data: request,
     });
   }
