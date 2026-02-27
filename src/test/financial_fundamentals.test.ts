@@ -98,7 +98,7 @@ describe('FinancialFundamentals', () => {
       expect(resp).not.toBeEmpty();
       expect(resp.length).toBe(1);
 
-      var currentStockStats = resp[0];
+      const currentStockStats = resp[0];
       expect(currentStockStats).not.toBeEmpty();
       expect(currentStockStats.symbol).toBe('TUPRS');
       expect(currentStockStats.previousClose).toBeGreaterThan(0.0);

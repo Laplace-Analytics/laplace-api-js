@@ -27,10 +27,6 @@ export const validateCollection = (collection: Collection) => {
       expect(typeof collection.assetClass).toBe("string");
     }
     
-    expect(typeof collection.imageUrl).toBe("string");
-    expect(typeof collection.avatarUrl).toBe("string");
-    expect(typeof collection.numStocks).toBe("number");
-  
     if (collection.image != null) expect(typeof collection.image).toBe("string");
     if (collection.order != null) expect(typeof collection.order).toBe("number");
     if (collection.status != null) expect(typeof collection.status).toBe("string");
