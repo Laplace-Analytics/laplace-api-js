@@ -10,7 +10,7 @@ export class KeyInsightClient extends Client {
   async getKeyInsights(symbol: string, region: Region) {
     return this.sendRequest<KeyInsight>({
       method: "GET",
-      url: "/api/v1/key-insight",
+      url: "/api/v1/key-insights",
       params: { symbol, region },
     });
   }

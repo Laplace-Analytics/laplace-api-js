@@ -8,7 +8,7 @@ import {
 import "./client_test_suite";
 import { Region } from "../client/collections";
 
-const mockCapitalIncrease: CapitalIncrease = {
+const mockCapitalIncrease = {
   id: 12345,
   boardDecisionDate: "2024-03-01",
   registeredCapitalCeiling: "1000000000",
@@ -38,16 +38,9 @@ const mockCapitalIncrease: CapitalIncrease = {
   externalCapitalIncreaseRate: "0.3"
 };
 
-const mockCapitalIncrease2: CapitalIncrease = {
-  ...mockCapitalIncrease,
-  id: 12346,
-  symbol: "GARAN",
-  boardDecisionDate: "2024-03-10",
-};
-
 const mockPaginatedResponse: PaginatedResponse<CapitalIncrease> = {
   recordCount: 2,
-  items: [mockCapitalIncrease, mockCapitalIncrease2]
+  items: [mockCapitalIncrease]
 };
 
 const mockActiveRights: CapitalIncrease[] = [mockCapitalIncrease];
@@ -69,7 +62,7 @@ describe("Capital Increase", () => {
 
   describe("Integration Tests", () => {
     test("GetAllCapitalIncreases", async () => {
-      const resp = await client.getAllCapitalIncreases(1, 10, Region.Tr);
+      const resp = await client.getAllCapitalIncreases(10, Region.Tr, 1);
 
       expect(resp).toBeDefined();
       expect(typeof resp.recordCount).toBe("number");
@@ -84,9 +77,9 @@ describe("Capital Increase", () => {
     test("GetCapitalIncreasesForInstrument", async () => {
       const resp = await client.getCapitalIncreasesForInstrument(
         "TUPRS",
-        1,
         10,
-        Region.Tr
+        Region.Tr,
+        1
       );
 
       expect(resp).toBeDefined();
@@ -104,7 +97,6 @@ describe("Capital Increase", () => {
       const resp = await client.getActiveRightsForInstrument(
         "TUPRS",
         "2024-01-01",
-        Region.Tr
       );
 
       expect(Array.isArray(resp)).toBe(true);
@@ -118,104 +110,123 @@ describe("Capital Increase", () => {
   });
 
   describe("Mock Tests", () => {
+    const region = Region.Tr;
+    const page = 1;
+    const size = 10;
+    const symbol = "TUPRS";
+    const date = "2024-03-14";
+  
+    let client: CapitalIncreaseClient;
+    let cli: { request: jest.Mock };
+  
     beforeEach(() => {
-      jest.clearAllMocks();
+      cli = { request: jest.fn() };
+  
+      const config = (global as any).testSuite.config as LaplaceConfiguration;
+      const logger: Logger = {
+        info: jest.fn(),
+        error: jest.fn(),
+        warn: jest.fn(),
+        debug: jest.fn(),
+      } as unknown as Logger;
+  
+      client = new CapitalIncreaseClient(config, logger, cli as any);
     });
-
+  
     describe("getAllCapitalIncreases", () => {
-      test("should return paginated capital increases", async () => {
-        jest.spyOn(client, 'getAllCapitalIncreases').mockResolvedValue(mockPaginatedResponse);
+      test("should call correct endpoint/params and map all fields", async () => {
+        cli.request.mockResolvedValueOnce({ data: mockPaginatedResponse });
+  
+        const resp = await client.getAllCapitalIncreases(size, region, page);
 
-        const resp = await client.getAllCapitalIncreases(1, 10, Region.Tr);
+        expect(cli.request).toHaveBeenCalledTimes(1);
+        const call = cli.request.mock.calls[0][0];
 
+        expect(call.method).toBe("GET");
+        expect(call.url).toBe("/api/v1/capital-increase/all");
+        expect(call.params).toEqual({ page, size, region });
+  
         expect(resp.recordCount).toBe(2);
-        expect(resp.items).toHaveLength(2);
-        
-        const firstItem = resp.items[0];
-        expect(firstItem.symbol).toBe("TUPRS");
-        expect(firstItem.types).toEqual(["RIGHTS", "BONUS"]);
-        expect(firstItem.currentCapital).toBe("500000000");
-        expect(firstItem.targetCapital).toBe("750000000");
-
-        expect(client.getAllCapitalIncreases).toHaveBeenCalledWith(1, 10, Region.Tr);
+        expect(resp.items).toHaveLength(1);
+  
+        expectCapitalIncreaseEqual(resp.items[0], mockCapitalIncrease);
       });
-
+  
       test("should handle empty response", async () => {
-        const emptyResponse: PaginatedResponse<CapitalIncrease> = {
-          recordCount: 0,
-          items: []
-        };
-        jest.spyOn(client, 'getAllCapitalIncreases').mockResolvedValue(emptyResponse);
-
-        const resp = await client.getAllCapitalIncreases(1, 10, Region.Tr);
+        cli.request.mockResolvedValueOnce({ data: { recordCount: 0, items: [] } });
+  
+        const resp = await client.getAllCapitalIncreases(size, region, page);
 
         expect(resp.recordCount).toBe(0);
-        expect(resp.items).toHaveLength(0);
+        expect(resp.items).toEqual([]);
       });
     });
-
+  
     describe("getCapitalIncreasesForInstrument", () => {
-      test("should return capital increases for specific instrument", async () => {
-        const singleInstrumentResponse: PaginatedResponse<CapitalIncrease> = {
-          recordCount: 1,
-          items: [mockCapitalIncrease]
-        };
-        jest.spyOn(client, 'getCapitalIncreasesForInstrument').mockResolvedValue(singleInstrumentResponse);
+      test("should call correct endpoint/params and map all fields", async () => {
+        cli.request.mockResolvedValueOnce({ data: { recordCount: 1, items: [mockCapitalIncrease] } });
+  
+        const resp = await client.getCapitalIncreasesForInstrument(symbol, size, region, page);
 
-        const resp = await client.getCapitalIncreasesForInstrument("TUPRS", 1, 10, Region.Tr);
+        expect(cli.request).toHaveBeenCalledTimes(1);
+        const call = cli.request.mock.calls[0][0];
 
+        expect(call.method).toBe("GET");
+        expect(call.url).toBe(`/api/v1/capital-increase/${symbol}`);
+        expect(call.params).toEqual({ page, size, region });
+  
         expect(resp.recordCount).toBe(1);
         expect(resp.items).toHaveLength(1);
-        expect(resp.items[0].symbol).toBe("TUPRS");
-        expect(resp.items[0].boardDecisionDate).toBe("2024-03-01");
-
-        expect(client.getCapitalIncreasesForInstrument).toHaveBeenCalledWith("TUPRS", 1, 10, Region.Tr);
+        expectCapitalIncreaseEqual(resp.items[0], mockCapitalIncrease);
+        expect(resp.items[0].symbol).toBe(symbol);
       });
-
-      test("should handle instrument with no capital increases", async () => {
-        const emptyResponse: PaginatedResponse<CapitalIncrease> = {
-          recordCount: 0,
-          items: []
-        };
-        jest.spyOn(client, 'getCapitalIncreasesForInstrument').mockResolvedValue(emptyResponse);
-
-        const resp = await client.getCapitalIncreasesForInstrument("INVALID", 1, 10, Region.Tr);
-
-        expect(resp.recordCount).toBe(0);
-        expect(resp.items).toHaveLength(0);
+  
+      test("should bubble up request error", async () => {
+        cli.request.mockRejectedValueOnce(new Error("Invalid symbol"));
+  
+        await expect(
+          client.getCapitalIncreasesForInstrument("INVALID", size, region, page)
+        ).rejects.toThrow("Invalid symbol");
       });
     });
-
+  
     describe("getActiveRightsForInstrument", () => {
-      test("should return active rights for specific instrument", async () => {
-        jest.spyOn(client, 'getActiveRightsForInstrument').mockResolvedValue(mockActiveRights);
+      test("should call correct endpoint/params and map all fields", async () => {
+        cli.request.mockResolvedValueOnce({ data: mockActiveRights });
+  
+        const resp = await client.getActiveRightsForInstrument(symbol, date);
 
-        const resp = await client.getActiveRightsForInstrument("TUPRS", "2024-03-14", Region.Tr);
+        expect(cli.request).toHaveBeenCalledTimes(1);
+        const call = cli.request.mock.calls[0][0];
 
+        expect(call.method).toBe("GET");
+        expect(call.url).toBe(`/api/v1/rights/active/${symbol}`);
+        expect(call.params).toEqual({ date });
+  
+        expect(Array.isArray(resp)).toBe(true);
         expect(resp).toHaveLength(1);
-        expect(resp[0].symbol).toBe("TUPRS");
-        expect(resp[0].rightsStartDate).toBe("2024-04-01");
-        expect(resp[0].rightsEndDate).toBe("2024-04-15");
-
-        expect(client.getActiveRightsForInstrument).toHaveBeenCalledWith("TUPRS", "2024-03-14", Region.Tr);
+        expectCapitalIncreaseEqual(resp[0], mockCapitalIncrease);
+        expect(resp[0].symbol).toBe(symbol);
       });
-
-      test("should handle instrument with no active rights", async () => {
-        jest.spyOn(client, 'getActiveRightsForInstrument').mockResolvedValue([]);
-
-        const resp = await client.getActiveRightsForInstrument("INVALID", "2024-03-14", Region.Tr);
-
-        expect(resp).toHaveLength(0);
+  
+      test("should handle empty array", async () => {
+        cli.request.mockResolvedValueOnce({ data: [] });
+  
+        const resp = await client.getActiveRightsForInstrument("INVALID", date);
+  
+        expect(resp).toEqual([]);
       });
-
-      test("should handle invalid date format", async () => {
-        jest.spyOn(client, 'getActiveRightsForInstrument').mockRejectedValue(new Error("Invalid date format"));
-
-        await expect(client.getActiveRightsForInstrument("TUPRS", "invalid-date", Region.Tr))
-          .rejects.toThrow("Invalid date format");
+  
+      test("should bubble up request error", async () => {
+        cli.request.mockRejectedValueOnce(new Error("Invalid date format"));
+  
+        await expect(
+          client.getActiveRightsForInstrument(symbol, "invalid-date")
+        ).rejects.toThrow("Invalid date format");
       });
     });
   });
+  
 });
 
 function validateCapitalIncrease(item: CapitalIncrease) {
@@ -285,3 +296,41 @@ function validateCapitalIncrease(item: CapitalIncrease) {
     expect(typeof id).toBe("number");
   });
 }
+
+function expectCapitalIncreaseEqual(actual: CapitalIncrease, expected: CapitalIncrease) {
+  expect(actual.id).toBe(expected.id);
+  expect(actual.boardDecisionDate).toBe(expected.boardDecisionDate);
+  expect(actual.registeredCapitalCeiling).toBe(expected.registeredCapitalCeiling);
+  expect(actual.currentCapital).toBe(expected.currentCapital);
+  expect(actual.targetCapital).toBe(expected.targetCapital);
+  expect(actual.types).toEqual(expected.types);
+
+  expect(actual.spkApplicationResult).toBe(expected.spkApplicationResult);
+  expect(actual.spkApplicationDate).toBe(expected.spkApplicationDate);
+  expect(actual.spkApprovalDate).toBe(expected.spkApprovalDate);
+  expect(actual.paymentDate).toBe(expected.paymentDate);
+  expect(actual.registrationDate).toBe(expected.registrationDate);
+
+  expect(actual.specifiedCurrency).toBe(expected.specifiedCurrency);
+  expect(actual.symbol).toBe(expected.symbol);
+  expect(actual.relatedDisclosureIds).toEqual(expected.relatedDisclosureIds);
+
+  expect(actual.rightsRate).toBe(expected.rightsRate);
+  expect(actual.rightsPrice).toBe(expected.rightsPrice);
+  expect(actual.rightsTotalAmount).toBe(expected.rightsTotalAmount);
+  expect(actual.rightsStartDate).toBe(expected.rightsStartDate);
+  expect(actual.rightsEndDate).toBe(expected.rightsEndDate);
+  expect(actual.rightsLastSellDate).toBe(expected.rightsLastSellDate);
+
+  expect(actual.bonusRate).toBe(expected.bonusRate);
+  expect(actual.bonusTotalAmount).toBe(expected.bonusTotalAmount);
+  expect(actual.bonusStartDate).toBe(expected.bonusStartDate);
+  expect(actual.bonusDividendRate).toBe(expected.bonusDividendRate);
+  expect(actual.bonusDividendTotalAmount).toBe(expected.bonusDividendTotalAmount);
+
+  expect(actual.externalCapitalIncreaseAmount).toBe(expected.externalCapitalIncreaseAmount);
+  expect(actual.externalCapitalIncreaseRate).toBe(expected.externalCapitalIncreaseRate);
+
+  expect(Object.keys(actual).sort()).toEqual(Object.keys(expected).sort());
+}
+

@@ -21,6 +21,8 @@ export interface BISTStockPriceData {
 export interface USStockPriceData {
   s: string; // Symbol
   p: number; // Price
+  pc: number; // PercentChange
+  ac: number; // AmountChange
   d: number; // Date
 }
 
@@ -42,7 +44,7 @@ export interface OrderbookLevel {
 }
 
 export interface BISTBidAskData {
-  d: string;
+  d: number;
   s: string;
   ask: number;
   bid: number;
@@ -74,26 +76,6 @@ interface WebSocketUsageResponse {
   externalUserID: string;
   firstConnectionTime: Date;
   uniqueDeviceCount: number;
-}
-
-interface WebSocketUrlParams {
-  externalUserId: string;
-  feeds: LivePriceFeed[];
-}
-
-export enum AccessorType {
-  User = "user",
-}
-
-interface UpdateUserDetailsParams {
-  externalUserID: string;
-  firstName?: string;
-  lastName?: string;
-  address?: string;
-  city?: string;
-  countryCode?: string;
-  accessorType?: AccessorType;
-  active: boolean;
 }
 
 export interface SendWebsocketEventRequest {
@@ -323,49 +305,41 @@ export class LivePriceClient extends Client {
     externalUserId: string,
     feeds: LivePriceFeed[]
   ): Promise<string> {
-    const url = new URL(`${this["baseUrl"]}/api/v2/ws/url`);
-
-    const params: WebSocketUrlParams = {
-      externalUserId,
-      feeds
-    };
-
     const response = await this.sendRequest<WebSocketUrlResponse>({
       method: "POST",
-      url: url.toString(),
-      data: params,
+      url: "/api/v2/ws/url",
+      data: { externalUserId, feeds },
     });
 
     return response.url;
   }
 
   async getWebsocketUsageForMonth(
-    month: string,
-    year: string,
+    month: number,
+    year: number,
     feedType: LivePriceFeed,
   ): Promise<WebSocketUsageResponse[]> {
-    const url = new URL(`${this["baseUrl"]}/api/v1/ws/report`);
-    url.searchParams.append("month", month);
-    url.searchParams.append("year", year);
-    url.searchParams.append("feedType", feedType);
-
-    const response = await this.sendRequest<WebSocketUsageResponse[]>({
+    return this.sendRequest<WebSocketUsageResponse[]>({
       method: "GET",
-      url: url.toString(),
+      url: "/api/v1/ws/report",
+      params: { month, year, feedType },
     });
-
-    return response;
   }
 
   async sendWebsocketEvent(
     request: SendWebsocketEventRequest
   ): Promise<void> {
-    const url = new URL(`${this["baseUrl"]}/api/v1/ws/event`);
-
     await this.sendRequest<void>({
       method: "POST",
-      url: url.toString(),
+      url: "/api/v1/ws/event",
       data: request,
+    });
+  }
+
+  async revokeWebsocketConnection(id: string): Promise<void> {
+    await this.sendRequest<void>({
+      method: "POST",
+      url: `/api/v1/ws/user/revoke/${id}`,
     });
   }
 }

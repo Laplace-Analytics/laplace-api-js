@@ -1,15 +1,15 @@
 import { Logger } from "winston";
 import { LaplaceConfiguration } from "../utilities/configuration";
 import "./client_test_suite";
-import { KeyInsightClient, KeyInsight } from "../client/key-insights";
+import { KeyInsightClient } from "../client/key-insights";
 import { Region } from "../client/collections";
 
-const mockTRKeyInsightResponse: KeyInsight = {
+const mockTRKeyInsightResponse = {
   symbol: "TOASO",
   insight: "Tofaş'ın net kârı, güçlü operasyonel performans ve yüksek ihracat gelirleri sayesinde geçen yılın aynı dönemine göre %85 artış gösterdi."
 };
 
-const mockUSKeyInsightResponse: KeyInsight = {
+const mockUSKeyInsightResponse = {
   symbol: "AAPL",
   insight: "Apple's revenue growth was driven by strong iPhone sales and continued expansion in services, with significant market share gains in emerging markets."
 };
@@ -59,52 +59,87 @@ describe("Key Insight", () => {
   });
 
   describe("Mock Tests", () => {
+    let client: KeyInsightClient;
+    let cli: { request: jest.Mock };
+  
     beforeEach(() => {
-      jest.clearAllMocks();
+      cli = { request: jest.fn() };
+  
+      const config = (global as any).testSuite.config as LaplaceConfiguration;
+      const logger: Logger = {
+        info: jest.fn(),
+        error: jest.fn(),
+        warn: jest.fn(),
+        debug: jest.fn(),
+      } as unknown as Logger;
+  
+      client = new KeyInsightClient(config, logger, cli as any);
     });
-
+  
     describe("getKeyInsights", () => {
-      test("should return TR key insights with mock data", async () => {
-        jest.spyOn(client, 'getKeyInsights').mockResolvedValue(mockTRKeyInsightResponse);
-
+      test("TR: calls correct endpoint/params and matches raw response", async () => {
+        cli.request.mockResolvedValueOnce({ data: mockTRKeyInsightResponse });
+  
         const resp = await client.getKeyInsights("TOASO", Region.Tr);
-
-        expect(resp).toBeDefined();
+  
+        expect(cli.request).toHaveBeenCalledTimes(1);
+        const call = cli.request.mock.calls[0][0];
+  
+        expect(call.method).toBe("GET");
+        expect(call.url).toBe("/api/v1/key-insights");
+        expect(call.params).toEqual({
+          symbol: "TOASO",
+          region: Region.Tr,
+        });
+  
         expect(resp.symbol).toBe("TOASO");
         expect(resp.insight).toBe(mockTRKeyInsightResponse.insight);
-
-        expect(client.getKeyInsights).toHaveBeenCalledWith("TOASO", Region.Tr);
       });
-
-      test("should return US key insights with mock data", async () => {
-        jest.spyOn(client, 'getKeyInsights').mockResolvedValue(mockUSKeyInsightResponse);
-
+  
+      test("US: calls correct endpoint/params and matches raw response", async () => {
+        cli.request.mockResolvedValueOnce({ data: mockUSKeyInsightResponse });
+  
         const resp = await client.getKeyInsights("AAPL", Region.Us);
-
-        expect(resp).toBeDefined();
+  
+        expect(cli.request).toHaveBeenCalledTimes(1);
+        const call = cli.request.mock.calls[0][0];
+  
+        expect(call.method).toBe("GET");
+        expect(call.url).toBe("/api/v1/key-insights");
+        expect(call.params).toEqual({
+          symbol: "AAPL",
+          region: Region.Us,
+        });
+  
         expect(resp.symbol).toBe("AAPL");
         expect(resp.insight).toBe(mockUSKeyInsightResponse.insight);
-
-        expect(client.getKeyInsights).toHaveBeenCalledWith("AAPL", Region.Us);
       });
-
-      test("should handle invalid symbol error", async () => {
-        jest.spyOn(client, 'getKeyInsights').mockRejectedValue(new Error("Symbol not found"));
-
-        await expect(client.getKeyInsights("INVALID_SYMBOL", Region.Tr))
-          .rejects.toThrow("Symbol not found");
-
-        expect(client.getKeyInsights).toHaveBeenCalledWith("INVALID_SYMBOL", Region.Tr);
+  
+      test("bubbles up request error", async () => {
+        cli.request.mockRejectedValueOnce(new Error("Symbol not found"));
+  
+        await expect(client.getKeyInsights("INVALID_SYMBOL", Region.Tr)).rejects.toThrow(
+          "Symbol not found"
+        );
+  
+        expect(cli.request).toHaveBeenCalledTimes(1);
       });
-
-      test("should handle empty symbol error", async () => {
-        jest.spyOn(client, 'getKeyInsights').mockRejectedValue(new Error("Symbol cannot be empty"));
-
-        await expect(client.getKeyInsights("", Region.Tr))
-          .rejects.toThrow("Symbol cannot be empty");
-
-        expect(client.getKeyInsights).toHaveBeenCalledWith("", Region.Tr);
+  
+      test("empty symbol: bubbles up request error", async () => {
+        cli.request.mockRejectedValueOnce(new Error("Symbol cannot be empty"));
+  
+        await expect(client.getKeyInsights("", Region.Tr)).rejects.toThrow(
+          "Symbol cannot be empty"
+        );
+  
+        expect(cli.request).toHaveBeenCalledTimes(1);
+        const call = cli.request.mock.calls[0][0];
+  
+        expect(call.method).toBe("GET");
+        expect(call.url).toBe("/api/v1/key-insights");
+        expect(call.params).toEqual({ symbol: "", region: Region.Tr });
       });
     });
   });
+  
 });

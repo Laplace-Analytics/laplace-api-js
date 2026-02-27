@@ -1,4 +1,5 @@
 import { Collection, CollectionDetail } from "../client/collections";
+import { Stock } from "../client/stocks";
 
 export const validateCollection = (collection: Collection) => {
     expect(typeof collection.id).toBe("string");
@@ -17,27 +18,19 @@ export const validateCollection = (collection: Collection) => {
         expect(typeof region).toBe("string");
       });
     }
+
+    if (collection.locale != null) {
+      expect(typeof collection.locale).toBe("string");
+    }
     
-    if (collection.assetClass !== undefined) {
+    if (collection.assetClass != null) {
       expect(typeof collection.assetClass).toBe("string");
     }
     
-    if (collection.image !== undefined) {
-      expect(typeof collection.image).toBe("string");
-    }
-    
-    if (collection.order !== undefined) {
-      expect(typeof collection.order).toBe("number");
-    }
-    
-    if (collection.status !== undefined) {
-      expect(typeof collection.status).toBe("string");
-    }
-    
-    if (collection.metaData !== undefined) {
-      expect(typeof collection.metaData).toBe("object");
-      expect(collection.metaData).not.toBeNull();
-    }
+    if (collection.image != null) expect(typeof collection.image).toBe("string");
+    if (collection.order != null) expect(typeof collection.order).toBe("number");
+    if (collection.status != null) expect(typeof collection.status).toBe("string");
+    if (collection.metaData != null) expect(typeof collection.metaData).toBe("object");
   };
   
   export const validateCollectionDetail = (collectionDetail: CollectionDetail) => {
@@ -46,13 +39,16 @@ export const validateCollection = (collection: Collection) => {
     expect(Array.isArray(collectionDetail.stocks)).toBe(true);
     expect(collectionDetail.stocks.length).toBeGreaterThan(0);
     
-    const firstStock = collectionDetail.stocks[0];
-    expect(typeof firstStock.id).toBe("string");
-    expect(typeof firstStock.assetType).toBe("string");
-    expect(typeof firstStock.name).toBe("string");
-    expect(typeof firstStock.symbol).toBe("string");
-    expect(typeof firstStock.sectorId).toBe("string");
-    expect(typeof firstStock.industryId).toBe("string");
-    expect(typeof firstStock.updatedDate).toBe("string");
-    expect(typeof firstStock.active).toBe("boolean");
+    collectionDetail.stocks.forEach(validateStockLite);
   };
+
+  function validateStockLite(s: Stock) {
+    expect(typeof s.id).toBe("string");
+    expect(typeof s.assetType).toBe("string");
+    expect(typeof s.name).toBe("string");
+    expect(typeof s.symbol).toBe("string");
+    expect(typeof s.sectorId).toBe("string");
+    expect(typeof s.industryId).toBe("string");
+    expect(typeof s.updatedDate).toBe("string");
+    expect(typeof s.active).toBe("boolean");
+  }

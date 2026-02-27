@@ -8,7 +8,7 @@ export interface PaginatedResponse<T> {
 
 export interface CapitalIncrease {
   id: number;
-  boardDecisionDate: string;
+  boardDecisionDate: string | null;
   registeredCapitalCeiling: string;
   currentCapital: string;
   targetCapital: string;
@@ -38,39 +38,38 @@ export interface CapitalIncrease {
 
 export class CapitalIncreaseClient extends Client {
   async getAllCapitalIncreases(
-    page: number,
     size: number,
-    region: Region
+    region: Region,
+    page?: number,
   ): Promise<PaginatedResponse<CapitalIncrease>> {
     return this.sendRequest<PaginatedResponse<CapitalIncrease>>({
       method: "GET",
       url: "/api/v1/capital-increase/all",
-      params: { region, page, size },
+      params: { region, size, ...(page != null && { page }) },
     });
   }
 
   async getCapitalIncreasesForInstrument(
     symbol: string,
-    page: number,
     size: number,
-    region: Region
+    region: Region,
+    page?: number,
   ): Promise<PaginatedResponse<CapitalIncrease>> {
     return this.sendRequest<PaginatedResponse<CapitalIncrease>>({
       method: 'GET',
       url: `/api/v1/capital-increase/${symbol}`,
-      params: { region, page, size },
+      params: { region, size, ...(page != null && { page }) },
     });
   }
 
   async getActiveRightsForInstrument(
     symbol: string,
-    date: string,
-    region: Region
+    date?: string,
   ): Promise<CapitalIncrease[]> {
     return this.sendRequest<CapitalIncrease[]>({
       method: 'GET',
       url: `/api/v1/rights/active/${symbol}`,
-      params: { date, region },
+      params: { ...(date != null && { date }) },
     });
   }
 }

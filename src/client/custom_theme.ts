@@ -1,13 +1,10 @@
 import { Client } from './client';
 import { Collection, CollectionDetail, CollectionType, Region, Locale, SortBy } from './collections';
+import { LocaleString } from './stocks';
 
 export enum CollectionStatus {
   Active = 'active',
   Inactive = 'inactive',
-}
-
-export interface LocaleString {
-  [key: string]: string;
 }
 
 export interface CreateCustomThemeParams {
@@ -35,21 +32,25 @@ export interface UpdateCustomThemeParams {
 }
 
 export class CustomThemeClient extends Client {
-  private async getAllCollectionsPrivate(collectionType: CollectionType, locale: Locale): Promise<Collection[]> {
+  private async getAllCollectionsPrivate(collectionType: CollectionType, locale: Locale, region?: Region): Promise<Collection[]> {
+    const params = {
+      locale,
+      ...(region != null && { region }),
+    };
+
     return this.sendRequest<Collection[]>({
       method: 'GET',
       url: `/api/v1/${collectionType}`,
-      params: { locale },
+      params: params,
     });
   }
 
   private async getCollectionDetailPrivate(id: string, collectionType: CollectionType, locale: Locale, sortBy: SortBy | null): Promise<CollectionDetail> {
-    var params = {}
-    if (sortBy) {
-      params = { locale, sortBy };
-    } else {  
-      params = { locale };
-    }
+    const params = {
+      locale,
+      ...(sortBy != null && { sortBy }),
+    };
+    
     return this.sendRequest<CollectionDetail>({
       method: 'GET',
       url: `/api/v1/${collectionType}/${id}`,
@@ -58,8 +59,8 @@ export class CustomThemeClient extends Client {
   }
 
 
-  async getAllCustomThemes(locale: Locale): Promise<Collection[]> {
-    return this.getAllCollectionsPrivate(CollectionType.CustomTheme, locale);
+  async getAllCustomThemes(locale: Locale, region?: Region): Promise<Collection[]> {
+    return this.getAllCollectionsPrivate(CollectionType.CustomTheme, locale, region);
   }
 
   async getCustomThemeDetail(id: string, locale: Locale, sortBy: SortBy | null): Promise<CollectionDetail> {

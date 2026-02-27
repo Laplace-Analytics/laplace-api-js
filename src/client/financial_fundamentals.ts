@@ -1,9 +1,11 @@
 import { Client } from './client';
 import { Region } from './collections';
+import { Currency } from './financial_ratios';
 import { AssetClass, AssetType } from './stocks';
 
 export interface StockDividend {
   date: string;
+  currency: Currency;
   netAmount: number;
   netRatio: number;
   grossAmount: number;
@@ -14,28 +16,28 @@ export interface StockDividend {
 }
 
 export interface StockStats {
+  ytdReturn: number;
+  yearlyReturn: number;
+  "3YearReturn": number;
+  "5YearReturn": number;
+  "3MonthReturn": number;
+  monthlyReturn: number;
+  weeklyReturn: number;
+  symbol: string;
+  dailyChange: number;
   previousClose?: number;
   marketCap?: number;
   peRatio?: number;
   pbRatio?: number;
   yearLow?: number;
   yearHigh?: number;
-  weeklyReturn?: number;
-  monthlyReturn?: number;
-  "3MonthReturn"?: number;
-  ytdReturn?: number;
-  yearlyReturn?: number;
-  "3YearReturn"?: number;
-  "5YearReturn"?: number;
-  symbol: string;
   latestPrice?: number;
-  dailyChange?: number;
-  dayLow?: number;
   dayHigh?: number;
-  lowerPriceLimit?: number;
-  upperPriceLimit?: number;
+  dayLow?: number;
   dayOpen?: number;
   eps?: number;
+  lowerPriceLimit?: number;
+  upperPriceLimit?: number;
 }
 
 export enum StockStatsKey {
@@ -83,30 +85,30 @@ export class FinancialFundamentalsClient extends Client {
   }
 
   async getStockStats(symbols: string[], region: Region): Promise<StockStats[]> {
-    const url = new URL(`${this['baseUrl']}/api/v2/stock/stats`);
-    url.searchParams.append('symbols', symbols.join(','));
-    url.searchParams.append('region', region);
-
     return this.sendRequest<StockStats[]>({
       method: 'GET',
-      url: url.toString(),
+      url: '/api/v2/stock/stats',
+      params: {
+        symbols: symbols.join(','),
+        region,
+      },
     });
   }
 
-  async getTopMovers(region: Region, page: number, pageSize: number, direction: TopMoverDirection, assetType?: AssetType,
+  async getTopMovers(region: Region, pageSize: number, direction: TopMoverDirection, page?: number, assetType?: AssetType,
     assetClass?: AssetClass
   ): Promise<TopMover[]> {
-    const url = new URL(`${this['baseUrl']}/api/v2/stock/top-movers`);
-    url.searchParams.append('region', region);
-    url.searchParams.append('page', page.toString());
-    url.searchParams.append('pageSize', pageSize.toString());
-    url.searchParams.append('direction', direction);
-    if (assetType) url.searchParams.append('assetType', assetType);
-    if (assetClass) url.searchParams.append("assetClass", assetClass);
-
     return this.sendRequest<TopMover[]>({
       method: 'GET',
-      url: url.toString(),
+      url: '/api/v2/stock/top-movers',
+      params: {
+        region,
+        pageSize,
+        direction,
+        ...(assetType != null && { assetType }),
+        ...(assetClass != null && { assetClass }),
+        ...(page != null && { page }),
+      },
     });
   }
 }

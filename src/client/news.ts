@@ -42,7 +42,7 @@ export interface News {
 
 export interface NewsPublisher {
     name: string;
-    logoUrl?: string;
+    logoUrl: string | null;
 }
 
 export interface NewsTicker {
@@ -54,15 +54,15 @@ export interface NewsTicker {
 export interface NewsCategories {
     name: string;
     newsCount: number;
-    categoryType?: string;
-    meanType?: number;
+    categoryType?: string | null;
+    meanType?: number | null;
 }
 
 export interface NewsSector {
     name: string;
     newsCount: number;
-    categoryType?: string;
-    meanType?: number;
+    categoryType?: string | null;
+    meanType?: number | null;
 }
 
 export interface NewsContent {
@@ -79,62 +79,46 @@ export interface NewsIndustry {
 }
 
 export class NewsClient extends Client {
-    async getHighlights(region: Region, locale: Locale): Promise<NewsHighlights> {
-        const url = new URL(
-            `${this["baseUrl"]}/api/v1/news/highlights`,
-        );
-        url.searchParams.append("region", region);
-        url.searchParams.append("locale", locale);
-
+    async getHighlights(
+        region: Region,
+        locale: Locale
+      ): Promise<NewsHighlights> {
         return this.sendRequest<NewsHighlights>({
-            method: "GET",
-            url: url.toString(),
-        })
-    }
+          method: "GET",
+          url: "/api/v1/news/highlights",
+          params: {
+            region,
+            locale,
+          },
+        });
+      }
+      
 
     async getNews(
         region: Region,
         locale: Locale,
-        newsType: NewsType | null,
-        page: number | null,
-        size: number | null,
-        orderBy: NewsOrderBy | null,
-        orderByDirection: SortDirection | null,
-        extraFilters: string | null,
-    ): Promise<PaginatedResponse<News>> {
-        const url = new URL(
-            `${this["baseUrl"]}/api/v1/news`,
-        );
-        url.searchParams.append("region", region);
-        url.searchParams.append("locale", locale);
-
-        if (newsType) {
-            url.searchParams.append("newsType", newsType);
-        }
-
-        if (page) {
-            url.searchParams.append("page", page.toString());
-        }
-
-        if (size) {
-            url.searchParams.append("size", size.toString());
-        }
-
-        if (orderBy) {
-            url.searchParams.append("orderBy", orderBy);
-        }
-
-        if (orderByDirection) {
-            url.searchParams.append("orderByDirection", orderByDirection);
-        }
-
-        if (extraFilters) {
-            url.searchParams.append("extraFilters", extraFilters);
-        }
-
+        newsType?: NewsType,
+        page?: number,
+        size?: number,
+        orderBy?: NewsOrderBy,
+        orderByDirection?: SortDirection,
+        extraFilters?: string
+      ): Promise<PaginatedResponse<News>> {
+        const params = {
+          region,
+          locale,
+          ...(newsType != null && { newsType }),
+          ...(page != null && { page }),
+          ...(size != null && { size }),
+          ...(orderBy != null && { orderBy }),
+          ...(orderByDirection != null && { orderByDirection }),
+          ...(extraFilters != null && { extraFilters }),
+        };
+      
         return this.sendRequest<PaginatedResponse<News>>({
-            method: "GET",
-            url: url.toString(),
+          method: "GET",
+          url: "/api/v1/news",
+          params,
         });
-    }
+      }      
 }

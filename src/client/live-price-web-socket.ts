@@ -34,8 +34,10 @@ export enum LivePriceFeed {
   LiveBist = "live_price_tr",
   LiveUs = "live_price_us",
   DelayedBist = "delayed_price_tr",
-  DelayedUs = "delayed_price_us",
   DepthBist = "depth_tr",
+  Custom = "custom",
+  StateUs = "state_us",
+  LiveAskBidBist = "live_ask_bid_price_tr",
 }
 
 type StockLiveDataType<T extends LivePriceFeed> = T extends
