@@ -220,7 +220,7 @@ export class StockClient extends Client {
     });
   }
 
-  async getCustomHistoricalPrices(stock: string, region: Region, fromDate: string, toDate: string, interval: HistoricalPriceInterval, detail: boolean, numIntervals?: number): Promise<PriceDataPoint[]> {
+  async getCustomHistoricalPrices(stock: string, region: Region, fromDate: string, toDate: string, interval: HistoricalPriceInterval, detail?: boolean, numIntervals?: number): Promise<PriceDataPoint[]> {
     this.validateCustomHistoricalPriceDate(fromDate);
     this.validateCustomHistoricalPriceDate(toDate);
 
@@ -230,7 +230,7 @@ export class StockClient extends Client {
       fromDate,
       toDate,
       interval,
-      detail,
+      ...(detail != null && { detail }),
       ...(numIntervals != null && { numIntervals })
     }
 
