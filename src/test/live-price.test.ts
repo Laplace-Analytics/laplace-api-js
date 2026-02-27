@@ -567,6 +567,25 @@ describe("LivePrice", () => {
         expect(cli.request).toHaveBeenCalledTimes(1);
       });
     });
+
+    describe("revokeWebsocketConnection", () => {
+      test("calls correct endpoint with id path param", async () => {
+        cli.request.mockResolvedValueOnce({ data: {} });
+
+        await mockClient.revokeWebsocketConnection("abc-123");
+
+        expect(cli.request).toHaveBeenCalledTimes(1);
+        const call = cli.request.mock.calls[0][0];
+        expect(call.method).toBe("POST");
+        expect(call.url).toBe("/api/v1/ws/user/revoke/abc-123");
+      });
+
+      test("bubbles up request error", async () => {
+        cli.request.mockRejectedValueOnce(new Error("Not found"));
+
+        await expect(mockClient.revokeWebsocketConnection("bad-id")).rejects.toThrow("Not found");
+      });
+    });
   });
 
   describe("GetBidAskForBIST", () => {

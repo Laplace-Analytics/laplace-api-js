@@ -335,4 +335,11 @@ export class LivePriceClient extends Client {
       data: request,
     });
   }
+
+  async revokeWebsocketConnection(id: string): Promise<void> {
+    await this.sendRequest<void>({
+      method: "POST",
+      url: `/api/v1/ws/user/revoke/${id}`,
+    });
+  }
 }
