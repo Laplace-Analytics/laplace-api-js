@@ -272,7 +272,7 @@ describe("Collections", () => {
     });
 
     test("GetCollectionDetails", async () => {
-      const resp = await client.getThemeDetail(
+      const resp = await client.getCollectionDetail(
         "620f455a0187ade00bb0d55f",
         Region.Tr,
         Locale.Tr
