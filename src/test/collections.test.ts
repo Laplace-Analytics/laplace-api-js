@@ -9,6 +9,7 @@ import "./client_test_suite";
 import { validateCollection, validateCollectionDetail } from "./helpers";
 import {
   AggregateGraphPeriod,
+  SortBy,
 } from "../client/collections";
 
 const mockCollectionList = [
@@ -401,6 +402,22 @@ describe("Collections", () => {
         expect(s.industryId).toBe("65533e441fa5c7b58afa0944");
         expect(s.updatedDate).toBe("2025-07-02T00:00:00.426Z");
         expect(s.active).toBe(true);
+      });
+    });
+
+    describe("detail methods with sortBy", () => {
+      test("includes sortBy param when provided", async () => {
+        cli.request.mockResolvedValueOnce({ data: mockIndustryDetail });
+
+        await client.getIndustryDetail(
+          "65533e441fa5c7b58afa0944",
+          region,
+          locale,
+          SortBy.PriceChange
+        );
+
+        const call = cli.request.mock.calls[0][0];
+        expect(call.params).toEqual({ region, locale, sortBy: SortBy.PriceChange });
       });
     });
 
