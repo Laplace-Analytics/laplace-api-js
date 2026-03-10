@@ -122,8 +122,18 @@ export class NewsClient extends Client {
     });
   }
 
-  streamNews(locale: Locale): { events: AsyncIterable<News[]>, cancel: () => void } {
-    const url = `${this["baseUrl"]}/api/v1/news/stream?locale=${locale}`;
+  streamNews(
+    locale: Locale,
+    sectors?: string,
+    tickers?: string,
+    categories?: string,
+    industries?: string
+  ): { events: AsyncIterable<News[]>, cancel: () => void } {
+    let url = `${this["baseUrl"]}/api/v1/news/stream?locale=${locale}`;
+    if (sectors) url += `&sectors=${encodeURIComponent(sectors)}`;
+    if (tickers) url += `&tickers=${encodeURIComponent(tickers)}`;
+    if (categories) url += `&categories=${encodeURIComponent(categories)}`;
+    if (industries) url += `&industries=${encodeURIComponent(industries)}`;
     return this.sendSSERequest<News[]>(url);
   }
 }

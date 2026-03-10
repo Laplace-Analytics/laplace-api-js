@@ -404,6 +404,31 @@ describe("NewsClient", () => {
         cancel();
         axiosGetSpy.mockRestore();
       });
+
+      test("calls correct endpoint with optional parameters", async () => {
+        const mockAsyncIterator = {
+          async *[Symbol.asyncIterator]() {
+            yield new TextEncoder().encode("data: " + JSON.stringify([]) + "\n\n");
+          }
+        };
+
+        const axiosGetSpy = jest.spyOn(axios, 'get').mockResolvedValueOnce({
+          data: mockAsyncIterator
+        });
+
+        const { events, cancel } = client.streamNews(Locale.En, "tech", "AAPL", "category", "software");
+
+        for await (const _ of events) {
+          break;
+        }
+
+        expect(axiosGetSpy).toHaveBeenCalledTimes(1);
+        const callArgs = axiosGetSpy.mock.calls[0];
+        expect(callArgs[0]).toBe(`${client["baseUrl"]}/api/v1/news/stream?locale=en&sectors=tech&tickers=AAPL&categories=category&industries=software`);
+
+        cancel();
+        axiosGetSpy.mockRestore();
+      });
     });
   });
 });
