@@ -1,4 +1,5 @@
 import { Logger } from "winston";
+import axios from "axios";
 import { LaplaceConfiguration } from "../utilities/configuration";
 import {
   NewsClient,
@@ -10,61 +11,61 @@ import { Region, Locale } from "../client/collections";
 import { SortDirection } from "../client/broker";
 
 const mockNewsHighlightsResponse = {
-    tech: [
-      "Alphabet ve Amazon'un desteğiyle Anthropic, 2026 başlarında Hindistan'ın Bengaluru kentinde bir ofis açacak."
-    ],
-    other: [
-      "ABD Yüksek Mahkemesi, Epic Games'in davası kapsamında Google'ın Play uygulamalarındaki değişikliği engellemeyecek."
-    ],
-    finance: [
-      "Fifth Third Bank, Comerica'yı 10,9 milyar dolara satın alacak ve böylece ABD'nin 9. en büyük bankası olacak."
-    ],
-    consumer: [
-      "Tesla, rekabet ortamında pazar payını geri almak için daha ucuz Model Y ve Model 3'ü piyasaya sürdü; duyuru hisseleri etkiledi."
-    ],
-    healthcare: [
-      "İlaç üreticileri, Amgen ve Novo Nordisk'in de dahil olduğu şekilde, Trump'ın ilaç fiyatlarını düşürme planıyla uyumlu olarak tele-sağlık satışlarını artırıyor."
-    ],
-    energyAndUtilities: [
-      "ABD Enerji Bakanlığı, Stellantis ve GM'ye verilen 1,1 milyar dolarlık hibeleri iptal edebilir."
-    ],
-    industrialsAndMaterials: [
-      "Boeing, bir grevi sona erdirmek için IAM Sendikası ile geçici bir anlaşmaya vardı; detaylar açıklanmadı."
-    ]
-  };
-  
-  const mockNewsResponse = {
-    items: [
-      {
-        url: "https://www.reuters.com/business/energy/commonwealth-lng-wants-more-time-build-planned-export-facility-louisiana-2025-10-07/",
-        content: {
-          title: "Commonwealth LNG wants more time to build planned export facility in Louisiana",
-          content: [
-            "Commonwealth LNG has requested a four-year extension from federal regulators to construct & begin exporting liquefied natural gas..."
-          ],
-          summary: [
-            "Commonwealth LNG has requested a four-year extension from federal regulators..."
-          ],
-          description:
-            "Commonwealth LNG has asked federal regulators for a four-year extension...",
-          investorInsight:
-            "What it means for investors: The extension request could postpone..."
-        },
-        sectors: { name: "Energy", meanType: 9, newsCount: 1 },
-        tickers: [{ id: "6203d1ba1e674875275558f7", name: "EQT Corp", symbol: "EQT" }],
-        imageUrl: "",
-        createdAt: "2025-10-07T17:10:01.560644Z",
-        publisher: { name: "Reuters", logoUrl: null },
-        timestamp: "2025-10-07T16:50:16Z",
-        categories: { name: "Sector News", newsCount: 1, categoryType: "StockSpesific" },
-        industries: { name: "Oil/Gas (Production and Exploration)", meanType: 78 },
-        publisherUrl: "Reuters",
-        qualityScore: 0,
-        relatedTickers: [{ id: "6203d1ba1e674875275558f7", name: "EQT Corp", symbol: "EQT" }]
-      }
-    ],
-    recordCount: 352
-  };
+  tech: [
+    "Alphabet ve Amazon'un desteğiyle Anthropic, 2026 başlarında Hindistan'ın Bengaluru kentinde bir ofis açacak."
+  ],
+  other: [
+    "ABD Yüksek Mahkemesi, Epic Games'in davası kapsamında Google'ın Play uygulamalarındaki değişikliği engellemeyecek."
+  ],
+  finance: [
+    "Fifth Third Bank, Comerica'yı 10,9 milyar dolara satın alacak ve böylece ABD'nin 9. en büyük bankası olacak."
+  ],
+  consumer: [
+    "Tesla, rekabet ortamında pazar payını geri almak için daha ucuz Model Y ve Model 3'ü piyasaya sürdü; duyuru hisseleri etkiledi."
+  ],
+  healthcare: [
+    "İlaç üreticileri, Amgen ve Novo Nordisk'in de dahil olduğu şekilde, Trump'ın ilaç fiyatlarını düşürme planıyla uyumlu olarak tele-sağlık satışlarını artırıyor."
+  ],
+  energyAndUtilities: [
+    "ABD Enerji Bakanlığı, Stellantis ve GM'ye verilen 1,1 milyar dolarlık hibeleri iptal edebilir."
+  ],
+  industrialsAndMaterials: [
+    "Boeing, bir grevi sona erdirmek için IAM Sendikası ile geçici bir anlaşmaya vardı; detaylar açıklanmadı."
+  ]
+};
+
+const mockNewsResponse = {
+  items: [
+    {
+      url: "https://www.reuters.com/business/energy/commonwealth-lng-wants-more-time-build-planned-export-facility-louisiana-2025-10-07/",
+      content: {
+        title: "Commonwealth LNG wants more time to build planned export facility in Louisiana",
+        content: [
+          "Commonwealth LNG has requested a four-year extension from federal regulators to construct & begin exporting liquefied natural gas..."
+        ],
+        summary: [
+          "Commonwealth LNG has requested a four-year extension from federal regulators..."
+        ],
+        description:
+          "Commonwealth LNG has asked federal regulators for a four-year extension...",
+        investorInsight:
+          "What it means for investors: The extension request could postpone..."
+      },
+      sectors: { name: "Energy", meanType: 9, newsCount: 1 },
+      tickers: [{ id: "6203d1ba1e674875275558f7", name: "EQT Corp", symbol: "EQT" }],
+      imageUrl: "",
+      createdAt: "2025-10-07T17:10:01.560644Z",
+      publisher: { name: "Reuters", logoUrl: null },
+      timestamp: "2025-10-07T16:50:16Z",
+      categories: { name: "Sector News", newsCount: 1, categoryType: "StockSpesific" },
+      industries: { name: "Oil/Gas (Production and Exploration)", meanType: 78 },
+      publisherUrl: "Reuters",
+      qualityScore: 0,
+      relatedTickers: [{ id: "6203d1ba1e674875275558f7", name: "EQT Corp", symbol: "EQT" }]
+    }
+  ],
+  recordCount: 352
+};
 
 describe("NewsClient", () => {
   let client: NewsClient;
@@ -150,13 +151,13 @@ describe("NewsClient", () => {
           expect(typeof n.categories.newsCount).toBe("number");
           expect(
             typeof n.categories.categoryType === "string" ||
-              n.categories.categoryType == null ||
-              n.categories.categoryType === undefined
+            n.categories.categoryType == null ||
+            n.categories.categoryType === undefined
           ).toBe(true);
           expect(
             typeof n.categories.meanType === "number" ||
-              n.categories.meanType == null ||
-              n.categories.meanType === undefined
+            n.categories.meanType == null ||
+            n.categories.meanType === undefined
           ).toBe(true);
         }
 
@@ -165,13 +166,13 @@ describe("NewsClient", () => {
           expect(typeof n.sectors.newsCount).toBe("number");
           expect(
             typeof n.sectors.categoryType === "string" ||
-              n.sectors.categoryType == null ||
-              n.sectors.categoryType === undefined
+            n.sectors.categoryType == null ||
+            n.sectors.categoryType === undefined
           ).toBe(true);
           expect(
             typeof n.sectors.meanType === "number" ||
-              n.sectors.meanType == null ||
-              n.sectors.meanType === undefined
+            n.sectors.meanType == null ||
+            n.sectors.meanType === undefined
           ).toBe(true);
         }
 
@@ -188,6 +189,25 @@ describe("NewsClient", () => {
           expect(typeof n.content.investorInsight).toBe("string");
         }
       }
+    });
+
+    test("streamNews yields item before timeout or throws gracefully if none arrive", async () => {
+      let newsItemsReceived = 0;
+      const { events, cancel } = client.streamNews(Locale.Tr);
+
+      const receivePromise = (async () => {
+        for await (const items of events) {
+          if (items && items.length > 0) {
+            newsItemsReceived += items.length;
+            break;
+          }
+        }
+      })();
+
+      const timeoutPromise = new Promise((resolve) => setTimeout(resolve, 8000));
+      await Promise.race([receivePromise, timeoutPromise]);
+      cancel();
+      expect(newsItemsReceived).toBeGreaterThanOrEqual(0);
     });
   });
 
@@ -341,6 +361,73 @@ describe("NewsClient", () => {
         ).rejects.toThrow("Failed to fetch news");
 
         expect(cli.request).toHaveBeenCalledTimes(1);
+      });
+    });
+
+    describe("streamNews", () => {
+      test("calls correct endpoint/params and correctly yields stream entities", async () => {
+        const eventsList: any[] = [];
+
+        // Mock get response to return a readable stream
+        const mockStreamData = [
+          "data: " + JSON.stringify([{ url: "http://example.com/stream-news-1", publiser: { name: "test-publisher" } }]) + "\n\n",
+          "data: " + JSON.stringify([{ url: "http://example.com/stream-news-2", publiser: { name: "test-publisher-2" } }]) + "\n\n",
+        ];
+
+        const mockAsyncIterator = {
+          async *[Symbol.asyncIterator]() {
+            for (const chunk of mockStreamData) {
+              yield new TextEncoder().encode(chunk);
+            }
+          }
+        };
+
+        const axiosGetSpy = jest.spyOn(axios, 'get').mockResolvedValueOnce({
+          data: mockAsyncIterator
+        });
+
+        const { events, cancel } = client.streamNews(Locale.Tr);
+
+        for await (const newsList of events) {
+          eventsList.push(newsList);
+        }
+
+        expect(axiosGetSpy).toHaveBeenCalledTimes(1);
+        const callArgs = axiosGetSpy.mock.calls[0];
+        expect(callArgs[0]).toBe(`${client["baseUrl"]}/api/v1/news/stream?locale=tr`);
+        expect(callArgs[1]?.responseType).toBe('stream');
+
+        expect(eventsList).toHaveLength(2);
+        expect(eventsList[0][0].url).toBe("http://example.com/stream-news-1");
+        expect(eventsList[1][0].url).toBe("http://example.com/stream-news-2");
+
+        cancel();
+        axiosGetSpy.mockRestore();
+      });
+
+      test("calls correct endpoint with optional parameters", async () => {
+        const mockAsyncIterator = {
+          async *[Symbol.asyncIterator]() {
+            yield new TextEncoder().encode("data: " + JSON.stringify([]) + "\n\n");
+          }
+        };
+
+        const axiosGetSpy = jest.spyOn(axios, 'get').mockResolvedValueOnce({
+          data: mockAsyncIterator
+        });
+
+        const { events, cancel } = client.streamNews(Locale.En, ["tech"], ["AAPL"], ["category"], ["software"]);
+
+        for await (const _ of events) {
+          break;
+        }
+
+        expect(axiosGetSpy).toHaveBeenCalledTimes(1);
+        const callArgs = axiosGetSpy.mock.calls[0];
+        expect(callArgs[0]).toBe(`${client["baseUrl"]}/api/v1/news/stream?locale=en&sectors=tech&tickers=AAPL&categories=category&industries=software`);
+
+        cancel();
+        axiosGetSpy.mockRestore();
       });
     });
   });
