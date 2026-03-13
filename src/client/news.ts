@@ -124,16 +124,16 @@ export class NewsClient extends Client {
 
   streamNews(
     locale: Locale,
-    sectors?: string,
-    tickers?: string,
-    categories?: string,
-    industries?: string
+    sectors?: string[],
+    tickers?: string[],
+    categories?: string[],
+    industries?: string[]
   ): { events: AsyncIterable<News[]>, cancel: () => void } {
     let url = `${this["baseUrl"]}/api/v1/news/stream?locale=${locale}`;
-    if (sectors) url += `&sectors=${encodeURIComponent(sectors)}`;
-    if (tickers) url += `&tickers=${encodeURIComponent(tickers)}`;
-    if (categories) url += `&categories=${encodeURIComponent(categories)}`;
-    if (industries) url += `&industries=${encodeURIComponent(industries)}`;
+    if (sectors?.length) url += `&sectors=${encodeURIComponent(sectors.join(","))}`;
+    if (tickers?.length) url += `&tickers=${encodeURIComponent(tickers.join(","))}`;
+    if (categories?.length) url += `&categories=${encodeURIComponent(categories.join(","))}`;
+    if (industries?.length) url += `&industries=${encodeURIComponent(industries.join(","))}`;
     return this.sendSSERequest<News[]>(url);
   }
 }

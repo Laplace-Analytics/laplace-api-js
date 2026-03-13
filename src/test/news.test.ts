@@ -416,7 +416,7 @@ describe("NewsClient", () => {
           data: mockAsyncIterator
         });
 
-        const { events, cancel } = client.streamNews(Locale.En, "tech", "AAPL", "category", "software");
+        const { events, cancel } = client.streamNews(Locale.En, ["tech"], ["AAPL"], ["category"], ["software"]);
 
         for await (const _ of events) {
           break;
