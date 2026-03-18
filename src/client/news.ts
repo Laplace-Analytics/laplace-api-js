@@ -40,6 +40,8 @@ export interface News {
   industries?: NewsIndustry;
 }
 
+export type NewsV2 = Omit<News, "relatedTickers">;
+
 export interface NewsPublisher {
   name: string;
   logoUrl: string | null;
@@ -122,18 +124,46 @@ export class NewsClient extends Client {
     });
   }
 
+  async getNewsV2(
+    region: Region,
+    locale: Locale,
+    newsType?: NewsType,
+    page?: number,
+    size?: number,
+    orderBy?: NewsOrderBy,
+    orderByDirection?: SortDirection,
+    extraFilters?: string
+  ): Promise<PaginatedResponse<NewsV2>> {
+    const params = {
+      region,
+      locale,
+      ...(newsType != null && { newsType }),
+      ...(page != null && { page }),
+      ...(size != null && { size }),
+      ...(orderBy != null && { orderBy }),
+      ...(orderByDirection != null && { orderByDirection }),
+      ...(extraFilters != null && { extraFilters }),
+    };
+
+    return this.sendRequest<PaginatedResponse<NewsV2>>({
+      method: "GET",
+      url: "/api/v2/news",
+      params,
+    });
+  }
+
   streamNews(
     locale: Locale,
     sectors?: string[],
     tickers?: string[],
     categories?: string[],
     industries?: string[]
-  ): { events: AsyncIterable<News[]>, cancel: () => void } {
+  ): { events: AsyncIterable<NewsV2[]>, cancel: () => void } {
     let url = `${this["baseUrl"]}/api/v1/news/stream?locale=${locale}`;
     if (sectors?.length) url += `&sectors=${encodeURIComponent(sectors.join(","))}`;
     if (tickers?.length) url += `&tickers=${encodeURIComponent(tickers.join(","))}`;
     if (categories?.length) url += `&categories=${encodeURIComponent(categories.join(","))}`;
     if (industries?.length) url += `&industries=${encodeURIComponent(industries.join(","))}`;
-    return this.sendSSERequest<News[]>(url);
+    return this.sendSSERequest<NewsV2[]>(url);
   }
 }
