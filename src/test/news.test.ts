@@ -67,6 +67,11 @@ const mockNewsResponse = {
   recordCount: 352
 };
 
+const mockNewsV2Response = {
+  items: mockNewsResponse.items.map(({ relatedTickers, ...rest }) => rest),
+  recordCount: mockNewsResponse.recordCount
+};
+
 describe("NewsClient", () => {
   let client: NewsClient;
 
@@ -188,6 +193,39 @@ describe("NewsClient", () => {
           expect(Array.isArray(n.content.summary)).toBe(true);
           expect(typeof n.content.investorInsight).toBe("string");
         }
+      }
+    });
+
+    test("getNewsV2 returns valid paginated data", async () => {
+      const resp = await client.getNewsV2(
+        Region.Us,
+        Locale.Tr,
+        NewsType.BRIEFS,
+        0,
+        10,
+        NewsOrderBy.TIMESTAMP,
+        SortDirection.Desc
+      );
+
+      expect(resp).toBeDefined();
+      expect(typeof resp.recordCount).toBe("number");
+      expect(resp.recordCount).toBeGreaterThanOrEqual(0);
+      expect(Array.isArray(resp.items)).toBe(true);
+
+      if (resp.items.length > 0) {
+        const n = resp.items[0];
+
+        expect(typeof n.url).toBe("string");
+        expect(typeof n.imageUrl).toBe("string");
+        expect(typeof n.timestamp).toBe("string");
+        expect(typeof n.publisherUrl).toBe("string");
+        expect(typeof n.qualityScore).toBe("number");
+        expect(typeof n.createdAt).toBe("string");
+
+        expect((n as any).relatedTickers).toBeUndefined();
+
+        expect(n.publisher).toBeDefined();
+        expect(typeof n.publisher.name).toBe("string");
       }
     });
 
@@ -359,6 +397,76 @@ describe("NewsClient", () => {
             SortDirection.Desc
           )
         ).rejects.toThrow("Failed to fetch news");
+
+        expect(cli.request).toHaveBeenCalledTimes(1);
+      });
+    });
+
+    describe("getNewsV2", () => {
+      test("calls correct endpoint/params and matches raw response", async () => {
+        cli.request.mockResolvedValueOnce({ data: mockNewsV2Response });
+
+        const resp = await client.getNewsV2(
+          Region.Tr,
+          Locale.Tr,
+          NewsType.BRIEFS,
+          1,
+          10,
+          NewsOrderBy.TIMESTAMP,
+          SortDirection.Desc,
+          undefined
+        );
+
+        expect(cli.request).toHaveBeenCalledTimes(1);
+        const call = cli.request.mock.calls[0][0];
+
+        expect(call.method).toBe("GET");
+        expect(call.url).toBe("/api/v2/news");
+        expect(call.params).toEqual({
+          region: Region.Tr,
+          locale: Locale.Tr,
+          newsType: NewsType.BRIEFS,
+          page: 1,
+          size: 10,
+          orderBy: NewsOrderBy.TIMESTAMP,
+          orderByDirection: SortDirection.Desc
+        });
+
+        expect(resp.recordCount).toBe(352);
+        expect(resp.items).toHaveLength(1);
+
+        const n = resp.items[0];
+
+        expect((n as any).relatedTickers).toBeUndefined();
+        expect(n.url).toBe(mockNewsV2Response.items[0].url);
+      });
+
+      test("does not send optional params when undefined", async () => {
+        cli.request.mockResolvedValueOnce({ data: mockNewsV2Response });
+
+        await client.getNewsV2(Region.Tr, Locale.Tr);
+
+        const call = cli.request.mock.calls[0][0];
+        expect(call.params).toEqual({
+          region: Region.Tr,
+          locale: Locale.Tr
+        });
+      });
+
+      test("bubbles up request error", async () => {
+        cli.request.mockRejectedValueOnce(new Error("Failed to fetch news v2"));
+
+        await expect(
+          client.getNewsV2(
+            Region.Tr,
+            Locale.Tr,
+            NewsType.REUTERS,
+            0,
+            10,
+            NewsOrderBy.TIMESTAMP,
+            SortDirection.Desc
+          )
+        ).rejects.toThrow("Failed to fetch news v2");
 
         expect(cli.request).toHaveBeenCalledTimes(1);
       });
