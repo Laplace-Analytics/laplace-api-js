@@ -231,7 +231,7 @@ describe("NewsClient", () => {
 
     test("streamNews yields item before timeout or throws gracefully if none arrive", async () => {
       let newsItemsReceived = 0;
-      const { events, cancel } = client.streamNews(Locale.Tr);
+      const { events, cancel } = client.streamNews(Region.Us, Locale.Tr);
 
       const receivePromise = (async () => {
         for await (const items of events) {
@@ -494,7 +494,7 @@ describe("NewsClient", () => {
           data: mockAsyncIterator
         });
 
-        const { events, cancel } = client.streamNews(Locale.Tr);
+        const { events, cancel } = client.streamNews(Region.Us, Locale.Tr);
 
         for await (const newsList of events) {
           eventsList.push(newsList);
@@ -502,7 +502,7 @@ describe("NewsClient", () => {
 
         expect(axiosGetSpy).toHaveBeenCalledTimes(1);
         const callArgs = axiosGetSpy.mock.calls[0];
-        expect(callArgs[0]).toBe(`${client["baseUrl"]}/api/v1/news/stream?locale=tr`);
+        expect(callArgs[0]).toBe(`${client["baseUrl"]}/api/v1/news/stream?locale=tr&region=us`);
         expect(callArgs[1]?.responseType).toBe('stream');
 
         expect(eventsList).toHaveLength(2);
@@ -524,7 +524,7 @@ describe("NewsClient", () => {
           data: mockAsyncIterator
         });
 
-        const { events, cancel } = client.streamNews(Locale.En, ["tech"], ["AAPL"], ["category"], ["software"]);
+        const { events, cancel } = client.streamNews(Region.Us, Locale.En, ["tech"], ["AAPL"], ["category"], ["software"]);
 
         for await (const _ of events) {
           break;
@@ -532,7 +532,7 @@ describe("NewsClient", () => {
 
         expect(axiosGetSpy).toHaveBeenCalledTimes(1);
         const callArgs = axiosGetSpy.mock.calls[0];
-        expect(callArgs[0]).toBe(`${client["baseUrl"]}/api/v1/news/stream?locale=en&sectors=tech&tickers=AAPL&categories=category&industries=software`);
+        expect(callArgs[0]).toBe(`${client["baseUrl"]}/api/v1/news/stream?locale=en&region=us&sectors=tech&tickers=AAPL&categories=category&industries=software`);
 
         cancel();
         axiosGetSpy.mockRestore();
