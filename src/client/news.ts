@@ -153,13 +153,14 @@ export class NewsClient extends Client {
   }
 
   streamNews(
+    region: Region,
     locale: Locale,
     sectors?: string[],
     tickers?: string[],
     categories?: string[],
     industries?: string[]
   ): { events: AsyncIterable<NewsV2[]>, cancel: () => void } {
-    let url = `${this["baseUrl"]}/api/v1/news/stream?locale=${locale}`;
+    let url = `${this["baseUrl"]}/api/v1/news/stream?locale=${locale}&region=${region}`;
     if (sectors?.length) url += `&sectors=${encodeURIComponent(sectors.join(","))}`;
     if (tickers?.length) url += `&tickers=${encodeURIComponent(tickers.join(","))}`;
     if (categories?.length) url += `&categories=${encodeURIComponent(categories.join(","))}`;
