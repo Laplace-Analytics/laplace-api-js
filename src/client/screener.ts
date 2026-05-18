@@ -3,6 +3,7 @@ import { PaginatedResponse } from "./capital_increase";
 import { Region } from "./collections";
 
 export enum ScreenerSortBy {
+  Symbol = "symbol",
   Price = "price",
   DailyChange = "dailyChange",
   MarketCap = "marketCap",
