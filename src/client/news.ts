@@ -22,6 +22,23 @@ export enum NewsType {
 
 export enum NewsOrderBy {
   TIMESTAMP = "timestamp",
+  QUALITY_SCORE = "quality_score",
+}
+
+export interface GetNewsV2Params {
+  newsType?: NewsType;
+  orderBy?: NewsOrderBy;
+  orderByDirection?: SortDirection;
+  symbols?: string;
+  categories?: string;
+  sectors?: string;
+  industries?: string;
+  qualityScoreMin?: number;
+  qualityScoreMax?: number;
+  timestampFrom?: string;
+  timestampTo?: string;
+  page?: number;
+  size?: number;
 }
 
 export interface News {
@@ -80,6 +97,11 @@ export interface NewsIndustry {
   meanType: number;
 }
 
+export interface NewsCategory {
+  id: string;
+  name: string;
+}
+
 export class NewsClient extends Client {
   async getHighlights(
     region: Region,
@@ -95,6 +117,16 @@ export class NewsClient extends Client {
     });
   }
 
+
+  async getNewsCategories(locale?: Locale): Promise<NewsCategory[]> {
+    return this.sendRequest<NewsCategory[]>({
+      method: "GET",
+      url: "/api/v1/news/categories",
+      params: {
+        ...(locale != null && { locale }),
+      },
+    });
+  }
 
   async getNews(
     region: Region,
@@ -127,22 +159,32 @@ export class NewsClient extends Client {
   async getNewsV2(
     region: Region,
     locale: Locale,
-    newsType?: NewsType,
-    page?: number,
-    size?: number,
-    orderBy?: NewsOrderBy,
-    orderByDirection?: SortDirection,
-    extraFilters?: string
+    options?: GetNewsV2Params
   ): Promise<PaginatedResponse<NewsV2>> {
     const params = {
       region,
       locale,
-      ...(newsType != null && { newsType }),
-      ...(page != null && { page }),
-      ...(size != null && { size }),
-      ...(orderBy != null && { orderBy }),
-      ...(orderByDirection != null && { orderByDirection }),
-      ...(extraFilters != null && { extraFilters }),
+      ...(options?.newsType != null && { newsType: options.newsType }),
+      ...(options?.orderBy != null && { orderBy: options.orderBy }),
+      ...(options?.orderByDirection != null && {
+        orderByDirection: options.orderByDirection,
+      }),
+      ...(options?.symbols != null && { symbols: options.symbols }),
+      ...(options?.categories != null && { categories: options.categories }),
+      ...(options?.sectors != null && { sectors: options.sectors }),
+      ...(options?.industries != null && { industries: options.industries }),
+      ...(options?.qualityScoreMin != null && {
+        qualityScoreMin: options.qualityScoreMin,
+      }),
+      ...(options?.qualityScoreMax != null && {
+        qualityScoreMax: options.qualityScoreMax,
+      }),
+      ...(options?.timestampFrom != null && {
+        timestampFrom: options.timestampFrom,
+      }),
+      ...(options?.timestampTo != null && { timestampTo: options.timestampTo }),
+      ...(options?.page != null && { page: options.page }),
+      ...(options?.size != null && { size: options.size }),
     };
 
     return this.sendRequest<PaginatedResponse<NewsV2>>({

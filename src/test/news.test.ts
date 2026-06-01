@@ -34,6 +34,13 @@ const mockNewsHighlightsResponse = {
   ]
 };
 
+const mockNewsCategoriesResponse = [
+  { id: "13702", name: "General News" },
+  { id: "13703", name: "Sector News" },
+  { id: "13704", name: "Market News" },
+  { id: "13705", name: "Stock Spesific News" }
+];
+
 const mockNewsResponse = {
   items: [
     {
@@ -105,6 +112,17 @@ describe("NewsClient", () => {
 
       const first = resp.tech?.[0];
       if (first != null) expect(typeof first).toBe("string");
+    });
+
+    test("getNewsCategories returns valid data", async () => {
+      const resp = await client.getNewsCategories(Locale.En);
+
+      expect(Array.isArray(resp)).toBe(true);
+      expect(resp.length).toBeGreaterThan(0);
+
+      const c = resp[0];
+      expect(typeof c.id).toBe("string");
+      expect(typeof c.name).toBe("string");
     });
 
     test("getNews returns valid paginated data", async () => {
@@ -197,15 +215,13 @@ describe("NewsClient", () => {
     });
 
     test("getNewsV2 returns valid paginated data", async () => {
-      const resp = await client.getNewsV2(
-        Region.Us,
-        Locale.Tr,
-        NewsType.BRIEFS,
-        0,
-        10,
-        NewsOrderBy.TIMESTAMP,
-        SortDirection.Desc
-      );
+      const resp = await client.getNewsV2(Region.Us, Locale.Tr, {
+        newsType: NewsType.BRIEFS,
+        page: 0,
+        size: 10,
+        orderBy: NewsOrderBy.TIMESTAMP,
+        orderByDirection: SortDirection.Desc,
+      });
 
       expect(resp).toBeDefined();
       expect(typeof resp.recordCount).toBe("number");
@@ -294,6 +310,42 @@ describe("NewsClient", () => {
 
         await expect(client.getHighlights(Region.Tr, Locale.Tr)).rejects.toThrow(
           "Failed to fetch highlights"
+        );
+
+        expect(cli.request).toHaveBeenCalledTimes(1);
+      });
+    });
+
+    describe("getNewsCategories", () => {
+      test("calls correct endpoint/params and matches raw response", async () => {
+        cli.request.mockResolvedValueOnce({ data: mockNewsCategoriesResponse });
+
+        const resp = await client.getNewsCategories(Locale.En);
+
+        expect(cli.request).toHaveBeenCalledTimes(1);
+        const call = cli.request.mock.calls[0][0];
+
+        expect(call.method).toBe("GET");
+        expect(call.url).toBe("/api/v1/news/categories");
+        expect(call.params).toEqual({ locale: Locale.En });
+
+        expect(resp).toEqual(mockNewsCategoriesResponse);
+      });
+
+      test("does not send locale when undefined", async () => {
+        cli.request.mockResolvedValueOnce({ data: mockNewsCategoriesResponse });
+
+        await client.getNewsCategories();
+
+        const call = cli.request.mock.calls[0][0];
+        expect(call.params).toEqual({});
+      });
+
+      test("bubbles up request error", async () => {
+        cli.request.mockRejectedValueOnce(new Error("Failed to fetch categories"));
+
+        await expect(client.getNewsCategories(Locale.En)).rejects.toThrow(
+          "Failed to fetch categories"
         );
 
         expect(cli.request).toHaveBeenCalledTimes(1);
@@ -406,16 +458,21 @@ describe("NewsClient", () => {
       test("calls correct endpoint/params and matches raw response", async () => {
         cli.request.mockResolvedValueOnce({ data: mockNewsV2Response });
 
-        const resp = await client.getNewsV2(
-          Region.Tr,
-          Locale.Tr,
-          NewsType.BRIEFS,
-          1,
-          10,
-          NewsOrderBy.TIMESTAMP,
-          SortDirection.Desc,
-          undefined
-        );
+        const resp = await client.getNewsV2(Region.Tr, Locale.Tr, {
+          newsType: NewsType.BRIEFS,
+          page: 1,
+          size: 10,
+          orderBy: NewsOrderBy.TIMESTAMP,
+          orderByDirection: SortDirection.Desc,
+          symbols: "AAPL,MSFT",
+          categories: "Sector News",
+          sectors: "Technology",
+          industries: "Software",
+          qualityScoreMin: 7,
+          qualityScoreMax: 10,
+          timestampFrom: "2026-05-01",
+          timestampTo: "2026-06-01",
+        });
 
         expect(cli.request).toHaveBeenCalledTimes(1);
         const call = cli.request.mock.calls[0][0];
@@ -429,7 +486,15 @@ describe("NewsClient", () => {
           page: 1,
           size: 10,
           orderBy: NewsOrderBy.TIMESTAMP,
-          orderByDirection: SortDirection.Desc
+          orderByDirection: SortDirection.Desc,
+          symbols: "AAPL,MSFT",
+          categories: "Sector News",
+          sectors: "Technology",
+          industries: "Software",
+          qualityScoreMin: 7,
+          qualityScoreMax: 10,
+          timestampFrom: "2026-05-01",
+          timestampTo: "2026-06-01",
         });
 
         expect(resp.recordCount).toBe(352);
@@ -457,15 +522,13 @@ describe("NewsClient", () => {
         cli.request.mockRejectedValueOnce(new Error("Failed to fetch news v2"));
 
         await expect(
-          client.getNewsV2(
-            Region.Tr,
-            Locale.Tr,
-            NewsType.REUTERS,
-            0,
-            10,
-            NewsOrderBy.TIMESTAMP,
-            SortDirection.Desc
-          )
+          client.getNewsV2(Region.Tr, Locale.Tr, {
+            newsType: NewsType.REUTERS,
+            page: 0,
+            size: 10,
+            orderBy: NewsOrderBy.TIMESTAMP,
+            orderByDirection: SortDirection.Desc,
+          })
         ).rejects.toThrow("Failed to fetch news v2");
 
         expect(cli.request).toHaveBeenCalledTimes(1);
