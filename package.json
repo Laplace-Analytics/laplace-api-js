@@ -1,12 +1,19 @@
 {
   "name": "laplace-api",
-  "version": "5.1.0",
+  "version": "5.4.0",
   "description": "Client library for Laplace API for the US stock market and BIST (Istanbul stock market) fundamental financial data.",
-  "main": "index.js",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "src",
+    "!src/utilities/test.env"
+  ],
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
-    "test": "jest"
+    "test": "jest",
+    "prepare": "npm run build"
   },
   "repository": {
     "type": "git",
