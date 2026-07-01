@@ -113,6 +113,11 @@ export interface NewsCategory {
   name: string;
 }
 
+export interface NewsLaneInfo {
+  id: NewsLane;
+  label: string;
+}
+
 export class NewsClient extends Client {
   async getHighlights(
     region: Region,
@@ -136,6 +141,13 @@ export class NewsClient extends Client {
       params: {
         ...(locale != null && { locale }),
       },
+    });
+  }
+
+  async getNewsLanes(): Promise<NewsLaneInfo[]> {
+    return this.sendRequest<NewsLaneInfo[]>({
+      method: "GET",
+      url: "/api/v1/news/lanes",
     });
   }
 

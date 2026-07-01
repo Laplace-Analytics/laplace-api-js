@@ -42,6 +42,13 @@ const mockNewsCategoriesResponse = [
   { id: "13705", name: "Stock Spesific News" }
 ];
 
+const mockNewsLanesResponse = [
+  { id: "global_macro", label: "Global Macro" },
+  { id: "tr_ekonomi", label: "TR Ekonomi" },
+  { id: "bist", label: "BIST" },
+  { id: "fast_movers", label: "Fast Movers" }
+];
+
 const mockNewsResponse = {
   items: [
     {
@@ -124,6 +131,17 @@ describe("NewsClient", () => {
       const c = resp[0];
       expect(typeof c.id).toBe("string");
       expect(typeof c.name).toBe("string");
+    });
+
+    test("getNewsLanes returns valid data", async () => {
+      const resp = await client.getNewsLanes();
+
+      expect(Array.isArray(resp)).toBe(true);
+      if (resp.length > 0) {
+        const l = resp[0];
+        expect(typeof l.id).toBe("string");
+        expect(typeof l.label).toBe("string");
+      }
     });
 
     test("getApiSourceNames returns valid data", async () => {
@@ -354,6 +372,32 @@ describe("NewsClient", () => {
 
         await expect(client.getNewsCategories(Locale.En)).rejects.toThrow(
           "Failed to fetch categories"
+        );
+
+        expect(cli.request).toHaveBeenCalledTimes(1);
+      });
+    });
+
+    describe("getNewsLanes", () => {
+      test("calls correct endpoint and matches raw response", async () => {
+        cli.request.mockResolvedValueOnce({ data: mockNewsLanesResponse });
+
+        const resp = await client.getNewsLanes();
+
+        expect(cli.request).toHaveBeenCalledTimes(1);
+        const call = cli.request.mock.calls[0][0];
+
+        expect(call.method).toBe("GET");
+        expect(call.url).toBe("/api/v1/news/lanes");
+
+        expect(resp).toEqual(mockNewsLanesResponse);
+      });
+
+      test("bubbles up request error", async () => {
+        cli.request.mockRejectedValueOnce(new Error("Failed to fetch lanes"));
+
+        await expect(client.getNewsLanes()).rejects.toThrow(
+          "Failed to fetch lanes"
         );
 
         expect(cli.request).toHaveBeenCalledTimes(1);
