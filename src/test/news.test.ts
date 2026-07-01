@@ -5,6 +5,7 @@ import {
   NewsClient,
   NewsType,
   NewsOrderBy,
+  NewsLane,
 } from "../client/news";
 import "./client_test_suite";
 import { Region, Locale } from "../client/collections";
@@ -125,16 +126,23 @@ describe("NewsClient", () => {
       expect(typeof c.name).toBe("string");
     });
 
+    test("getApiSourceNames returns valid data", async () => {
+      const resp = await client.getApiSourceNames();
+
+      expect(Array.isArray(resp)).toBe(true);
+      if (resp.length > 0) {
+        expect(typeof resp[0]).toBe("string");
+      }
+    });
+
     test("getNews returns valid paginated data", async () => {
-      const resp = await client.getNews(
-        Region.Us,
-        Locale.Tr,
-        NewsType.BRIEFS,
-        0,
-        10,
-        NewsOrderBy.TIMESTAMP,
-        SortDirection.Desc
-      );
+      const resp = await client.getNews(Region.Us, Locale.Tr, {
+        newsType: NewsType.BRIEFS,
+        page: 0,
+        size: 10,
+        orderBy: NewsOrderBy.TIMESTAMP,
+        orderByDirection: SortDirection.Desc,
+      });
 
       expect(resp).toBeDefined();
       expect(typeof resp.recordCount).toBe("number");
@@ -352,20 +360,56 @@ describe("NewsClient", () => {
       });
     });
 
+    describe("getApiSourceNames", () => {
+      const mockApiSourceNames = ["Reuters", "Bloomberg", "BBC", "MarketWatch"];
+
+      test("calls correct endpoint and matches raw response", async () => {
+        cli.request.mockResolvedValueOnce({ data: mockApiSourceNames });
+
+        const resp = await client.getApiSourceNames();
+
+        expect(cli.request).toHaveBeenCalledTimes(1);
+        const call = cli.request.mock.calls[0][0];
+
+        expect(call.method).toBe("GET");
+        expect(call.url).toBe("/api/v1/news/api-source-names");
+
+        expect(resp).toEqual(mockApiSourceNames);
+      });
+
+      test("bubbles up request error", async () => {
+        cli.request.mockRejectedValueOnce(
+          new Error("Failed to fetch api source names")
+        );
+
+        await expect(client.getApiSourceNames()).rejects.toThrow(
+          "Failed to fetch api source names"
+        );
+
+        expect(cli.request).toHaveBeenCalledTimes(1);
+      });
+    });
+
     describe("getNews", () => {
       test("calls correct endpoint/params and matches raw response", async () => {
         cli.request.mockResolvedValueOnce({ data: mockNewsResponse });
 
-        const resp = await client.getNews(
-          Region.Tr,
-          Locale.Tr,
-          NewsType.BRIEFS,
-          1,
-          10,
-          NewsOrderBy.TIMESTAMP,
-          SortDirection.Desc,
-          undefined
-        );
+        const resp = await client.getNews(Region.Tr, Locale.Tr, {
+          lane: NewsLane.BIST,
+          newsType: NewsType.BRIEFS,
+          page: 1,
+          size: 10,
+          orderBy: NewsOrderBy.TIMESTAMP,
+          orderByDirection: SortDirection.Desc,
+          symbols: "AAPL,MSFT",
+          categories: "Sector News",
+          sectors: "Technology",
+          industries: "Software",
+          qualityScoreMin: 7,
+          qualityScoreMax: 10,
+          timestampFrom: "2026-05-01",
+          timestampTo: "2026-06-01",
+        });
 
         expect(cli.request).toHaveBeenCalledTimes(1);
         const call = cli.request.mock.calls[0][0];
@@ -375,11 +419,20 @@ describe("NewsClient", () => {
         expect(call.params).toEqual({
           region: Region.Tr,
           locale: Locale.Tr,
+          lane: NewsLane.BIST,
           newsType: NewsType.BRIEFS,
           page: 1,
           size: 10,
           orderBy: NewsOrderBy.TIMESTAMP,
-          orderByDirection: SortDirection.Desc
+          orderByDirection: SortDirection.Desc,
+          symbols: "AAPL,MSFT",
+          categories: "Sector News",
+          sectors: "Technology",
+          industries: "Software",
+          qualityScoreMin: 7,
+          qualityScoreMax: 10,
+          timestampFrom: "2026-05-01",
+          timestampTo: "2026-06-01",
         });
 
         expect(resp.recordCount).toBe(352);
@@ -439,15 +492,13 @@ describe("NewsClient", () => {
         cli.request.mockRejectedValueOnce(new Error("Failed to fetch news"));
 
         await expect(
-          client.getNews(
-            Region.Tr,
-            Locale.Tr,
-            NewsType.REUTERS,
-            0,
-            10,
-            NewsOrderBy.TIMESTAMP,
-            SortDirection.Desc
-          )
+          client.getNews(Region.Tr, Locale.Tr, {
+            newsType: NewsType.REUTERS,
+            page: 0,
+            size: 10,
+            orderBy: NewsOrderBy.TIMESTAMP,
+            orderByDirection: SortDirection.Desc,
+          })
         ).rejects.toThrow("Failed to fetch news");
 
         expect(cli.request).toHaveBeenCalledTimes(1);
@@ -459,6 +510,7 @@ describe("NewsClient", () => {
         cli.request.mockResolvedValueOnce({ data: mockNewsV2Response });
 
         const resp = await client.getNewsV2(Region.Tr, Locale.Tr, {
+          lane: NewsLane.GLOBAL_MACRO,
           newsType: NewsType.BRIEFS,
           page: 1,
           size: 10,
@@ -482,6 +534,7 @@ describe("NewsClient", () => {
         expect(call.params).toEqual({
           region: Region.Tr,
           locale: Locale.Tr,
+          lane: NewsLane.GLOBAL_MACRO,
           newsType: NewsType.BRIEFS,
           page: 1,
           size: 10,
@@ -587,7 +640,7 @@ describe("NewsClient", () => {
           data: mockAsyncIterator
         });
 
-        const { events, cancel } = client.streamNews(Region.Us, Locale.En, ["tech"], ["AAPL"], ["category"], ["software"]);
+        const { events, cancel } = client.streamNews(Region.Us, Locale.En, ["tech"], ["AAPL"], ["category"], ["software"], NewsLane.GLOBAL_MACRO);
 
         for await (const _ of events) {
           break;
@@ -595,7 +648,7 @@ describe("NewsClient", () => {
 
         expect(axiosGetSpy).toHaveBeenCalledTimes(1);
         const callArgs = axiosGetSpy.mock.calls[0];
-        expect(callArgs[0]).toBe(`${client["baseUrl"]}/api/v1/news/stream?locale=en&region=us&sectors=tech&tickers=AAPL&categories=category&industries=software`);
+        expect(callArgs[0]).toBe(`${client["baseUrl"]}/api/v1/news/stream?locale=en&region=us&lane=global_macro&sectors=tech&tickers=AAPL&categories=category&industries=software`);
 
         cancel();
         axiosGetSpy.mockRestore();

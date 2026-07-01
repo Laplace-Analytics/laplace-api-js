@@ -25,7 +25,15 @@ export enum NewsOrderBy {
   QUALITY_SCORE = "quality_score",
 }
 
-export interface GetNewsV2Params {
+export enum NewsLane {
+  GLOBAL_MACRO = "global_macro",
+  TR_EKONOMI = "tr_ekonomi",
+  BIST = "bist",
+  FAST_MOVERS = "fast_movers",
+}
+
+export interface GetNewsParams {
+  lane?: NewsLane;
   newsType?: NewsType;
   orderBy?: NewsOrderBy;
   orderByDirection?: SortDirection;
@@ -40,6 +48,9 @@ export interface GetNewsV2Params {
   page?: number;
   size?: number;
 }
+
+/** @deprecated Use {@link GetNewsParams}; v1 and v2 now accept the same filters. */
+export type GetNewsV2Params = GetNewsParams;
 
 export interface News {
   url: string;
@@ -128,42 +139,22 @@ export class NewsClient extends Client {
     });
   }
 
-  async getNews(
-    region: Region,
-    locale: Locale,
-    newsType?: NewsType,
-    page?: number,
-    size?: number,
-    orderBy?: NewsOrderBy,
-    orderByDirection?: SortDirection,
-    extraFilters?: string
-  ): Promise<PaginatedResponse<News>> {
-    const params = {
-      region,
-      locale,
-      ...(newsType != null && { newsType }),
-      ...(page != null && { page }),
-      ...(size != null && { size }),
-      ...(orderBy != null && { orderBy }),
-      ...(orderByDirection != null && { orderByDirection }),
-      ...(extraFilters != null && { extraFilters }),
-    };
-
-    return this.sendRequest<PaginatedResponse<News>>({
+  async getApiSourceNames(): Promise<string[]> {
+    return this.sendRequest<string[]>({
       method: "GET",
-      url: "/api/v1/news",
-      params,
+      url: "/api/v1/news/api-source-names",
     });
   }
 
-  async getNewsV2(
+  private buildNewsFilterParams(
     region: Region,
     locale: Locale,
-    options?: GetNewsV2Params
-  ): Promise<PaginatedResponse<NewsV2>> {
-    const params = {
+    options?: GetNewsParams
+  ): Record<string, unknown> {
+    return {
       region,
       locale,
+      ...(options?.lane != null && { lane: options.lane }),
       ...(options?.newsType != null && { newsType: options.newsType }),
       ...(options?.orderBy != null && { orderBy: options.orderBy }),
       ...(options?.orderByDirection != null && {
@@ -186,11 +177,29 @@ export class NewsClient extends Client {
       ...(options?.page != null && { page: options.page }),
       ...(options?.size != null && { size: options.size }),
     };
+  }
 
+  async getNews(
+    region: Region,
+    locale: Locale,
+    options?: GetNewsParams
+  ): Promise<PaginatedResponse<News>> {
+    return this.sendRequest<PaginatedResponse<News>>({
+      method: "GET",
+      url: "/api/v1/news",
+      params: this.buildNewsFilterParams(region, locale, options),
+    });
+  }
+
+  async getNewsV2(
+    region: Region,
+    locale: Locale,
+    options?: GetNewsParams
+  ): Promise<PaginatedResponse<NewsV2>> {
     return this.sendRequest<PaginatedResponse<NewsV2>>({
       method: "GET",
       url: "/api/v2/news",
-      params,
+      params: this.buildNewsFilterParams(region, locale, options),
     });
   }
 
@@ -200,9 +209,11 @@ export class NewsClient extends Client {
     sectors?: string[],
     tickers?: string[],
     categories?: string[],
-    industries?: string[]
+    industries?: string[],
+    lane?: NewsLane
   ): { events: AsyncIterable<NewsV2[]>, cancel: () => void } {
     let url = `${this["baseUrl"]}/api/v1/news/stream?locale=${locale}&region=${region}`;
+    if (lane != null) url += `&lane=${encodeURIComponent(lane)}`;
     if (sectors?.length) url += `&sectors=${encodeURIComponent(sectors.join(","))}`;
     if (tickers?.length) url += `&tickers=${encodeURIComponent(tickers.join(","))}`;
     if (categories?.length) url += `&categories=${encodeURIComponent(categories.join(","))}`;
