@@ -149,7 +149,9 @@ describe("NewsClient", () => {
 
       expect(Array.isArray(resp)).toBe(true);
       if (resp.length > 0) {
-        expect(typeof resp[0]).toBe("string");
+        const s = resp[0];
+        expect(typeof s.id).toBe("string");
+        expect(typeof s.name).toBe("string");
       }
     });
 
@@ -405,7 +407,11 @@ describe("NewsClient", () => {
     });
 
     describe("getApiSourceNames", () => {
-      const mockApiSourceNames = ["Reuters", "Bloomberg", "BBC", "MarketWatch"];
+      const mockApiSourceNames = [
+        { id: "BBCBusiness", name: "BBC Business" },
+        { id: "MarketWatch", name: "MarketWatch" },
+        { id: "GazeteOksijen", name: "Gazete Oksijen" }
+      ];
 
       test("calls correct endpoint and matches raw response", async () => {
         cli.request.mockResolvedValueOnce({ data: mockApiSourceNames });
@@ -440,6 +446,7 @@ describe("NewsClient", () => {
 
         const resp = await client.getNews(Region.Tr, Locale.Tr, {
           lane: NewsLane.BIST,
+          apiSource: "BBCBusiness,MarketWatch",
           newsType: NewsType.BRIEFS,
           page: 1,
           size: 10,
@@ -464,6 +471,7 @@ describe("NewsClient", () => {
           region: Region.Tr,
           locale: Locale.Tr,
           lane: NewsLane.BIST,
+          apiSource: "BBCBusiness,MarketWatch",
           newsType: NewsType.BRIEFS,
           page: 1,
           size: 10,
@@ -555,6 +563,7 @@ describe("NewsClient", () => {
 
         const resp = await client.getNewsV2(Region.Tr, Locale.Tr, {
           lane: NewsLane.GLOBAL_MACRO,
+          apiSource: "BBCBusiness,MarketWatch",
           newsType: NewsType.BRIEFS,
           page: 1,
           size: 10,
@@ -579,6 +588,7 @@ describe("NewsClient", () => {
           region: Region.Tr,
           locale: Locale.Tr,
           lane: NewsLane.GLOBAL_MACRO,
+          apiSource: "BBCBusiness,MarketWatch",
           newsType: NewsType.BRIEFS,
           page: 1,
           size: 10,
@@ -684,7 +694,7 @@ describe("NewsClient", () => {
           data: mockAsyncIterator
         });
 
-        const { events, cancel } = client.streamNews(Region.Us, Locale.En, ["tech"], ["AAPL"], ["category"], ["software"], NewsLane.GLOBAL_MACRO);
+        const { events, cancel } = client.streamNews(Region.Us, Locale.En, ["tech"], ["AAPL"], ["category"], ["software"], NewsLane.GLOBAL_MACRO, ["BBCBusiness"]);
 
         for await (const _ of events) {
           break;
@@ -692,7 +702,7 @@ describe("NewsClient", () => {
 
         expect(axiosGetSpy).toHaveBeenCalledTimes(1);
         const callArgs = axiosGetSpy.mock.calls[0];
-        expect(callArgs[0]).toBe(`${client["baseUrl"]}/api/v1/news/stream?locale=en&region=us&lane=global_macro&sectors=tech&tickers=AAPL&categories=category&industries=software`);
+        expect(callArgs[0]).toBe(`${client["baseUrl"]}/api/v1/news/stream?locale=en&region=us&lane=global_macro&apiSource=BBCBusiness&sectors=tech&tickers=AAPL&categories=category&industries=software`);
 
         cancel();
         axiosGetSpy.mockRestore();

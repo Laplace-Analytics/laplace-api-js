@@ -34,6 +34,7 @@ export enum NewsLane {
 
 export interface GetNewsParams {
   lane?: NewsLane;
+  apiSource?: string;
   newsType?: NewsType;
   orderBy?: NewsOrderBy;
   orderByDirection?: SortDirection;
@@ -118,6 +119,11 @@ export interface NewsLaneInfo {
   label: string;
 }
 
+export interface NewsApiSource {
+  id: string;
+  name: string;
+}
+
 export class NewsClient extends Client {
   async getHighlights(
     region: Region,
@@ -151,8 +157,8 @@ export class NewsClient extends Client {
     });
   }
 
-  async getApiSourceNames(): Promise<string[]> {
-    return this.sendRequest<string[]>({
+  async getApiSourceNames(): Promise<NewsApiSource[]> {
+    return this.sendRequest<NewsApiSource[]>({
       method: "GET",
       url: "/api/v1/news/api-source-names",
     });
@@ -167,6 +173,7 @@ export class NewsClient extends Client {
       region,
       locale,
       ...(options?.lane != null && { lane: options.lane }),
+      ...(options?.apiSource != null && { apiSource: options.apiSource }),
       ...(options?.newsType != null && { newsType: options.newsType }),
       ...(options?.orderBy != null && { orderBy: options.orderBy }),
       ...(options?.orderByDirection != null && {
@@ -222,10 +229,12 @@ export class NewsClient extends Client {
     tickers?: string[],
     categories?: string[],
     industries?: string[],
-    lane?: NewsLane
+    lane?: NewsLane,
+    apiSource?: string[]
   ): { events: AsyncIterable<NewsV2[]>, cancel: () => void } {
     let url = `${this["baseUrl"]}/api/v1/news/stream?locale=${locale}&region=${region}`;
     if (lane != null) url += `&lane=${encodeURIComponent(lane)}`;
+    if (apiSource?.length) url += `&apiSource=${encodeURIComponent(apiSource.join(","))}`;
     if (sectors?.length) url += `&sectors=${encodeURIComponent(sectors.join(","))}`;
     if (tickers?.length) url += `&tickers=${encodeURIComponent(tickers.join(","))}`;
     if (categories?.length) url += `&categories=${encodeURIComponent(categories.join(","))}`;
