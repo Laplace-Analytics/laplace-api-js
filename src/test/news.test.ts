@@ -49,6 +49,14 @@ const mockNewsLanesResponse = [
   { id: "fast_movers", label: "Fast Movers" }
 ];
 
+const mockNewsHighlightsPaginatedResponse = {
+  items: [
+    { id: "hl_1", createdAt: "2026-06-15T00:00:00Z", ...mockNewsHighlightsResponse },
+    { id: "hl_2", createdAt: "2026-06-14T00:00:00Z", ...mockNewsHighlightsResponse }
+  ],
+  recordCount: 2
+};
+
 const mockNewsResponse = {
   items: [
     {
@@ -105,21 +113,38 @@ describe("NewsClient", () => {
   describe("Integration Tests", () => {
     jest.setTimeout(60_000);
 
-    test("getHighlights returns valid data", async () => {
+    test("getHighlights returns valid paginated data", async () => {
       const resp = await client.getHighlights(Region.Us, Locale.Tr);
 
       expect(resp).toBeDefined();
+      expect(typeof resp.recordCount).toBe("number");
+      expect(Array.isArray(resp.items)).toBe(true);
 
-      expect(Array.isArray(resp.consumer)).toBe(true);
-      expect(Array.isArray(resp.energyAndUtilities)).toBe(true);
-      expect(Array.isArray(resp.finance)).toBe(true);
-      expect(Array.isArray(resp.healthcare)).toBe(true);
-      expect(Array.isArray(resp.industrialsAndMaterials)).toBe(true);
-      expect(Array.isArray(resp.tech)).toBe(true);
-      expect(Array.isArray(resp.other)).toBe(true);
+      if (resp.items.length > 0) {
+        const item = resp.items[0];
+        expect(typeof item.id).toBe("string");
+        expect(typeof item.createdAt).toBe("string");
+        expect(Array.isArray(item.consumer)).toBe(true);
+        expect(Array.isArray(item.energyAndUtilities)).toBe(true);
+        expect(Array.isArray(item.finance)).toBe(true);
+        expect(Array.isArray(item.healthcare)).toBe(true);
+        expect(Array.isArray(item.industrialsAndMaterials)).toBe(true);
+        expect(Array.isArray(item.tech)).toBe(true);
+        expect(Array.isArray(item.other)).toBe(true);
+      }
+    });
 
-      const first = resp.tech?.[0];
-      if (first != null) expect(typeof first).toBe("string");
+    test("getHighlights narrows to a date range", async () => {
+      const resp = await client.getHighlights(Region.Us, Locale.Tr, {
+        from: "2026-06-01",
+        to: "2026-07-01",
+        skip: 0,
+        top: 20,
+      });
+
+      expect(resp).toBeDefined();
+      expect(typeof resp.recordCount).toBe("number");
+      expect(Array.isArray(resp.items)).toBe(true);
     });
 
     test("getNewsCategories returns valid data", async () => {
@@ -313,7 +338,7 @@ describe("NewsClient", () => {
 
     describe("getHighlights", () => {
       test("calls correct endpoint/params and matches raw response", async () => {
-        cli.request.mockResolvedValueOnce({ data: mockNewsHighlightsResponse });
+        cli.request.mockResolvedValueOnce({ data: mockNewsHighlightsPaginatedResponse });
 
         const resp = await client.getHighlights(Region.Tr, Locale.Tr);
 
@@ -324,13 +349,42 @@ describe("NewsClient", () => {
         expect(call.url).toBe("/api/v1/news/highlights");
         expect(call.params).toEqual({ region: Region.Tr, locale: Locale.Tr });
 
-        expect(resp.consumer).toEqual(mockNewsHighlightsResponse.consumer);
-        expect(resp.energyAndUtilities).toEqual(mockNewsHighlightsResponse.energyAndUtilities);
-        expect(resp.finance).toEqual(mockNewsHighlightsResponse.finance);
-        expect(resp.healthcare).toEqual(mockNewsHighlightsResponse.healthcare);
-        expect(resp.industrialsAndMaterials).toEqual(mockNewsHighlightsResponse.industrialsAndMaterials);
-        expect(resp.tech).toEqual(mockNewsHighlightsResponse.tech);
-        expect(resp.other).toEqual(mockNewsHighlightsResponse.other);
+        expect(resp.recordCount).toBe(2);
+        expect(resp.items).toHaveLength(2);
+        expect(resp.items[0].id).toBe("hl_1");
+        expect(resp.items[0].createdAt).toBe("2026-06-15T00:00:00Z");
+        expect(resp.items[0].tech).toEqual(mockNewsHighlightsResponse.tech);
+        expect(resp.items[0].consumer).toEqual(mockNewsHighlightsResponse.consumer);
+      });
+
+      test("sends from/to/skip/top when provided", async () => {
+        cli.request.mockResolvedValueOnce({ data: mockNewsHighlightsPaginatedResponse });
+
+        await client.getHighlights(Region.Us, Locale.Tr, {
+          from: "2026-06-01",
+          to: "2026-07-01",
+          skip: 0,
+          top: 20,
+        });
+
+        const call = cli.request.mock.calls[0][0];
+        expect(call.params).toEqual({
+          region: Region.Us,
+          locale: Locale.Tr,
+          from: "2026-06-01",
+          to: "2026-07-01",
+          skip: 0,
+          top: 20,
+        });
+      });
+
+      test("omits from/to/skip/top when not provided", async () => {
+        cli.request.mockResolvedValueOnce({ data: mockNewsHighlightsPaginatedResponse });
+
+        await client.getHighlights(Region.Us, Locale.Tr, {});
+
+        const call = cli.request.mock.calls[0][0];
+        expect(call.params).toEqual({ region: Region.Us, locale: Locale.Tr });
       });
 
       test("bubbles up request error", async () => {
@@ -391,8 +445,18 @@ describe("NewsClient", () => {
 
         expect(call.method).toBe("GET");
         expect(call.url).toBe("/api/v1/news/lanes");
+        expect(call.params).toEqual({});
 
         expect(resp).toEqual(mockNewsLanesResponse);
+      });
+
+      test("sends region when provided", async () => {
+        cli.request.mockResolvedValueOnce({ data: mockNewsLanesResponse });
+
+        await client.getNewsLanes(Region.Us);
+
+        const call = cli.request.mock.calls[0][0];
+        expect(call.params).toEqual({ region: Region.Us });
       });
 
       test("bubbles up request error", async () => {
@@ -423,8 +487,18 @@ describe("NewsClient", () => {
 
         expect(call.method).toBe("GET");
         expect(call.url).toBe("/api/v1/news/api-source-names");
+        expect(call.params).toEqual({});
 
         expect(resp).toEqual(mockApiSourceNames);
+      });
+
+      test("sends region and language when provided", async () => {
+        cli.request.mockResolvedValueOnce({ data: mockApiSourceNames });
+
+        await client.getApiSourceNames(Region.Us, Locale.Tr);
+
+        const call = cli.request.mock.calls[0][0];
+        expect(call.params).toEqual({ region: Region.Us, language: Locale.Tr });
       });
 
       test("bubbles up request error", async () => {
@@ -453,9 +527,9 @@ describe("NewsClient", () => {
           orderBy: NewsOrderBy.TIMESTAMP,
           orderByDirection: SortDirection.Desc,
           symbols: "AAPL,MSFT",
-          categories: "Sector News",
-          sectors: "Technology",
-          industries: "Software",
+          categoryIds: "1,2",
+          sectorIds: "65533e047844ee7afe9941bf",
+          industryIds: "65533e441fa5c7b58afa0944",
           qualityScoreMin: 7,
           qualityScoreMax: 10,
           timestampFrom: "2026-05-01",
@@ -478,9 +552,9 @@ describe("NewsClient", () => {
           orderBy: NewsOrderBy.TIMESTAMP,
           orderByDirection: SortDirection.Desc,
           symbols: "AAPL,MSFT",
-          categories: "Sector News",
-          sectors: "Technology",
-          industries: "Software",
+          categoryIds: "1,2",
+          sectorIds: "65533e047844ee7afe9941bf",
+          industryIds: "65533e441fa5c7b58afa0944",
           qualityScoreMin: 7,
           qualityScoreMax: 10,
           timestampFrom: "2026-05-01",
@@ -570,9 +644,9 @@ describe("NewsClient", () => {
           orderBy: NewsOrderBy.TIMESTAMP,
           orderByDirection: SortDirection.Desc,
           symbols: "AAPL,MSFT",
-          categories: "Sector News",
-          sectors: "Technology",
-          industries: "Software",
+          categoryIds: "1,2",
+          sectorIds: "65533e047844ee7afe9941bf",
+          industryIds: "65533e441fa5c7b58afa0944",
           qualityScoreMin: 7,
           qualityScoreMax: 10,
           timestampFrom: "2026-05-01",
@@ -595,9 +669,9 @@ describe("NewsClient", () => {
           orderBy: NewsOrderBy.TIMESTAMP,
           orderByDirection: SortDirection.Desc,
           symbols: "AAPL,MSFT",
-          categories: "Sector News",
-          sectors: "Technology",
-          industries: "Software",
+          categoryIds: "1,2",
+          sectorIds: "65533e047844ee7afe9941bf",
+          industryIds: "65533e441fa5c7b58afa0944",
           qualityScoreMin: 7,
           qualityScoreMax: 10,
           timestampFrom: "2026-05-01",
@@ -702,7 +776,7 @@ describe("NewsClient", () => {
 
         expect(axiosGetSpy).toHaveBeenCalledTimes(1);
         const callArgs = axiosGetSpy.mock.calls[0];
-        expect(callArgs[0]).toBe(`${client["baseUrl"]}/api/v1/news/stream?locale=en&region=us&lane=global_macro&apiSource=BBCBusiness&sectors=tech&tickers=AAPL&categories=category&industries=software`);
+        expect(callArgs[0]).toBe(`${client["baseUrl"]}/api/v1/news/stream?locale=en&region=us&lane=global_macro&apiSource=BBCBusiness&sectorIds=tech&symbols=AAPL&categoryIds=category&industryIds=software`);
 
         cancel();
         axiosGetSpy.mockRestore();
