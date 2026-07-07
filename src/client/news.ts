@@ -66,6 +66,7 @@ export interface GetNewsParams {
 export type GetNewsV2Params = GetNewsParams;
 
 export interface News {
+  id: string;
   url: string;
   imageUrl: string;
   timestamp: string;
@@ -95,17 +96,14 @@ export interface NewsTicker {
 }
 
 export interface NewsCategories {
+  id: string;
   name: string;
-  newsCount: number;
   categoryType?: string | null;
-  meanType?: number | null;
 }
 
 export interface NewsSector {
+  id: string;
   name: string;
-  newsCount: number;
-  categoryType?: string | null;
-  meanType?: number | null;
 }
 
 export interface NewsContent {
@@ -117,8 +115,8 @@ export interface NewsContent {
 }
 
 export interface NewsIndustry {
+  id: string;
   name: string;
-  meanType: number;
 }
 
 export interface NewsCategory {

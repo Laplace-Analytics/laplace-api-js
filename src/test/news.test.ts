@@ -60,6 +60,7 @@ const mockNewsHighlightsPaginatedResponse = {
 const mockNewsResponse = {
   items: [
     {
+      id: "68e5a1b2c3d4e5f60718293a",
       url: "https://www.reuters.com/business/energy/commonwealth-lng-wants-more-time-build-planned-export-facility-louisiana-2025-10-07/",
       content: {
         title: "Commonwealth LNG wants more time to build planned export facility in Louisiana",
@@ -74,14 +75,14 @@ const mockNewsResponse = {
         investorInsight:
           "What it means for investors: The extension request could postpone..."
       },
-      sectors: { name: "Energy", meanType: 9, newsCount: 1 },
+      sectors: { id: "65533e047844ee7afe9941bf", name: "Energy" },
       tickers: [{ id: "6203d1ba1e674875275558f7", name: "EQT Corp", symbol: "EQT" }],
       imageUrl: "",
       createdAt: "2025-10-07T17:10:01.560644Z",
       publisher: { name: "Reuters", logoUrl: null },
       timestamp: "2025-10-07T16:50:16Z",
-      categories: { name: "Sector News", newsCount: 1, categoryType: "StockSpesific" },
-      industries: { name: "Oil/Gas (Production and Exploration)", meanType: 78 },
+      categories: { id: "3", name: "Sector News", categoryType: "StockSpesific" },
+      industries: { id: "65533e441fa5c7b58afa0944", name: "Oil/Gas (Production and Exploration)" },
       publisherUrl: "Reuters",
       qualityScore: 0,
       relatedTickers: [{ id: "6203d1ba1e674875275558f7", name: "EQT Corp", symbol: "EQT" }]
@@ -197,6 +198,7 @@ describe("NewsClient", () => {
       if (resp.items.length > 0) {
         const n = resp.items[0];
 
+        expect(typeof n.id).toBe("string");
         expect(typeof n.url).toBe("string");
         expect(typeof n.imageUrl).toBe("string");
         expect(typeof n.timestamp).toBe("string");
@@ -223,38 +225,23 @@ describe("NewsClient", () => {
         }
 
         if (n.categories != null) {
+          expect(typeof n.categories.id).toBe("string");
           expect(typeof n.categories.name).toBe("string");
-          expect(typeof n.categories.newsCount).toBe("number");
           expect(
             typeof n.categories.categoryType === "string" ||
             n.categories.categoryType == null ||
             n.categories.categoryType === undefined
           ).toBe(true);
-          expect(
-            typeof n.categories.meanType === "number" ||
-            n.categories.meanType == null ||
-            n.categories.meanType === undefined
-          ).toBe(true);
         }
 
         if (n.sectors != null) {
+          expect(typeof n.sectors.id).toBe("string");
           expect(typeof n.sectors.name).toBe("string");
-          expect(typeof n.sectors.newsCount).toBe("number");
-          expect(
-            typeof n.sectors.categoryType === "string" ||
-            n.sectors.categoryType == null ||
-            n.sectors.categoryType === undefined
-          ).toBe(true);
-          expect(
-            typeof n.sectors.meanType === "number" ||
-            n.sectors.meanType == null ||
-            n.sectors.meanType === undefined
-          ).toBe(true);
         }
 
         if (n.industries != null) {
+          expect(typeof n.industries.id).toBe("string");
           expect(typeof n.industries.name).toBe("string");
-          expect(typeof n.industries.meanType).toBe("number");
         }
 
         if (n.content != null) {
@@ -284,6 +271,7 @@ describe("NewsClient", () => {
       if (resp.items.length > 0) {
         const n = resp.items[0];
 
+        expect(typeof n.id).toBe("string");
         expect(typeof n.url).toBe("string");
         expect(typeof n.imageUrl).toBe("string");
         expect(typeof n.timestamp).toBe("string");
@@ -566,6 +554,7 @@ describe("NewsClient", () => {
 
         const n = resp.items[0];
 
+        expect(n.id).toBe(mockNewsResponse.items[0].id);
         expect(n.url).toBe(mockNewsResponse.items[0].url);
         expect(n.imageUrl).toBe(mockNewsResponse.items[0].imageUrl);
         expect(n.timestamp).toBe(mockNewsResponse.items[0].timestamp);
@@ -584,16 +573,15 @@ describe("NewsClient", () => {
         expect(n.tickers).toHaveLength(1);
         expect(n.tickers![0].symbol).toBe("EQT");
 
+        expect(n.categories?.id).toBe(mockNewsResponse.items[0].categories.id);
         expect(n.categories?.name).toBe(mockNewsResponse.items[0].categories.name);
-        expect(n.categories?.newsCount).toBe(mockNewsResponse.items[0].categories.newsCount);
         expect(n.categories?.categoryType).toBe(mockNewsResponse.items[0].categories.categoryType);
 
+        expect(n.sectors?.id).toBe(mockNewsResponse.items[0].sectors.id);
         expect(n.sectors?.name).toBe(mockNewsResponse.items[0].sectors.name);
-        expect(n.sectors?.newsCount).toBe(mockNewsResponse.items[0].sectors.newsCount);
-        expect(n.sectors?.meanType).toBe(mockNewsResponse.items[0].sectors.meanType);
 
+        expect(n.industries?.id).toBe(mockNewsResponse.items[0].industries.id);
         expect(n.industries?.name).toBe(mockNewsResponse.items[0].industries.name);
-        expect(n.industries?.meanType).toBe(mockNewsResponse.items[0].industries.meanType);
 
         expect(n.content?.title).toBe(mockNewsResponse.items[0].content.title);
         expect(n.content?.description).toBe(mockNewsResponse.items[0].content.description);
@@ -684,6 +672,7 @@ describe("NewsClient", () => {
         const n = resp.items[0];
 
         expect((n as any).relatedTickers).toBeUndefined();
+        expect(n.id).toBe(mockNewsV2Response.items[0].id);
         expect(n.url).toBe(mockNewsV2Response.items[0].url);
       });
 
