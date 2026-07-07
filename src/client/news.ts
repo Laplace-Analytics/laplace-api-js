@@ -13,6 +13,18 @@ export interface NewsHighlights {
   other: string[];
 }
 
+export interface NewsHighlightsItem extends NewsHighlights {
+  id: string;
+  createdAt: string;
+}
+
+export interface GetHighlightsParams {
+  from?: string;
+  to?: string;
+  skip?: number;
+  top?: number;
+}
+
 export enum NewsType {
   BRIEFS = "briefs",
   BLOOMBERG = "bloomberg",
@@ -39,9 +51,9 @@ export interface GetNewsParams {
   orderBy?: NewsOrderBy;
   orderByDirection?: SortDirection;
   symbols?: string;
-  categories?: string;
-  sectors?: string;
-  industries?: string;
+  categoryIds?: string;
+  sectorIds?: string;
+  industryIds?: string;
   qualityScoreMin?: number;
   qualityScoreMax?: number;
   timestampFrom?: string;
@@ -127,18 +139,22 @@ export interface NewsApiSource {
 export class NewsClient extends Client {
   async getHighlights(
     region: Region,
-    locale: Locale
-  ): Promise<NewsHighlights> {
-    return this.sendRequest<NewsHighlights>({
+    locale: Locale,
+    options?: GetHighlightsParams
+  ): Promise<PaginatedResponse<NewsHighlightsItem>> {
+    return this.sendRequest<PaginatedResponse<NewsHighlightsItem>>({
       method: "GET",
       url: "/api/v1/news/highlights",
       params: {
         region,
         locale,
+        ...(options?.from != null && { from: options.from }),
+        ...(options?.to != null && { to: options.to }),
+        ...(options?.skip != null && { skip: options.skip }),
+        ...(options?.top != null && { top: options.top }),
       },
     });
   }
-
 
   async getNewsCategories(locale?: Locale): Promise<NewsCategory[]> {
     return this.sendRequest<NewsCategory[]>({
@@ -150,17 +166,27 @@ export class NewsClient extends Client {
     });
   }
 
-  async getNewsLanes(): Promise<NewsLaneInfo[]> {
+  async getNewsLanes(region?: Region): Promise<NewsLaneInfo[]> {
     return this.sendRequest<NewsLaneInfo[]>({
       method: "GET",
       url: "/api/v1/news/lanes",
+      params: {
+        ...(region != null && { region }),
+      },
     });
   }
 
-  async getApiSourceNames(): Promise<NewsApiSource[]> {
+  async getApiSourceNames(
+    region?: Region,
+    language?: Locale
+  ): Promise<NewsApiSource[]> {
     return this.sendRequest<NewsApiSource[]>({
       method: "GET",
       url: "/api/v1/news/api-source-names",
+      params: {
+        ...(region != null && { region }),
+        ...(language != null && { language }),
+      },
     });
   }
 
@@ -180,9 +206,9 @@ export class NewsClient extends Client {
         orderByDirection: options.orderByDirection,
       }),
       ...(options?.symbols != null && { symbols: options.symbols }),
-      ...(options?.categories != null && { categories: options.categories }),
-      ...(options?.sectors != null && { sectors: options.sectors }),
-      ...(options?.industries != null && { industries: options.industries }),
+      ...(options?.categoryIds != null && { categoryIds: options.categoryIds }),
+      ...(options?.sectorIds != null && { sectorIds: options.sectorIds }),
+      ...(options?.industryIds != null && { industryIds: options.industryIds }),
       ...(options?.qualityScoreMin != null && {
         qualityScoreMin: options.qualityScoreMin,
       }),
@@ -225,20 +251,20 @@ export class NewsClient extends Client {
   streamNews(
     region: Region,
     locale: Locale,
-    sectors?: string[],
-    tickers?: string[],
-    categories?: string[],
-    industries?: string[],
+    sectorIds?: string[],
+    symbols?: string[],
+    categoryIds?: string[],
+    industryIds?: string[],
     lane?: NewsLane,
     apiSource?: string[]
   ): { events: AsyncIterable<NewsV2[]>, cancel: () => void } {
     let url = `${this["baseUrl"]}/api/v1/news/stream?locale=${locale}&region=${region}`;
     if (lane != null) url += `&lane=${encodeURIComponent(lane)}`;
     if (apiSource?.length) url += `&apiSource=${encodeURIComponent(apiSource.join(","))}`;
-    if (sectors?.length) url += `&sectors=${encodeURIComponent(sectors.join(","))}`;
-    if (tickers?.length) url += `&tickers=${encodeURIComponent(tickers.join(","))}`;
-    if (categories?.length) url += `&categories=${encodeURIComponent(categories.join(","))}`;
-    if (industries?.length) url += `&industries=${encodeURIComponent(industries.join(","))}`;
+    if (sectorIds?.length) url += `&sectorIds=${encodeURIComponent(sectorIds.join(","))}`;
+    if (symbols?.length) url += `&symbols=${encodeURIComponent(symbols.join(","))}`;
+    if (categoryIds?.length) url += `&categoryIds=${encodeURIComponent(categoryIds.join(","))}`;
+    if (industryIds?.length) url += `&industryIds=${encodeURIComponent(industryIds.join(","))}`;
     return this.sendSSERequest<NewsV2[]>(url);
   }
 }
