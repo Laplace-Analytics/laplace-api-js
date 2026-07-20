@@ -343,6 +343,16 @@ const rights = await client.getActiveRightsForInstrument(
 );
 ```
 
+### IPO (Halka Arz) Client
+
+```typescript
+// Get all IPO offerings
+const ipos = await client.getAllHalkaArz(1, 10, "tr");
+
+// Get a single IPO offering by id
+const ipo = await client.getHalkaArzById(1);
+```
+
 ### Custom Themes Client
 
 ```typescript
