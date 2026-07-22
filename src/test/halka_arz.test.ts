@@ -1,9 +1,16 @@
 import { Logger } from "winston";
 import { LaplaceConfiguration } from "../utilities/configuration";
-import { HalkaArz, HalkaArzClient } from "../client/halka_arz";
+import {
+  HalkaArz,
+  HalkaArzClient,
+  HalkaArzOfferingType,
+  HalkaArzSaleMethod,
+  HalkaArzStatus,
+} from "../client/halka_arz";
 import { PaginatedResponse } from "../client/capital_increase";
 import "./client_test_suite";
 import { Region } from "../client/collections";
+import { Currency } from "../client/financial_ratios";
 
 const mockHalkaArz: HalkaArz = {
   id: 1,
@@ -17,21 +24,21 @@ const mockHalkaArz: HalkaArz = {
   firstTradingDate: "2024-03-10T00:00:00Z",
   sharesOffered: 1000000,
   offeringSize: 10500000,
-  offeringType: "capital_increase",
+  offeringType: HalkaArzOfferingType.CapitalIncrease,
   consortiumLeader: "Test Yatırım",
-  saleMethod: "talep_toplama",
+  saleMethod: HalkaArzSaleMethod.TalepToplama,
   additionalShares: null,
   distributionMethod: null,
   freeFloatRate: null,
   intendedMarket: null,
   sector: null,
   maxLotPerInvestor: null,
-  currency: "TRY",
+  currency: Currency.TRY,
   relatedDisclosureIds: [1001, 1002],
   reviewed: false,
   createdAt: "2024-02-20T00:00:00Z",
   updatedAt: "2024-02-20T00:00:00Z",
-  status: "allocated",
+  status: HalkaArzStatus.Allocated,
   isFixedPrice: true,
 };
 
