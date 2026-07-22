@@ -1,6 +1,28 @@
 import { PaginatedResponse } from "./capital_increase";
 import { Client } from "./client";
 import { Region } from "./collections";
+import { Currency } from "./financial_ratios";
+
+// Derived from the offering's dates at read time; never persisted upstream.
+export enum HalkaArzStatus {
+  Upcoming = "upcoming", // announced, demand not started
+  Collecting = "collecting", // talep toplama in progress
+  Allocated = "allocated", // demand closed, not yet trading
+  Trading = "trading", // listed on the exchange
+}
+
+export enum HalkaArzOfferingType {
+  CapitalIncrease = "capital_increase", // sermaye artırımı
+  ShareholderSale = "shareholder_sale", // ortak satışı
+  Mixed = "mixed", // karma
+}
+
+// Satış yöntemi. Both variants collect demand over a window; they differ only in
+// how the investor order is placed downstream.
+export enum HalkaArzSaleMethod {
+  TalepToplama = "talep_toplama", // talep toplama yöntemi
+  BorsadaSatis = "borsada_satis", // borsada satış yöntemi
+}
 
 export interface HalkaArz {
   id: number;
@@ -14,20 +36,21 @@ export interface HalkaArz {
   firstTradingDate: string | null;
   sharesOffered: number | null;
   offeringSize: number | null;
-  offeringType: string | null;
+  offeringType: HalkaArzOfferingType | null;
   consortiumLeader: string | null;
+  saleMethod: HalkaArzSaleMethod;
   additionalShares: number | null;
   distributionMethod: string | null;
   freeFloatRate: number | null;
   intendedMarket: string | null;
   sector: string | null;
   maxLotPerInvestor: number | null;
-  currency: string;
+  currency: Currency;
   relatedDisclosureIds: number[];
   reviewed: boolean;
   createdAt: string;
   updatedAt: string;
-  status: string;
+  status: HalkaArzStatus;
   isFixedPrice: boolean;
 }
 
