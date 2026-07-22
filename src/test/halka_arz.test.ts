@@ -19,6 +19,7 @@ const mockHalkaArz: HalkaArz = {
   offeringSize: 10500000,
   offeringType: "capital_increase",
   consortiumLeader: "Test Yatırım",
+  saleMethod: "talep_toplama",
   additionalShares: null,
   distributionMethod: null,
   freeFloatRate: null,
@@ -170,6 +171,7 @@ function validateHalkaArz(item: HalkaArz) {
   expect(typeof item.id).toBe("number");
   expect(typeof item.companyName).toBe("string");
   expect(typeof item.currency).toBe("string");
+  expect(typeof item.saleMethod).toBe("string");
   expect(typeof item.status).toBe("string");
   expect(typeof item.reviewed).toBe("boolean");
   expect(typeof item.isFixedPrice).toBe("boolean");
@@ -184,6 +186,7 @@ function expectHalkaArzEqual(actual: HalkaArz, expected: HalkaArz) {
   expect(actual.priceMax).toBe(expected.priceMax);
   expect(actual.offeringType).toBe(expected.offeringType);
   expect(actual.currency).toBe(expected.currency);
+  expect(actual.saleMethod).toBe(expected.saleMethod);
   expect(actual.relatedDisclosureIds).toEqual(expected.relatedDisclosureIds);
   expect(actual.reviewed).toBe(expected.reviewed);
   expect(actual.status).toBe(expected.status);

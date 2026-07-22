@@ -16,6 +16,7 @@ export interface HalkaArz {
   offeringSize: number | null;
   offeringType: string | null;
   consortiumLeader: string | null;
+  saleMethod: string;
   additionalShares: number | null;
   distributionMethod: string | null;
   freeFloatRate: number | null;
