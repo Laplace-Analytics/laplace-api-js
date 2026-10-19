@@ -18,6 +18,7 @@ export * from './client/live-price';
 export * from './client/custom_theme';
 export * from './client/financial_ratios';
 export * from './client/capital_increase';
+export * from './client/halka_arz';
 export * from './client/screener';
 export * from './client/funds';
 export * from './client/key-insights';
