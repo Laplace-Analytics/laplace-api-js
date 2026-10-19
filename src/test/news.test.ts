@@ -5,6 +5,7 @@ import {
   NewsClient,
   NewsType,
   NewsOrderBy,
+  NewsLane,
 } from "../client/news";
 import "./client_test_suite";
 import { Region, Locale } from "../client/collections";
@@ -41,9 +42,25 @@ const mockNewsCategoriesResponse = [
   { id: "13705", name: "Stock Spesific News" }
 ];
 
+const mockNewsLanesResponse = [
+  { id: "global_macro", label: "Global Macro" },
+  { id: "tr_ekonomi", label: "TR Ekonomi" },
+  { id: "bist", label: "BIST" },
+  { id: "fast_movers", label: "Fast Movers" }
+];
+
+const mockNewsHighlightsPaginatedResponse = {
+  items: [
+    { id: "hl_1", createdAt: "2026-06-15T00:00:00Z", ...mockNewsHighlightsResponse },
+    { id: "hl_2", createdAt: "2026-06-14T00:00:00Z", ...mockNewsHighlightsResponse }
+  ],
+  recordCount: 2
+};
+
 const mockNewsResponse = {
   items: [
     {
+      id: "68e5a1b2c3d4e5f60718293a",
       url: "https://www.reuters.com/business/energy/commonwealth-lng-wants-more-time-build-planned-export-facility-louisiana-2025-10-07/",
       content: {
         title: "Commonwealth LNG wants more time to build planned export facility in Louisiana",
@@ -58,14 +75,14 @@ const mockNewsResponse = {
         investorInsight:
           "What it means for investors: The extension request could postpone..."
       },
-      sectors: { name: "Energy", meanType: 9, newsCount: 1 },
+      sectors: { id: "65533e047844ee7afe9941bf", name: "Energy" },
       tickers: [{ id: "6203d1ba1e674875275558f7", name: "EQT Corp", symbol: "EQT" }],
       imageUrl: "",
       createdAt: "2025-10-07T17:10:01.560644Z",
       publisher: { name: "Reuters", logoUrl: null },
       timestamp: "2025-10-07T16:50:16Z",
-      categories: { name: "Sector News", newsCount: 1, categoryType: "StockSpesific" },
-      industries: { name: "Oil/Gas (Production and Exploration)", meanType: 78 },
+      categories: { id: "3", name: "Sector News", categoryType: "StockSpesific" },
+      industries: { id: "65533e441fa5c7b58afa0944", name: "Oil/Gas (Production and Exploration)" },
       publisherUrl: "Reuters",
       qualityScore: 0,
       relatedTickers: [{ id: "6203d1ba1e674875275558f7", name: "EQT Corp", symbol: "EQT" }]
@@ -97,21 +114,38 @@ describe("NewsClient", () => {
   describe("Integration Tests", () => {
     jest.setTimeout(60_000);
 
-    test("getHighlights returns valid data", async () => {
+    test("getHighlights returns valid paginated data", async () => {
       const resp = await client.getHighlights(Region.Us, Locale.Tr);
 
       expect(resp).toBeDefined();
+      expect(typeof resp.recordCount).toBe("number");
+      expect(Array.isArray(resp.items)).toBe(true);
 
-      expect(Array.isArray(resp.consumer)).toBe(true);
-      expect(Array.isArray(resp.energyAndUtilities)).toBe(true);
-      expect(Array.isArray(resp.finance)).toBe(true);
-      expect(Array.isArray(resp.healthcare)).toBe(true);
-      expect(Array.isArray(resp.industrialsAndMaterials)).toBe(true);
-      expect(Array.isArray(resp.tech)).toBe(true);
-      expect(Array.isArray(resp.other)).toBe(true);
+      if (resp.items.length > 0) {
+        const item = resp.items[0];
+        expect(typeof item.id).toBe("string");
+        expect(typeof item.createdAt).toBe("string");
+        expect(Array.isArray(item.consumer)).toBe(true);
+        expect(Array.isArray(item.energyAndUtilities)).toBe(true);
+        expect(Array.isArray(item.finance)).toBe(true);
+        expect(Array.isArray(item.healthcare)).toBe(true);
+        expect(Array.isArray(item.industrialsAndMaterials)).toBe(true);
+        expect(Array.isArray(item.tech)).toBe(true);
+        expect(Array.isArray(item.other)).toBe(true);
+      }
+    });
 
-      const first = resp.tech?.[0];
-      if (first != null) expect(typeof first).toBe("string");
+    test("getHighlights narrows to a date range", async () => {
+      const resp = await client.getHighlights(Region.Us, Locale.Tr, {
+        from: "2026-06-01",
+        to: "2026-07-01",
+        skip: 0,
+        top: 20,
+      });
+
+      expect(resp).toBeDefined();
+      expect(typeof resp.recordCount).toBe("number");
+      expect(Array.isArray(resp.items)).toBe(true);
     });
 
     test("getNewsCategories returns valid data", async () => {
@@ -125,16 +159,36 @@ describe("NewsClient", () => {
       expect(typeof c.name).toBe("string");
     });
 
+    test("getNewsLanes returns valid data", async () => {
+      const resp = await client.getNewsLanes();
+
+      expect(Array.isArray(resp)).toBe(true);
+      if (resp.length > 0) {
+        const l = resp[0];
+        expect(typeof l.id).toBe("string");
+        expect(typeof l.label).toBe("string");
+      }
+    });
+
+    test("getApiSourceNames returns valid data", async () => {
+      const resp = await client.getApiSourceNames();
+
+      expect(Array.isArray(resp)).toBe(true);
+      if (resp.length > 0) {
+        const s = resp[0];
+        expect(typeof s.id).toBe("string");
+        expect(typeof s.name).toBe("string");
+      }
+    });
+
     test("getNews returns valid paginated data", async () => {
-      const resp = await client.getNews(
-        Region.Us,
-        Locale.Tr,
-        NewsType.BRIEFS,
-        0,
-        10,
-        NewsOrderBy.TIMESTAMP,
-        SortDirection.Desc
-      );
+      const resp = await client.getNews(Region.Us, Locale.Tr, {
+        newsType: NewsType.BRIEFS,
+        page: 0,
+        size: 10,
+        orderBy: NewsOrderBy.TIMESTAMP,
+        orderByDirection: SortDirection.Desc,
+      });
 
       expect(resp).toBeDefined();
       expect(typeof resp.recordCount).toBe("number");
@@ -144,6 +198,7 @@ describe("NewsClient", () => {
       if (resp.items.length > 0) {
         const n = resp.items[0];
 
+        expect(typeof n.id).toBe("string");
         expect(typeof n.url).toBe("string");
         expect(typeof n.imageUrl).toBe("string");
         expect(typeof n.timestamp).toBe("string");
@@ -170,38 +225,23 @@ describe("NewsClient", () => {
         }
 
         if (n.categories != null) {
+          expect(typeof n.categories.id).toBe("string");
           expect(typeof n.categories.name).toBe("string");
-          expect(typeof n.categories.newsCount).toBe("number");
           expect(
             typeof n.categories.categoryType === "string" ||
             n.categories.categoryType == null ||
             n.categories.categoryType === undefined
           ).toBe(true);
-          expect(
-            typeof n.categories.meanType === "number" ||
-            n.categories.meanType == null ||
-            n.categories.meanType === undefined
-          ).toBe(true);
         }
 
         if (n.sectors != null) {
+          expect(typeof n.sectors.id).toBe("string");
           expect(typeof n.sectors.name).toBe("string");
-          expect(typeof n.sectors.newsCount).toBe("number");
-          expect(
-            typeof n.sectors.categoryType === "string" ||
-            n.sectors.categoryType == null ||
-            n.sectors.categoryType === undefined
-          ).toBe(true);
-          expect(
-            typeof n.sectors.meanType === "number" ||
-            n.sectors.meanType == null ||
-            n.sectors.meanType === undefined
-          ).toBe(true);
         }
 
         if (n.industries != null) {
+          expect(typeof n.industries.id).toBe("string");
           expect(typeof n.industries.name).toBe("string");
-          expect(typeof n.industries.meanType).toBe("number");
         }
 
         if (n.content != null) {
@@ -231,6 +271,7 @@ describe("NewsClient", () => {
       if (resp.items.length > 0) {
         const n = resp.items[0];
 
+        expect(typeof n.id).toBe("string");
         expect(typeof n.url).toBe("string");
         expect(typeof n.imageUrl).toBe("string");
         expect(typeof n.timestamp).toBe("string");
@@ -285,7 +326,7 @@ describe("NewsClient", () => {
 
     describe("getHighlights", () => {
       test("calls correct endpoint/params and matches raw response", async () => {
-        cli.request.mockResolvedValueOnce({ data: mockNewsHighlightsResponse });
+        cli.request.mockResolvedValueOnce({ data: mockNewsHighlightsPaginatedResponse });
 
         const resp = await client.getHighlights(Region.Tr, Locale.Tr);
 
@@ -296,13 +337,42 @@ describe("NewsClient", () => {
         expect(call.url).toBe("/api/v1/news/highlights");
         expect(call.params).toEqual({ region: Region.Tr, locale: Locale.Tr });
 
-        expect(resp.consumer).toEqual(mockNewsHighlightsResponse.consumer);
-        expect(resp.energyAndUtilities).toEqual(mockNewsHighlightsResponse.energyAndUtilities);
-        expect(resp.finance).toEqual(mockNewsHighlightsResponse.finance);
-        expect(resp.healthcare).toEqual(mockNewsHighlightsResponse.healthcare);
-        expect(resp.industrialsAndMaterials).toEqual(mockNewsHighlightsResponse.industrialsAndMaterials);
-        expect(resp.tech).toEqual(mockNewsHighlightsResponse.tech);
-        expect(resp.other).toEqual(mockNewsHighlightsResponse.other);
+        expect(resp.recordCount).toBe(2);
+        expect(resp.items).toHaveLength(2);
+        expect(resp.items[0].id).toBe("hl_1");
+        expect(resp.items[0].createdAt).toBe("2026-06-15T00:00:00Z");
+        expect(resp.items[0].tech).toEqual(mockNewsHighlightsResponse.tech);
+        expect(resp.items[0].consumer).toEqual(mockNewsHighlightsResponse.consumer);
+      });
+
+      test("sends from/to/skip/top when provided", async () => {
+        cli.request.mockResolvedValueOnce({ data: mockNewsHighlightsPaginatedResponse });
+
+        await client.getHighlights(Region.Us, Locale.Tr, {
+          from: "2026-06-01",
+          to: "2026-07-01",
+          skip: 0,
+          top: 20,
+        });
+
+        const call = cli.request.mock.calls[0][0];
+        expect(call.params).toEqual({
+          region: Region.Us,
+          locale: Locale.Tr,
+          from: "2026-06-01",
+          to: "2026-07-01",
+          skip: 0,
+          top: 20,
+        });
+      });
+
+      test("omits from/to/skip/top when not provided", async () => {
+        cli.request.mockResolvedValueOnce({ data: mockNewsHighlightsPaginatedResponse });
+
+        await client.getHighlights(Region.Us, Locale.Tr, {});
+
+        const call = cli.request.mock.calls[0][0];
+        expect(call.params).toEqual({ region: Region.Us, locale: Locale.Tr });
       });
 
       test("bubbles up request error", async () => {
@@ -352,20 +422,107 @@ describe("NewsClient", () => {
       });
     });
 
+    describe("getNewsLanes", () => {
+      test("calls correct endpoint and matches raw response", async () => {
+        cli.request.mockResolvedValueOnce({ data: mockNewsLanesResponse });
+
+        const resp = await client.getNewsLanes();
+
+        expect(cli.request).toHaveBeenCalledTimes(1);
+        const call = cli.request.mock.calls[0][0];
+
+        expect(call.method).toBe("GET");
+        expect(call.url).toBe("/api/v1/news/lanes");
+        expect(call.params).toEqual({});
+
+        expect(resp).toEqual(mockNewsLanesResponse);
+      });
+
+      test("sends region when provided", async () => {
+        cli.request.mockResolvedValueOnce({ data: mockNewsLanesResponse });
+
+        await client.getNewsLanes(Region.Us);
+
+        const call = cli.request.mock.calls[0][0];
+        expect(call.params).toEqual({ region: Region.Us });
+      });
+
+      test("bubbles up request error", async () => {
+        cli.request.mockRejectedValueOnce(new Error("Failed to fetch lanes"));
+
+        await expect(client.getNewsLanes()).rejects.toThrow(
+          "Failed to fetch lanes"
+        );
+
+        expect(cli.request).toHaveBeenCalledTimes(1);
+      });
+    });
+
+    describe("getApiSourceNames", () => {
+      const mockApiSourceNames = [
+        { id: "BBCBusiness", name: "BBC Business" },
+        { id: "MarketWatch", name: "MarketWatch" },
+        { id: "GazeteOksijen", name: "Gazete Oksijen" }
+      ];
+
+      test("calls correct endpoint and matches raw response", async () => {
+        cli.request.mockResolvedValueOnce({ data: mockApiSourceNames });
+
+        const resp = await client.getApiSourceNames();
+
+        expect(cli.request).toHaveBeenCalledTimes(1);
+        const call = cli.request.mock.calls[0][0];
+
+        expect(call.method).toBe("GET");
+        expect(call.url).toBe("/api/v1/news/api-source-names");
+        expect(call.params).toEqual({});
+
+        expect(resp).toEqual(mockApiSourceNames);
+      });
+
+      test("sends region and language when provided", async () => {
+        cli.request.mockResolvedValueOnce({ data: mockApiSourceNames });
+
+        await client.getApiSourceNames(Region.Us, Locale.Tr);
+
+        const call = cli.request.mock.calls[0][0];
+        expect(call.params).toEqual({ region: Region.Us, language: Locale.Tr });
+      });
+
+      test("bubbles up request error", async () => {
+        cli.request.mockRejectedValueOnce(
+          new Error("Failed to fetch api source names")
+        );
+
+        await expect(client.getApiSourceNames()).rejects.toThrow(
+          "Failed to fetch api source names"
+        );
+
+        expect(cli.request).toHaveBeenCalledTimes(1);
+      });
+    });
+
     describe("getNews", () => {
       test("calls correct endpoint/params and matches raw response", async () => {
         cli.request.mockResolvedValueOnce({ data: mockNewsResponse });
 
-        const resp = await client.getNews(
-          Region.Tr,
-          Locale.Tr,
-          NewsType.BRIEFS,
-          1,
-          10,
-          NewsOrderBy.TIMESTAMP,
-          SortDirection.Desc,
-          undefined
-        );
+        const resp = await client.getNews(Region.Tr, Locale.Tr, {
+          lane: NewsLane.BIST,
+          apiSource: "BBCBusiness,MarketWatch",
+          newsType: NewsType.BRIEFS,
+          page: 1,
+          size: 10,
+          orderBy: NewsOrderBy.TIMESTAMP,
+          orderByDirection: SortDirection.Desc,
+          symbols: "AAPL,MSFT",
+          categoryIds: "1,2",
+          sectorIds: "65533e047844ee7afe9941bf",
+          industryIds: "65533e441fa5c7b58afa0944",
+          qualityScoreMin: 7,
+          qualityScoreMax: 10,
+          timestampFrom: "2026-05-01",
+          timestampTo: "2026-06-01",
+        });
 
         expect(cli.request).toHaveBeenCalledTimes(1);
         const call = cli.request.mock.calls[0][0];
@@ -375,11 +532,21 @@ describe("NewsClient", () => {
         expect(call.params).toEqual({
           region: Region.Tr,
           locale: Locale.Tr,
+          lane: NewsLane.BIST,
+          apiSource: "BBCBusiness,MarketWatch",
           newsType: NewsType.BRIEFS,
           page: 1,
           size: 10,
           orderBy: NewsOrderBy.TIMESTAMP,
-          orderByDirection: SortDirection.Desc
+          orderByDirection: SortDirection.Desc,
+          symbols: "AAPL,MSFT",
+          categoryIds: "1,2",
+          sectorIds: "65533e047844ee7afe9941bf",
+          industryIds: "65533e441fa5c7b58afa0944",
+          qualityScoreMin: 7,
+          qualityScoreMax: 10,
+          timestampFrom: "2026-05-01",
+          timestampTo: "2026-06-01",
         });
 
         expect(resp.recordCount).toBe(352);
@@ -387,6 +554,7 @@ describe("NewsClient", () => {
 
         const n = resp.items[0];
 
+        expect(n.id).toBe(mockNewsResponse.items[0].id);
         expect(n.url).toBe(mockNewsResponse.items[0].url);
         expect(n.imageUrl).toBe(mockNewsResponse.items[0].imageUrl);
         expect(n.timestamp).toBe(mockNewsResponse.items[0].timestamp);
@@ -405,16 +573,15 @@ describe("NewsClient", () => {
         expect(n.tickers).toHaveLength(1);
         expect(n.tickers![0].symbol).toBe("EQT");
 
+        expect(n.categories?.id).toBe(mockNewsResponse.items[0].categories.id);
         expect(n.categories?.name).toBe(mockNewsResponse.items[0].categories.name);
-        expect(n.categories?.newsCount).toBe(mockNewsResponse.items[0].categories.newsCount);
         expect(n.categories?.categoryType).toBe(mockNewsResponse.items[0].categories.categoryType);
 
+        expect(n.sectors?.id).toBe(mockNewsResponse.items[0].sectors.id);
         expect(n.sectors?.name).toBe(mockNewsResponse.items[0].sectors.name);
-        expect(n.sectors?.newsCount).toBe(mockNewsResponse.items[0].sectors.newsCount);
-        expect(n.sectors?.meanType).toBe(mockNewsResponse.items[0].sectors.meanType);
 
+        expect(n.industries?.id).toBe(mockNewsResponse.items[0].industries.id);
         expect(n.industries?.name).toBe(mockNewsResponse.items[0].industries.name);
-        expect(n.industries?.meanType).toBe(mockNewsResponse.items[0].industries.meanType);
 
         expect(n.content?.title).toBe(mockNewsResponse.items[0].content.title);
         expect(n.content?.description).toBe(mockNewsResponse.items[0].content.description);
@@ -439,15 +606,13 @@ describe("NewsClient", () => {
         cli.request.mockRejectedValueOnce(new Error("Failed to fetch news"));
 
         await expect(
-          client.getNews(
-            Region.Tr,
-            Locale.Tr,
-            NewsType.REUTERS,
-            0,
-            10,
-            NewsOrderBy.TIMESTAMP,
-            SortDirection.Desc
-          )
+          client.getNews(Region.Tr, Locale.Tr, {
+            newsType: NewsType.REUTERS,
+            page: 0,
+            size: 10,
+            orderBy: NewsOrderBy.TIMESTAMP,
+            orderByDirection: SortDirection.Desc,
+          })
         ).rejects.toThrow("Failed to fetch news");
 
         expect(cli.request).toHaveBeenCalledTimes(1);
@@ -459,15 +624,17 @@ describe("NewsClient", () => {
         cli.request.mockResolvedValueOnce({ data: mockNewsV2Response });
 
         const resp = await client.getNewsV2(Region.Tr, Locale.Tr, {
+          lane: NewsLane.GLOBAL_MACRO,
+          apiSource: "BBCBusiness,MarketWatch",
           newsType: NewsType.BRIEFS,
           page: 1,
           size: 10,
           orderBy: NewsOrderBy.TIMESTAMP,
           orderByDirection: SortDirection.Desc,
           symbols: "AAPL,MSFT",
-          categories: "Sector News",
-          sectors: "Technology",
-          industries: "Software",
+          categoryIds: "1,2",
+          sectorIds: "65533e047844ee7afe9941bf",
+          industryIds: "65533e441fa5c7b58afa0944",
           qualityScoreMin: 7,
           qualityScoreMax: 10,
           timestampFrom: "2026-05-01",
@@ -482,15 +649,17 @@ describe("NewsClient", () => {
         expect(call.params).toEqual({
           region: Region.Tr,
           locale: Locale.Tr,
+          lane: NewsLane.GLOBAL_MACRO,
+          apiSource: "BBCBusiness,MarketWatch",
           newsType: NewsType.BRIEFS,
           page: 1,
           size: 10,
           orderBy: NewsOrderBy.TIMESTAMP,
           orderByDirection: SortDirection.Desc,
           symbols: "AAPL,MSFT",
-          categories: "Sector News",
-          sectors: "Technology",
-          industries: "Software",
+          categoryIds: "1,2",
+          sectorIds: "65533e047844ee7afe9941bf",
+          industryIds: "65533e441fa5c7b58afa0944",
           qualityScoreMin: 7,
           qualityScoreMax: 10,
           timestampFrom: "2026-05-01",
@@ -503,6 +672,7 @@ describe("NewsClient", () => {
         const n = resp.items[0];
 
         expect((n as any).relatedTickers).toBeUndefined();
+        expect(n.id).toBe(mockNewsV2Response.items[0].id);
         expect(n.url).toBe(mockNewsV2Response.items[0].url);
       });
 
@@ -587,7 +757,7 @@ describe("NewsClient", () => {
           data: mockAsyncIterator
         });
 
-        const { events, cancel } = client.streamNews(Region.Us, Locale.En, ["tech"], ["AAPL"], ["category"], ["software"]);
+        const { events, cancel } = client.streamNews(Region.Us, Locale.En, ["tech"], ["AAPL"], ["category"], ["software"], NewsLane.GLOBAL_MACRO, ["BBCBusiness"]);
 
         for await (const _ of events) {
           break;
@@ -595,7 +765,7 @@ describe("NewsClient", () => {
 
         expect(axiosGetSpy).toHaveBeenCalledTimes(1);
         const callArgs = axiosGetSpy.mock.calls[0];
-        expect(callArgs[0]).toBe(`${client["baseUrl"]}/api/v1/news/stream?locale=en&region=us&sectors=tech&tickers=AAPL&categories=category&industries=software`);
+        expect(callArgs[0]).toBe(`${client["baseUrl"]}/api/v1/news/stream?locale=en&region=us&lane=global_macro&apiSource=BBCBusiness&sectorIds=tech&symbols=AAPL&categoryIds=category&industryIds=software`);
 
         cancel();
         axiosGetSpy.mockRestore();
