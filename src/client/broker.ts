@@ -11,6 +11,7 @@ export enum BrokerSort {
   TotalBuyVolume = "totalBuyVolume",
   TotalSellAmount = "totalSellAmount",
   TotalSellVolume = "totalSellVolume",
+  NetVolume = "netVolume",
 }
 
 export enum SortDirection {

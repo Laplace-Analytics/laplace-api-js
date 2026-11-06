@@ -528,6 +528,22 @@ describe("BrokerClient", () => {
         expect(item.totalSellAmount).toBe(3750000.0);
         expect(item.totalSellVolume).toBe(100000);
       });
+
+      test("should send netVolume as the sortBy param", async () => {
+        cli.request.mockResolvedValueOnce({ data: fxGetMarketBrokers });
+
+        await brokerClient.getMarketBrokers(
+          region,
+          BrokerSort.NetVolume,
+          SortDirection.Desc,
+          fromDate,
+          toDate,
+          size,
+          page
+        );
+
+        expect(cli.request.mock.calls[0][0].params.sortBy).toBe("netVolume");
+      });
     });
   
     describe("getMarketStocks", () => {
