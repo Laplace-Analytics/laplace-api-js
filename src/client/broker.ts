@@ -44,6 +44,7 @@ export interface BrokerStats {
   netAmount: number;
   totalBuyVolume: number;
   totalSellVolume: number;
+  netVolume: number;
   totalVolume: number;
   totalAmount: number;
   averageCost?: number;
