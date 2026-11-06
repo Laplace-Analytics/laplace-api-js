@@ -11,6 +11,7 @@ export enum BrokerSort {
   TotalBuyVolume = "totalBuyVolume",
   TotalSellAmount = "totalSellAmount",
   TotalSellVolume = "totalSellVolume",
+  NetVolume = "netVolume",
 }
 
 export enum SortDirection {
@@ -43,6 +44,7 @@ export interface BrokerStats {
   netAmount: number;
   totalBuyVolume: number;
   totalSellVolume: number;
+  netVolume: number;
   totalVolume: number;
   totalAmount: number;
   averageCost?: number;
