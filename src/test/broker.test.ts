@@ -34,6 +34,7 @@ const fxGetMarketBrokers = {
       totalBuyVolume: 100000,
       totalSellAmount: 3750000.0,
       totalSellVolume: 100000,
+      netVolume: 0,
     },
   ],
   totalStats: {
@@ -44,6 +45,7 @@ const fxGetMarketBrokers = {
     totalBuyVolume: 175000,
     totalSellAmount: 6750000.0,
     totalSellVolume: 175000,
+    netVolume: 0,
   },
 };
 
@@ -510,6 +512,7 @@ describe("BrokerClient", () => {
         expect(res.totalStats.totalBuyVolume).toBe(175000);
         expect(res.totalStats.totalSellAmount).toBe(6750000.0);
         expect(res.totalStats.totalSellVolume).toBe(175000);
+        expect(res.totalStats.netVolume).toBe(0);
   
         const item = res.items[0];
         expect(item.broker?.id).toBe(1);
@@ -527,6 +530,23 @@ describe("BrokerClient", () => {
         expect(item.totalBuyVolume).toBe(100000);
         expect(item.totalSellAmount).toBe(3750000.0);
         expect(item.totalSellVolume).toBe(100000);
+        expect(item.netVolume).toBe(0);
+      });
+
+      test("should send netVolume as the sortBy param", async () => {
+        cli.request.mockResolvedValueOnce({ data: fxGetMarketBrokers });
+
+        await brokerClient.getMarketBrokers(
+          region,
+          BrokerSort.NetVolume,
+          SortDirection.Desc,
+          fromDate,
+          toDate,
+          size,
+          page
+        );
+
+        expect(cli.request.mock.calls[0][0].params.sortBy).toBe("netVolume");
       });
     });
   
