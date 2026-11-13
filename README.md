@@ -388,6 +388,81 @@ await client.deleteCustomTheme(id);
 const insights = await client.getKeyInsights("AAPL", "us");
 ```
 
+### News Client
+
+`getNewsV2` takes every `/v2/news` filter and returns a `NewsV2Page`, which has the same `recordCount` / `items` as before plus `nextCursor` and `publisherCap`. List filters take arrays, and enum members and plain strings can be mixed. Filters you don't set aren't sent.
+
+```typescript
+import { NewsEventType, NewsOrderBy, NewsTickerRelevance } from "laplace-api-js";
+
+// News about one company: drop table-only mentions and market wraps,
+// cap any publisher at 25% of the result and show each story once.
+const page = await newsClient.getNewsV2(Region.Tr, Locale.Tr, {
+  symbols: "THYAO",
+  tickerRelevance: [NewsTickerRelevance.PRIMARY, NewsTickerRelevance.MENTIONED],
+  excludeListArticles: true,
+  collapseClusters: true,
+  maxPublisherShare: 25,
+  eventTypes: [NewsEventType.FINANCIAL_RESULTS, NewsEventType.DIVIDEND],
+  orderByFields: [
+    [NewsOrderBy.QUALITY_SCORE_V2, SortDirection.Desc],
+    [NewsOrderBy.PUBLISHED_AT, SortDirection.Desc],
+  ],
+  size: 50, // any value from 1 to 100
+});
+for (const n of page.items) {
+  console.log(n.primaryTicker, n.content?.title, n.eventType?.name, n.clusterSize);
+}
+```
+
+```typescript
+// Cursor paging: iterateNewsV2 follows nextCursor until the last page and
+// sends includeTotal=false. It takes the same options as getNewsV2, except page.
+for await (const n of newsClient.iterateNewsV2(Region.Tr, Locale.Tr, {
+  symbols: "THYAO",
+  size: 100,
+  publishedFrom: "2026-11-01",
+})) {
+  handle(n);
+}
+```
+
+```typescript
+// Incremental sync: upsert by id, then store the largest updatedAt minus
+// 5 minutes as the next updatedSince. qualityScoreMin: 0 makes articles whose
+// score is later lowered still arrive as updates.
+let latest = 0;
+for await (const n of newsClient.iterateNewsV2(Region.Tr, Locale.Tr, {
+  updatedSince: lastSync,
+  qualityScoreMin: 0,
+  size: 100,
+})) {
+  await store.upsert(n.id, n);
+  if (n.updatedAt) latest = Math.max(latest, Date.parse(n.updatedAt));
+}
+if (latest) lastSync = new Date(latest - 5 * 60_000).toISOString();
+```
+
+`recordCount` is `null` when `includeTotal: false` (and in `iterateNewsV2`). `publishedAt` and `contentUpdatedAt` are `null` when unknown. `timestamp`, `timestampFrom` and `timestampTo` are deprecated: use `publishedAt` and `publishedFrom` / `publishedTo`.
+
+The API rejects unknown values with a `400`, thrown as `LaplaceHTTPError`. Its `message` carries the API's response body.
+
+```typescript
+// Lookups
+const eventTypes = await newsClient.getNewsEventTypes(Locale.Tr);
+const categories = await newsClient.getNewsCategories(Locale.Tr); // ids for categoryIds
+const lanes = await newsClient.getNewsLanes(Region.Tr);
+
+// Live news; the content filters go in the last argument
+const { events, cancel } = newsClient.streamNews(
+  Region.Tr, Locale.Tr, undefined, ["THYAO", "GARAN"], undefined, undefined, undefined, undefined,
+  { excludeListArticles: true, eventTypes: [NewsEventType.FINANCIAL_RESULTS] }
+);
+for await (const items of events) {
+  for (const n of items) console.log(n.primaryTicker, n.publishedAt);
+}
+```
+
 ## Supported Regions
 
 - **US**: United States stock market
