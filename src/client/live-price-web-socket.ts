@@ -94,6 +94,15 @@ export class WebSocketError extends Error {
   }
 }
 
+export enum WebSocketServerErrorCode {
+  ConnectionExpired = "connection_expired",
+}
+
+export interface WebSocketServerError {
+  errorCode?: WebSocketServerErrorCode | string;
+  message: string;
+}
+
 export class LivePriceWebSocketClient {
   private ws: WebSocket | null = null;
   private subscriptionCounter = 0;
@@ -109,6 +118,7 @@ export class LivePriceWebSocketClient {
     LastDataKey,
     BISTStockLiveData | USStockLiveData | OrderbookLiveData
   >();
+  private errorHandlers = new Set<(error: WebSocketServerError) => void>();
   private getLastDataKey(symbol: string, feed: LivePriceFeed): LastDataKey {
     return `${symbol}:${feed}`;
   }
@@ -331,6 +341,9 @@ export class LivePriceWebSocketClient {
               return;
             case "error":
               this.log(`Received error: ${rawData.message}`, "error");
+              this.errorHandlers.forEach((handler) =>
+                handler({ errorCode: rawData.errorCode, message: rawData.message })
+              );
               return;
             case "warning":
               this.log(`Received warning: ${rawData.message}`, "warn");
@@ -378,7 +391,7 @@ export class LivePriceWebSocketClient {
 
     this.reconnectTimeout = setTimeout(async () => {
       try {
-        await this.connect(url);
+        await this.connect(this.wsUrl ?? url);
 
         this.isClosed = false;
 
@@ -415,6 +428,17 @@ export class LivePriceWebSocketClient {
     if (typeof process !== "undefined") {
       this.reconnectTimeout.unref();
     }
+  }
+
+  onError(handler: (error: WebSocketServerError) => void): () => void {
+    this.errorHandlers.add(handler);
+    return () => {
+      this.errorHandlers.delete(handler);
+    };
+  }
+
+  setUrl(url: string): void {
+    this.wsUrl = url;
   }
 
   subscribe<F extends LivePriceFeed>(
