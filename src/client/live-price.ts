@@ -68,8 +68,9 @@ export enum PriceDataType {
   Bids = "bids",
 }
 
-interface WebSocketUrlResponse {
+export interface WebSocketUrlResponse {
   url: string;
+  expiresAt: Date;
 }
 
 interface WebSocketUsageResponse {
@@ -304,14 +305,14 @@ export class LivePriceClient extends Client {
   async getClientWebsocketUrl(
     externalUserId: string,
     feeds: LivePriceFeed[]
-  ): Promise<string> {
-    const response = await this.sendRequest<WebSocketUrlResponse>({
+  ): Promise<WebSocketUrlResponse> {
+    const response = await this.sendRequest<{ url: string; expiresAt: string }>({
       method: "POST",
       url: "/api/v2/ws/url",
       data: { externalUserId, feeds },
     });
 
-    return response.url;
+    return { url: response.url, expiresAt: new Date(response.expiresAt) };
   }
 
   async getWebsocketUsageForMonth(
