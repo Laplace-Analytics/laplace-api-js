@@ -483,8 +483,9 @@ describe("LivePrice", () => {
       "should return a websocket url string",
       async () => {
         const resp = await client.getClientWebsocketUrl("test-integration-user", [LivePriceFeed.LiveBist]);
-        expect(typeof resp).toBe("string");
-        expect(resp.length).toBeGreaterThan(0);
+        expect(typeof resp.url).toBe("string");
+        expect(resp.url.length).toBeGreaterThan(0);
+        expect(resp.expiresAt.getTime()).toBeGreaterThan(Date.now());
       },
       TEST_CONSTANTS.JEST_TIMEOUT
     );
@@ -522,8 +523,10 @@ describe("LivePrice", () => {
     });
 
     describe("getClientWebsocketUrl", () => {
-      test("calls correct endpoint, sends correct body, and returns url string", async () => {
-        cli.request.mockResolvedValueOnce({ data: { url: "wss://example.com/ws" } });
+      test("calls correct endpoint, sends correct body, and returns url with expiry", async () => {
+        cli.request.mockResolvedValueOnce({
+          data: { url: "wss://example.com/ws", expiresAt: "2026-11-17T15:00:00+03:00" },
+        });
 
         const resp = await mockClient.getClientWebsocketUrl("user123", [LivePriceFeed.LiveBist, LivePriceFeed.LiveUs]);
 
@@ -532,7 +535,10 @@ describe("LivePrice", () => {
         expect(call.method).toBe("POST");
         expect(call.url).toBe("/api/v2/ws/url");
         expect(call.data).toEqual({ externalUserId: "user123", feeds: [LivePriceFeed.LiveBist, LivePriceFeed.LiveUs] });
-        expect(resp).toBe("wss://example.com/ws");
+        expect(resp).toEqual({
+          url: "wss://example.com/ws",
+          expiresAt: new Date("2026-11-17T12:00:00Z"),
+        });
       });
 
       test("bubbles up request error", async () => {

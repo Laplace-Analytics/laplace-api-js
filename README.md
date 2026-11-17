@@ -293,8 +293,9 @@ const results = await client.search(
 // Initialize LivePriceClient for server side use
 const livePriceClient = new LivePriceClient(config, logger);
 
-// Retrieve a websocket connection URL for the client, pass the URL to the client
-const wsURL = await livePriceClient.getClientWebsocketUrl('external-user-id', [LivePriceFeed.LiveBist])
+// Retrieve a websocket connection URL for the client, pass the URL to the client.
+// The link stops working at expiresAt; request a new one before then.
+const { url: wsURL, expiresAt } = await livePriceClient.getClientWebsocketUrl('external-user-id', [LivePriceFeed.LiveBist])
 
 // Client Side
 // Client side retrieves the websocket connection URL from the server as wsURL
