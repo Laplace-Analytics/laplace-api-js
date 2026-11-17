@@ -313,6 +313,16 @@ const unsubscribe = webSocketClient.subscribe(
   }
 );
 
+// Links are valid for a day. On an expired link the server sends an error with
+// a code; request a new link from your server and pass it to reconnectWithUrl().
+// The client reconnects with the new link (closing the current connection if it
+// is still open) and resends your subscriptions.
+const removeErrorHandler = webSocketClient.onError(async ({ errorCode }) => {
+  if (errorCode === WebSocketServerErrorCode.ConnectionExpired) {
+    webSocketClient.reconnectWithUrl(await requestNewWebsocketUrlFromYourServer());
+  }
+});
+
 // Close connection
 await webSocketClient.close();
 
