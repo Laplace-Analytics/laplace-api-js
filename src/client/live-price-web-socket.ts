@@ -94,6 +94,15 @@ export class WebSocketError extends Error {
   }
 }
 
+export enum WebSocketServerErrorCode {
+  ConnectionExpired = "connection_expired",
+}
+
+export interface WebSocketServerError {
+  errorCode?: WebSocketServerErrorCode | string;
+  message: string;
+}
+
 export class LivePriceWebSocketClient {
   private ws: WebSocket | null = null;
   private subscriptionCounter = 0;
@@ -109,6 +118,7 @@ export class LivePriceWebSocketClient {
     LastDataKey,
     BISTStockLiveData | USStockLiveData | OrderbookLiveData
   >();
+  private errorHandlers = new Set<(error: WebSocketServerError) => void>();
   private getLastDataKey(symbol: string, feed: LivePriceFeed): LastDataKey {
     return `${symbol}:${feed}`;
   }
@@ -146,11 +156,9 @@ export class LivePriceWebSocketClient {
     this.inactivityCheckInterval = setInterval(async () => {
       if (Date.now() - this.lastMessageTimestamp >= this.INACTIVITY_TIMEOUT) {
         this.stopInactivityInterval();
-        try {
-          this.attemptReconnect();
-        } catch (error) {
-          this.log(`Failed to reconnect: ${error}`, "error");
-        }
+        this.attemptReconnect().catch((error) =>
+          this.log(`Failed to reconnect: ${error}`, "error")
+        );
       }
     }, this.INACTIVITY_TIMEOUT);
   }
@@ -195,6 +203,7 @@ export class LivePriceWebSocketClient {
     this.wsUrl = url;
 
     if (!this.ws || this.ws.readyState === WebSocket.CLOSED) {
+      this.closedReason = null;
       this.ws = new WebSocket(this.wsUrl);
       this.connectPromise = this.setupWebSocket();
 
@@ -246,9 +255,7 @@ export class LivePriceWebSocketClient {
 
         this.stopInactivityInterval();
         if (this.closedReason !== WebSocketCloseReason.NORMAL_CLOSURE) {
-          try {
-            this.attemptReconnect();
-          } catch (error) {
+          this.attemptReconnect().catch((error) => {
             if (error instanceof WebSocketError) {
               switch (error.code) {
                 case WebSocketErrorType.MAX_RECONNECT_EXCEEDED:
@@ -267,7 +274,7 @@ export class LivePriceWebSocketClient {
               this.closedReason = WebSocketCloseReason.UNKNOWN;
             }
             this.log(`Failed to reconnect: ${error}`, "error");
-          }
+          });
         }
       };
 
@@ -323,7 +330,7 @@ export class LivePriceWebSocketClient {
                   priceData.symbol,
                   feed
                 );
-                handlers.forEach((handler) => handler(priceData));
+                handlers.forEach((handler) => this.callHandler(handler, priceData));
               }
               break;
             case "heartbeat":
@@ -331,6 +338,12 @@ export class LivePriceWebSocketClient {
               return;
             case "error":
               this.log(`Received error: ${rawData.message}`, "error");
+              this.errorHandlers.forEach((handler) =>
+                this.callHandler(handler, {
+                  errorCode: rawData.errorCode,
+                  message: rawData.message,
+                })
+              );
               return;
             case "warning":
               this.log(`Received warning: ${rawData.message}`, "warn");
@@ -377,8 +390,9 @@ export class LivePriceWebSocketClient {
     }
 
     this.reconnectTimeout = setTimeout(async () => {
+      this.reconnectTimeout = null;
       try {
-        await this.connect(url);
+        await this.connect(this.wsUrl ?? url);
 
         this.isClosed = false;
 
@@ -408,12 +422,47 @@ export class LivePriceWebSocketClient {
         }
         this.reconnectAttempts = 0;
       } catch (error) {
-        this.attemptReconnect();
+        this.attemptReconnect().catch((error) =>
+          this.log(`Failed to reconnect: ${error}`, "error")
+        );
       }
     }, delay);
 
     if (typeof process !== "undefined") {
       this.reconnectTimeout.unref();
+    }
+  }
+
+  onError(handler: (error: WebSocketServerError) => void): () => void {
+    this.errorHandlers.add(handler);
+    return () => {
+      this.errorHandlers.delete(handler);
+    };
+  }
+
+  private callHandler<T>(handler: (arg: T) => unknown, arg: T): void {
+    try {
+      const result = handler(arg);
+      if (result instanceof Promise) {
+        result.catch((error) => this.log(`Handler failed: ${error}`, "error"));
+      }
+    } catch (error) {
+      this.log(`Handler failed: ${error}`, "error");
+    }
+  }
+
+  reconnectWithUrl(url: string): void {
+    this.wsUrl = url;
+    if (!this.ws || this.reconnectTimeout) {
+      return;
+    }
+    if (this.ws.readyState === WebSocket.OPEN) {
+      this.ws.close();
+    } else if (this.ws.readyState === WebSocket.CLOSED) {
+      this.reconnectAttempts = 0;
+      this.attemptReconnect().catch((error) =>
+        this.log(`Failed to reconnect: ${error}`, "error")
+      );
     }
   }
 
@@ -448,7 +497,7 @@ export class LivePriceWebSocketClient {
           | undefined = this.symbolLastData.get(lastDataKey);
           
         if (lastData) {
-          typedHandler(lastData);
+          this.callHandler(typedHandler, lastData);
         }
       }
     }
