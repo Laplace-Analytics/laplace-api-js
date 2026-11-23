@@ -132,6 +132,8 @@ export class LivePriceWebSocketClient {
   private lastMessageTimestamp: number = 0;
   private inactivityCheckInterval: NodeJS.Timeout | null = null;
   private readonly INACTIVITY_TIMEOUT = 15000;
+  private listeningToPageLifecycle = false;
+  private suspendedOnPageHide = false;
 
   constructor(
     options: WebSocketOptions = {}
@@ -201,6 +203,7 @@ export class LivePriceWebSocketClient {
     this.log("Connecting to WebSocket...");
 
     this.wsUrl = url;
+    this.listenToPageLifecycle();
 
     if (!this.ws || this.ws.readyState === WebSocket.CLOSED) {
       this.closedReason = null;
@@ -213,6 +216,68 @@ export class LivePriceWebSocketClient {
     }
 
     return this.ws;
+  }
+
+  private readonly handlePageHide = () => {
+    this.suspendOnPageHide();
+  };
+
+  private readonly handlePageShow = (event: PageTransitionEvent) => {
+    if (event.persisted && this.suspendedOnPageHide) this.resumeFromPageCache();
+  };
+
+  private listenToPageLifecycle() {
+    if (this.listeningToPageLifecycle || typeof window === "undefined") return;
+    window.addEventListener("pagehide", this.handlePageHide);
+    window.addEventListener("pageshow", this.handlePageShow);
+    this.listeningToPageLifecycle = true;
+  }
+
+  private stopListeningToPageLifecycle() {
+    if (!this.listeningToPageLifecycle) return;
+    window.removeEventListener("pagehide", this.handlePageHide);
+    window.removeEventListener("pageshow", this.handlePageShow);
+    this.listeningToPageLifecycle = false;
+  }
+
+  private suspendOnPageHide() {
+    if (!this.ws || this.ws.readyState === WebSocket.CONNECTING) return;
+
+    this.suspendedOnPageHide = true;
+    this.stopInactivityInterval();
+    if (this.reconnectTimeout) {
+      clearTimeout(this.reconnectTimeout);
+      this.reconnectTimeout = null;
+    }
+
+    // Detached first, so its close event, possibly delivered only once the
+    // page is restored, cannot start a reconnect of its own.
+    const ws = this.ws;
+    this.ws = null;
+    ws.onopen = null;
+    ws.onclose = null;
+    ws.onerror = null;
+    ws.onmessage = null;
+    if (ws.readyState === WebSocket.OPEN) {
+      ws.close();
+    }
+    this.isClosed = true;
+  }
+
+  private resumeFromPageCache() {
+    this.suspendedOnPageHide = false;
+    if (!this.wsUrl) return;
+
+    this.reconnectAttempts = 0;
+    this.connect(this.wsUrl)
+      .then(() => {
+        this.isClosed = false;
+        this.resubscribeAll();
+      })
+      // A failed attempt also closes the socket, and its close handler retries.
+      .catch((error) =>
+        this.log(`Failed to reconnect after the page was restored: ${error}`, "error")
+      );
   }
 
   private async setupWebSocket(): Promise<void> {
@@ -395,26 +460,7 @@ export class LivePriceWebSocketClient {
         await this.connect(this.wsUrl ?? url);
 
         this.isClosed = false;
-
-        const symbolsByFeed = new Map<LivePriceFeed, string[]>();
-
-        this.subscriptions.forEach((subscription) => {
-          const { symbols, feed } = subscription;
-          if (!symbolsByFeed.has(feed)) {
-            symbolsByFeed.set(feed, []);
-          }
-          symbols.forEach((symbol) => {
-            const currentSymbols = symbolsByFeed.get(feed) || [];
-            if (!currentSymbols.includes(symbol)) {
-              currentSymbols.push(symbol);
-              symbolsByFeed.set(feed, currentSymbols);
-            }
-          });
-        });
-
-        symbolsByFeed.forEach((symbols, feed) => {
-          this.addSymbols(symbols, feed);
-        });
+        this.resubscribeAll();
 
         if (this.reconnectTimeout) {
           clearTimeout(this.reconnectTimeout);
@@ -431,6 +477,28 @@ export class LivePriceWebSocketClient {
     if (typeof process !== "undefined") {
       this.reconnectTimeout.unref();
     }
+  }
+
+  private resubscribeAll() {
+    const symbolsByFeed = new Map<LivePriceFeed, string[]>();
+
+    this.subscriptions.forEach((subscription) => {
+      const { symbols, feed } = subscription;
+      if (!symbolsByFeed.has(feed)) {
+        symbolsByFeed.set(feed, []);
+      }
+      symbols.forEach((symbol) => {
+        const currentSymbols = symbolsByFeed.get(feed) || [];
+        if (!currentSymbols.includes(symbol)) {
+          currentSymbols.push(symbol);
+          symbolsByFeed.set(feed, currentSymbols);
+        }
+      });
+    });
+
+    symbolsByFeed.forEach((symbols, feed) => {
+      this.addSymbols(symbols, feed);
+    });
   }
 
   onError(handler: (error: WebSocketServerError) => void): () => void {
@@ -632,6 +700,8 @@ export class LivePriceWebSocketClient {
       }
       this.ws = null;
       this.subscriptions.clear();
+      this.stopListeningToPageLifecycle();
+      this.suspendedOnPageHide = false;
     }
   }
 
