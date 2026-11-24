@@ -241,7 +241,7 @@ export class LivePriceWebSocketClient {
   }
 
   private suspendOnPageHide() {
-    if (!this.ws || this.ws.readyState === WebSocket.CONNECTING) return;
+    if (!this.ws) return;
 
     this.suspendedOnPageHide = true;
     this.stopInactivityInterval();
@@ -258,7 +258,11 @@ export class LivePriceWebSocketClient {
     ws.onclose = null;
     ws.onerror = null;
     ws.onmessage = null;
-    if (ws.readyState === WebSocket.OPEN) {
+    // A socket still connecting is closed too, or its handshake can finish
+    // while the page is cached. A connect() waiting on it is left pending, not
+    // rejected: callers drop a client whose connect() rejects, while this one
+    // reconnects by itself when the page is restored.
+    if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
       ws.close();
     }
     this.isClosed = true;

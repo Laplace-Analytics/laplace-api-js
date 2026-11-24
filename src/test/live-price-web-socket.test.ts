@@ -299,6 +299,32 @@ describe("LivePriceWebSocketClient", () => {
       expect(FakeWebSocket.sockets).toHaveLength(2);
     });
 
+    it("closes a socket that is still connecting and connects once again when restored", async () => {
+      let connectSettled = false;
+      client.connect("wss://link").then(
+        () => (connectSettled = true),
+        () => (connectSettled = true)
+      );
+      client.subscribe(["THYAO"], LivePriceFeed.LiveBist, () => {});
+
+      window.dispatchEvent(pageEvent("pagehide", true));
+      await jest.advanceTimersByTimeAsync(60000);
+
+      expect(FakeWebSocket.sockets[0].readyState).toBe(FakeWebSocket.CLOSED);
+      expect(FakeWebSocket.sockets).toHaveLength(1);
+      expect(connectSettled).toBe(false);
+
+      window.dispatchEvent(pageEvent("pageshow", true));
+      const reconnected = FakeWebSocket.sockets[1];
+      reconnected.open();
+      await jest.advanceTimersByTimeAsync(0);
+
+      expect(FakeWebSocket.sockets).toHaveLength(2);
+      expect(reconnected.sent).toEqual([
+        { type: "subscribe", symbols: ["THYAO"], feed: LivePriceFeed.LiveBist },
+      ]);
+    });
+
     it("closes the socket on pagehide even when the page is not going to be cached", async () => {
       await connect("wss://link");
 
