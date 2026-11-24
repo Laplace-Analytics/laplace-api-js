@@ -244,4 +244,103 @@ describe("LivePriceWebSocketClient", () => {
       });
     });
   });
+
+  describe("back/forward cache", () => {
+    const pageEvent = (type: "pagehide" | "pageshow", persisted: boolean) =>
+      Object.assign(new Event(type), { persisted });
+
+    beforeEach(() => {
+      (global as any).window = new EventTarget();
+    });
+
+    afterEach(async () => {
+      await client.close();
+      delete (global as any).window;
+    });
+
+    it("closes the socket when the page is cached and keeps it closed while cached", async () => {
+      await connect("wss://link");
+      client.subscribe(["THYAO"], LivePriceFeed.LiveBist, () => {});
+
+      window.dispatchEvent(pageEvent("pagehide", true));
+      await jest.advanceTimersByTimeAsync(60000);
+
+      expect(FakeWebSocket.sockets[0].readyState).toBe(FakeWebSocket.CLOSED);
+      expect(FakeWebSocket.sockets).toHaveLength(1);
+    });
+
+    it("reconnects and resends subscriptions when the page is restored", async () => {
+      await connect("wss://link");
+      client.subscribe(["THYAO"], LivePriceFeed.LiveBist, () => {});
+      window.dispatchEvent(pageEvent("pagehide", true));
+
+      window.dispatchEvent(pageEvent("pageshow", true));
+
+      const reconnected = FakeWebSocket.sockets[1];
+      expect(reconnected.url).toBe("wss://link");
+      reconnected.open();
+      await jest.advanceTimersByTimeAsync(0);
+      expect(reconnected.sent).toContainEqual({
+        type: "subscribe",
+        symbols: ["THYAO"],
+        feed: LivePriceFeed.LiveBist,
+      });
+    });
+
+    it("holds a pending reconnect while cached and reconnects when restored", async () => {
+      await connect("wss://link");
+      FakeWebSocket.sockets[0].close();
+
+      window.dispatchEvent(pageEvent("pagehide", true));
+      await jest.advanceTimersByTimeAsync(60000);
+      expect(FakeWebSocket.sockets).toHaveLength(1);
+
+      window.dispatchEvent(pageEvent("pageshow", true));
+      expect(FakeWebSocket.sockets).toHaveLength(2);
+    });
+
+    it("closes a socket that is still connecting and connects once again when restored", async () => {
+      let connectSettled = false;
+      client.connect("wss://link").then(
+        () => (connectSettled = true),
+        () => (connectSettled = true)
+      );
+      client.subscribe(["THYAO"], LivePriceFeed.LiveBist, () => {});
+
+      window.dispatchEvent(pageEvent("pagehide", true));
+      await jest.advanceTimersByTimeAsync(60000);
+
+      expect(FakeWebSocket.sockets[0].readyState).toBe(FakeWebSocket.CLOSED);
+      expect(FakeWebSocket.sockets).toHaveLength(1);
+      expect(connectSettled).toBe(false);
+
+      window.dispatchEvent(pageEvent("pageshow", true));
+      const reconnected = FakeWebSocket.sockets[1];
+      reconnected.open();
+      await jest.advanceTimersByTimeAsync(0);
+
+      expect(FakeWebSocket.sockets).toHaveLength(2);
+      expect(reconnected.sent).toEqual([
+        { type: "subscribe", symbols: ["THYAO"], feed: LivePriceFeed.LiveBist },
+      ]);
+    });
+
+    it("closes the socket on pagehide even when the page is not going to be cached", async () => {
+      await connect("wss://link");
+
+      window.dispatchEvent(pageEvent("pagehide", false));
+
+      expect(FakeWebSocket.sockets[0].readyState).toBe(FakeWebSocket.CLOSED);
+    });
+
+    it("does not reconnect on restore once the client was closed", async () => {
+      await connect("wss://link");
+      window.dispatchEvent(pageEvent("pagehide", true));
+      await client.close();
+
+      window.dispatchEvent(pageEvent("pageshow", true));
+
+      expect(FakeWebSocket.sockets).toHaveLength(1);
+    });
+  });
 });
